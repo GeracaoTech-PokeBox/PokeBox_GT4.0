@@ -5,8 +5,9 @@ import {
   useState,
 } from 'react';
 import PropTypes from 'prop-types';
+import FiltrosPokemons from '../components/FiltrosPokemons';
 import PokemonCard from '../components/PokemonCard';
-import { buscarPokemon, listarPokemons } from '../services/pokeapi';
+import { buscarFiltro, buscarPokemon, listarPokemons } from '../services/pokeapi';
 import './Pokemons.css';
 
 // Quantos cards são carregados por vez ao rolar a página
@@ -22,6 +23,17 @@ function filtrarPokemons(pokemons, busca) {
   );
 }
 
+// Mantém só quem aparece em todos os filtros ativos
+function aplicarFiltros(pokemons, conjuntos) {
+  if (conjuntos.length === 0) return pokemons;
+
+  return pokemons.filter((pokemon) => conjuntos.every(({ alvo, ids }) => (
+    ids.has(alvo === 'pokemon' ? pokemon.id : pokemon.especieId)
+  )));
+}
+
+const chaveFiltro = (recurso, nome) => `${recurso}/${nome}`;
+
 function Pokemons({ usuario, onMeusPokemons, onSair }) {
   const [lista, setLista] = useState(null);
   const [erroLista, setErroLista] = useState(null);
@@ -29,6 +41,10 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
   // id -> dados do Pokémon, ou false quando a requisição falhou
   const [detalhes, setDetalhes] = useState({});
   const [busca, setBusca] = useState('');
+  // recurso -> opção escolhida (ex.: { type: 'fire' }); filtro sem opção não entra aqui
+  const [filtros, setFiltros] = useState({});
+  // "recurso/nome" -> { alvo, ids }, ou false quando a requisição falhou
+  const [conjuntos, setConjuntos] = useState({});
   const [quantidade, setQuantidade] = useState(PAGINA);
   const sentinelaRef = useRef(null);
 
@@ -46,10 +62,38 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
     };
   }, [tentativa]);
 
-  const filtrados = useMemo(
-    () => (lista ? filtrarPokemons(lista, busca) : []),
-    [lista, busca],
-  );
+  // Busca na PokeAPI quem passa em cada filtro escolhido
+  useEffect(() => {
+    let ativo = true;
+    Object.entries(filtros).forEach(([recurso, nome]) => {
+      const chave = chaveFiltro(recurso, nome);
+      buscarFiltro(recurso, nome)
+        .then((conjunto) => conjunto, () => false)
+        .then((resultado) => {
+          if (ativo) setConjuntos((atual) => ({ ...atual, [chave]: resultado }));
+        });
+    });
+    return () => {
+      ativo = false;
+    };
+  }, [filtros]);
+
+  const { filtrados, erroFiltro, aplicandoFiltros } = useMemo(() => {
+    const ativos = Object.entries(filtros).map(
+      ([recurso, nome]) => conjuntos[chaveFiltro(recurso, nome)],
+    );
+    const erro = ativos.includes(false);
+    const aplicando = ativos.includes(undefined);
+
+    if (!lista || erro || aplicando) {
+      return { filtrados: [], erroFiltro: erro, aplicandoFiltros: aplicando };
+    }
+    return {
+      filtrados: aplicarFiltros(filtrarPokemons(lista, busca), ativos),
+      erroFiltro: false,
+      aplicandoFiltros: false,
+    };
+  }, [lista, busca, filtros, conjuntos]);
   const visiveis = useMemo(() => filtrados.slice(0, quantidade), [filtrados, quantidade]);
   const temMais = visiveis.length < filtrados.length;
 
@@ -87,6 +131,48 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
   const handleBusca = (e) => {
     setBusca(e.target.value);
     setQuantidade(PAGINA);
+  };
+
+  const handleAlterarFiltro = (recurso, nome) => {
+    setFiltros((atual) => {
+      const novos = { ...atual };
+      if (nome) {
+        novos[recurso] = nome;
+      } else {
+        delete novos[recurso];
+      }
+      return novos;
+    });
+    setQuantidade(PAGINA);
+  };
+
+  const handleLimparFiltros = () => {
+    setFiltros({});
+    setQuantidade(PAGINA);
+  };
+
+  const renderVazio = () => {
+    if (erroFiltro) {
+      return (
+        <p className="pokemons-status" role="alert">
+          Não foi possível aplicar os filtros. Tente escolher de novo.
+        </p>
+      );
+    }
+    if (aplicandoFiltros) {
+      return (
+        <p className="pokemons-status" aria-busy="true">
+          Aplicando filtros...
+        </p>
+      );
+    }
+    return (
+      <p className="pokemons-status">
+        {busca.trim()
+          ? `Nenhum Pokémon encontrado para "${busca.trim()}" com esses filtros.`
+          : 'Nenhum Pokémon encontrado com esses filtros.'}
+      </p>
+    );
   };
 
   const handleTentarNovamente = () => {
@@ -132,6 +218,12 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
           </p>
         </div>
 
+        <FiltrosPokemons
+          filtros={filtros}
+          onAlterar={handleAlterarFiltro}
+          onLimpar={handleLimparFiltros}
+        />
+
         {filtrados.length > 0 ? (
           <ul className="pokemons-grade">
             {visiveis.map(({ id, name }) => (
@@ -150,9 +242,7 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
               </li>
             ))}
           </ul>
-        ) : (
-          <p className="pokemons-status">{`Nenhum Pokémon encontrado para "${busca.trim()}".`}</p>
-        )}
+        ) : renderVazio()}
 
         {temMais && (
           <div ref={sentinelaRef} className="pokemons-mais">
