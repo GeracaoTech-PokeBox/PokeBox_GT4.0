@@ -1,13 +1,38 @@
 import { useState } from 'react'
-import './Login.css'
-import './Cadastro.css'
-import {
-  SENHA_MINIMA,
-  formatarCelular,
-  somenteDigitos,
-  validarCelular,
-  validarNovaSenha,
-} from '../utils/validacao.js'
+import './RecuperarSenha.css'
+
+const CELULAR_DIGITOS = 11
+const SENHA_MINIMA = 6
+
+function somenteDigitos(valor) {
+  return valor.replace(/\D/g, '')
+}
+
+// Mantém só os números e aplica a máscara (00) 00000-0000
+function formatarCelular(valor) {
+  const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS)
+  if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1')
+  if (digitos.length <= 7) return digitos.replace(/^(\d{2})(\d+)/, '($1) $2')
+  return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3')
+}
+
+// Cada validação devolve a mensagem de erro, ou null quando está tudo certo
+function validarCelular(celular) {
+  if (somenteDigitos(celular).length !== CELULAR_DIGITOS) {
+    return 'Informe um celular válido com DDD.'
+  }
+  return null
+}
+
+function validarNovaSenha(senha, confirmarSenha) {
+  if (senha.length < SENHA_MINIMA) {
+    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`
+  }
+  if (senha !== confirmarSenha) {
+    return 'As senhas não conferem.'
+  }
+  return null
+}
 
 // Etapa 1: confere login + celular. Etapa 2: define a nova senha daquele usuário.
 function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
@@ -76,17 +101,17 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
   }
 
   return (
-    <main className="login-page cadastro-page">
-      <div className="pokedex-corpo">
-        <div className="pokedex-topo" aria-hidden="true">
-          <span className="pokedex-lente" />
-          <div className="pokedex-luzes">
-            <span className="pokedex-luz pokedex-luz--vermelha" />
-            <span className="pokedex-luz pokedex-luz--amarela" />
-            <span className="pokedex-luz pokedex-luz--verde" />
+    <main className="recuperar-page">
+      <div className="recuperar-pokedex-corpo">
+        <div className="recuperar-pokedex-topo" aria-hidden="true">
+          <span className="recuperar-pokedex-lente" />
+          <div className="recuperar-pokedex-luzes">
+            <span className="recuperar-pokedex-luz recuperar-pokedex-luz--vermelha" />
+            <span className="recuperar-pokedex-luz recuperar-pokedex-luz--amarela" />
+            <span className="recuperar-pokedex-luz recuperar-pokedex-luz--verde" />
           </div>
           <svg
-            className="pokedex-linha-degrau"
+            className="recuperar-pokedex-linha-degrau"
             viewBox="0 0 400 40"
             preserveAspectRatio="none"
           >
@@ -95,24 +120,22 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
           </svg>
         </div>
 
-        <div className="pokedex-tela-borda">
-          <div className="pokedex-tela">
-            <div className="cadastro-professor">
-              <img src="/professor-oak.gif" alt="Professor Carvalho" />
-            </div>
+        <div className="recuperar-pokedex-tela-borda">
+          <div className="recuperar-pokedex-tela">
+            <img className="recuperar-gengar" src="/gengar.gif" alt="Gengar" />
 
-            <h1 className="login-title">PokeBox</h1>
-            <p className="login-subtitle">
+            <h1 className="recuperar-title">PokeBox</h1>
+            <p className="recuperar-subtitle">
               {etapa === 'verificar'
                 ? 'Esqueceu a senha? Confirme quem você é, treinador.'
                 : `Tudo certo, ${login.trim()}! Escolha sua nova senha.`}
             </p>
 
-            <hr className="pokedex-pontilhado" />
+            <hr className="recuperar-pokedex-pontilhado" />
 
             {etapa === 'verificar' ? (
-              <form className="login-form" onSubmit={handleVerificar} noValidate>
-                <label className="login-field">
+              <form className="recuperar-form" onSubmit={handleVerificar} noValidate>
+                <label className="recuperar-field">
                   <span>Treinador</span>
                   <input
                     type="text"
@@ -124,7 +147,7 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                   />
                 </label>
 
-                <label className="login-field">
+                <label className="recuperar-field">
                   <span>Celular</span>
                   <input
                     type="tel"
@@ -138,20 +161,20 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                 </label>
 
                 {erro && (
-                  <p className="login-error" role="alert">
+                  <p className="recuperar-error" role="alert">
                     {erro}
                   </p>
                 )}
 
-                <button type="submit" className="login-submit" disabled={verificando}>
+                <button type="submit" className="recuperar-submit" disabled={verificando}>
                   {verificando ? 'Verificando...' : 'Verificar'}
                 </button>
               </form>
             ) : (
-              <form className="login-form" onSubmit={handleRedefinir} noValidate>
-                <label className="login-field">
+              <form className="recuperar-form" onSubmit={handleRedefinir} noValidate>
+                <label className="recuperar-field">
                   <span>Nova senha</span>
-                  <div className="login-password">
+                  <div className="recuperar-password">
                     <input
                       type={mostrarSenha ? 'text' : 'password'}
                       name="senha"
@@ -162,7 +185,7 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                     />
                     <button
                       type="button"
-                      className="login-toggle"
+                      className="recuperar-toggle"
                       onClick={() => setMostrarSenha((v) => !v)}
                       aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                     >
@@ -171,7 +194,7 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                   </div>
                 </label>
 
-                <label className="login-field">
+                <label className="recuperar-field">
                   <span>Confirmar nova senha</span>
                   <input
                     type={mostrarSenha ? 'text' : 'password'}
@@ -184,35 +207,35 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                 </label>
 
                 {erro && (
-                  <p className="login-error" role="alert">
+                  <p className="recuperar-error" role="alert">
                     {erro}
                   </p>
                 )}
 
-                <button type="submit" className="login-submit">
+                <button type="submit" className="recuperar-submit">
                   Redefinir senha
                 </button>
 
-                <button type="button" className="login-forgot" onClick={handleTrocarUsuario}>
+                <button type="button" className="recuperar-link" onClick={handleTrocarUsuario}>
                   Não é você? Trocar usuário.
                 </button>
               </form>
             )}
 
-            <hr className="pokedex-pontilhado" />
+            <hr className="recuperar-pokedex-pontilhado" />
 
-            <div className="login-register">
+            <div className="recuperar-register">
               <p>Lembrou a senha?</p>
               <button
                 type="button"
-                className="login-register-button"
+                className="recuperar-register-button"
                 onClick={() => onVoltar?.()}
               >
                 Voltar para o login
               </button>
             </div>
 
-            <span className="pokedex-seta" aria-hidden="true" />
+            <span className="recuperar-pokedex-seta" aria-hidden="true" />
           </div>
         </div>
       </div>

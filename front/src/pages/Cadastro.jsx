@@ -1,13 +1,38 @@
 import { useState } from 'react'
-import './Login.css'
 import './Cadastro.css'
-import {
-  SENHA_MINIMA,
-  formatarCelular,
-  somenteDigitos,
-  validarCelular,
-  validarNovaSenha,
-} from '../utils/validacao.js'
+
+const CELULAR_DIGITOS = 11
+const SENHA_MINIMA = 6
+
+function somenteDigitos(valor) {
+  return valor.replace(/\D/g, '')
+}
+
+// Mantém só os números e aplica a máscara (00) 00000-0000
+function formatarCelular(valor) {
+  const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS)
+  if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1')
+  if (digitos.length <= 7) return digitos.replace(/^(\d{2})(\d+)/, '($1) $2')
+  return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3')
+}
+
+// Cada validação devolve a mensagem de erro, ou null quando está tudo certo
+function validarCelular(celular) {
+  if (somenteDigitos(celular).length !== CELULAR_DIGITOS) {
+    return 'Informe um celular válido com DDD.'
+  }
+  return null
+}
+
+function validarNovaSenha(senha, confirmarSenha) {
+  if (senha.length < SENHA_MINIMA) {
+    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`
+  }
+  if (senha !== confirmarSenha) {
+    return 'As senhas não conferem.'
+  }
+  return null
+}
 
 function Cadastro({ onCadastrar, onVoltar }) {
   const [login, setLogin] = useState('')
@@ -38,17 +63,17 @@ function Cadastro({ onCadastrar, onVoltar }) {
   }
 
   return (
-    <main className="login-page cadastro-page">
-      <div className="pokedex-corpo">
-        <div className="pokedex-topo" aria-hidden="true">
-          <span className="pokedex-lente" />
-          <div className="pokedex-luzes">
-            <span className="pokedex-luz pokedex-luz--vermelha" />
-            <span className="pokedex-luz pokedex-luz--amarela" />
-            <span className="pokedex-luz pokedex-luz--verde" />
+    <main className="cadastro-page">
+      <div className="cadastro-pokedex-corpo">
+        <div className="cadastro-pokedex-topo" aria-hidden="true">
+          <span className="cadastro-pokedex-lente" />
+          <div className="cadastro-pokedex-luzes">
+            <span className="cadastro-pokedex-luz cadastro-pokedex-luz--vermelha" />
+            <span className="cadastro-pokedex-luz cadastro-pokedex-luz--amarela" />
+            <span className="cadastro-pokedex-luz cadastro-pokedex-luz--verde" />
           </div>
           <svg
-            className="pokedex-linha-degrau"
+            className="cadastro-pokedex-linha-degrau"
             viewBox="0 0 400 40"
             preserveAspectRatio="none"
           >
@@ -57,21 +82,21 @@ function Cadastro({ onCadastrar, onVoltar }) {
           </svg>
         </div>
 
-        <div className="pokedex-tela-borda">
-          <div className="pokedex-tela">
+        <div className="cadastro-pokedex-tela-borda">
+          <div className="cadastro-pokedex-tela">
             <div className="cadastro-professor">
               <img src="/professor-oak.gif" alt="Professor Carvalho" />
             </div>
 
-            <h1 className="login-title">PokeBox</h1>
-            <p className="login-subtitle">
+            <h1 className="cadastro-title">PokeBox</h1>
+            <p className="cadastro-subtitle">
               Bem-vindo ao mundo Pokémon! Conte-me sobre você, treinador.
             </p>
 
-            <hr className="pokedex-pontilhado" />
+            <hr className="cadastro-pokedex-pontilhado" />
 
-            <form className="login-form" onSubmit={handleSubmit} noValidate>
-              <label className="login-field">
+            <form className="cadastro-form" onSubmit={handleSubmit} noValidate>
+              <label className="cadastro-field">
                 <span>Treinador</span>
                 <input
                   type="text"
@@ -83,7 +108,7 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 />
               </label>
 
-              <label className="login-field">
+              <label className="cadastro-field">
                 <span>Celular</span>
                 <input
                   type="tel"
@@ -96,9 +121,9 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 />
               </label>
 
-              <label className="login-field">
+              <label className="cadastro-field">
                 <span>Senha</span>
-                <div className="login-password">
+                <div className="cadastro-password">
                   <input
                     type={mostrarSenha ? 'text' : 'password'}
                     name="senha"
@@ -109,7 +134,7 @@ function Cadastro({ onCadastrar, onVoltar }) {
                   />
                   <button
                     type="button"
-                    className="login-toggle"
+                    className="cadastro-toggle"
                     onClick={() => setMostrarSenha((v) => !v)}
                     aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                   >
@@ -118,7 +143,7 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 </div>
               </label>
 
-              <label className="login-field">
+              <label className="cadastro-field">
                 <span>Confirmar senha</span>
                 <input
                   type={mostrarSenha ? 'text' : 'password'}
@@ -131,30 +156,30 @@ function Cadastro({ onCadastrar, onVoltar }) {
               </label>
 
               {erro && (
-                <p className="login-error" role="alert">
+                <p className="cadastro-error" role="alert">
                   {erro}
                 </p>
               )}
 
-              <button type="submit" className="login-submit">
+              <button type="submit" className="cadastro-submit">
                 Começar minha jornada!
               </button>
             </form>
 
-            <hr className="pokedex-pontilhado" />
+            <hr className="cadastro-pokedex-pontilhado" />
 
-            <div className="login-register">
+            <div className="cadastro-register">
               <p>Já é um treinador?</p>
               <button
                 type="button"
-                className="login-register-button"
+                className="cadastro-register-button"
                 onClick={() => onVoltar?.()}
               >
                 Entrar
               </button>
             </div>
 
-            <span className="pokedex-seta" aria-hidden="true" />
+            <span className="cadastro-pokedex-seta" aria-hidden="true" />
           </div>
         </div>
       </div>
