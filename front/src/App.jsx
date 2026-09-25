@@ -2,13 +2,21 @@ import { useState } from 'react';
 import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
 import RecuperarSenha from './pages/RecuperarSenha';
+import Pokemons from './pages/Pokemons';
 
 function App() {
   const [tela, setTela] = useState('login');
+  const [usuario, setUsuario] = useState(null);
 
   const handleLogin = (credenciais) => {
-    // TODO: integrar com o endpoint de autenticação do back
-    console.log('Login:', credenciais.login);
+    // TODO: integrar com o endpoint de autenticação do back.
+    // Enquanto o endpoint não existe, qualquer login entra.
+    setUsuario({ login: credenciais.login });
+  };
+
+  const handleSair = () => {
+    setUsuario(null);
+    setTela('login');
   };
 
   const handleCadastrar = (dados) => {
@@ -28,6 +36,10 @@ function App() {
     console.log('Redefinir senha:', dados.login);
     setTela('login');
   };
+
+  if (usuario) {
+    return <Pokemons usuario={usuario} onSair={handleSair} />;
+  }
 
   if (tela === 'cadastro') {
     return <Cadastro onCadastrar={handleCadastrar} onVoltar={() => setTela('login')} />;
