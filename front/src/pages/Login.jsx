@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './Login.css'
 
-function Login({ onLogin }) {
+function Login({ onLogin, onCadastro }) {
   const [usuario, setUsuario] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -74,6 +74,17 @@ function Login({ onLogin }) {
             Eu escolho você!
           </button>
         </form>
+
+        <div className="login-register">
+          <p>Ainda não é um treinador?</p>
+          <button
+            type="button"
+            className="login-register-button"
+            onClick={() => onCadastro?.()}
+          >
+            Cadastre-se
+          </button>
+        </div>
       </div>
     </main>
   )

@@ -6,7 +6,12 @@ function App() {
     console.log('Login:', credenciais.usuario)
   }
 
-  return <Login onLogin={handleLogin} />
+  function handleCadastro() {
+    // TODO: navegar para a tela de cadastro
+    console.log('Cadastro solicitado')
+  }
+
+  return <Login onLogin={handleLogin} onCadastro={handleCadastro} />
 }
 
 export default App
