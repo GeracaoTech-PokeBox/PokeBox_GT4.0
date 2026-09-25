@@ -1,0 +1,210 @@
+.login-page {
+  --poke-red: #e3350d;
+  --poke-red-dark: #b52a0a;
+  --poke-yellow: #ffcb05;
+  --poke-blue: #3d7dca;
+  --poke-navy: #003a70;
+  --poke-ink: #1d1d1f;
+
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 203, 5, 0.35), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(227, 53, 13, 0.3), transparent 45%),
+    linear-gradient(160deg, var(--poke-blue), var(--poke-navy));
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  padding: 72px 28px 32px;
+  background: #fff;
+  border: 4px solid var(--poke-ink);
+  border-radius: 24px;
+  box-shadow: 8px 8px 0 var(--poke-ink);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 12px;
+  background: var(--poke-red);
+  border-bottom: 4px solid var(--poke-ink);
+  border-radius: 20px 20px 0 0;
+}
+
+/* Pokébola desenhada em CSS */
+.login-pokeball {
+  position: absolute;
+  top: -48px;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  transform: translateX(-50%);
+  border: 4px solid var(--poke-ink);
+  border-radius: 50%;
+  background: linear-gradient(
+    to bottom,
+    var(--poke-red) 0 46%,
+    var(--poke-ink) 46% 54%,
+    #fff 54% 100%
+  );
+  box-sizing: border-box;
+  animation: login-wobble 3s ease-in-out infinite;
+}
+
+.login-pokeball-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border: 4px solid var(--poke-ink);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px #fff, inset 0 0 0 5px #d0d0d0;
+}
+
+@keyframes login-wobble {
+  0%, 70%, 100% { transform: translateX(-50%) rotate(0); }
+  75% { transform: translateX(-50%) rotate(-14deg); }
+  82% { transform: translateX(-50%) rotate(12deg); }
+  89% { transform: translateX(-50%) rotate(-6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-pokeball { animation: none; }
+}
+
+.login-title {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--poke-yellow);
+  -webkit-text-stroke: 2px var(--poke-navy);
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0 var(--poke-navy);
+}
+
+.login-subtitle {
+  margin: 8px 0 24px;
+  font-size: 15px;
+  color: #555;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-field > span {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--poke-navy);
+}
+
+.login-field input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  color: var(--poke-ink);
+  background: #f7f7f7;
+  border: 3px solid var(--poke-ink);
+  border-radius: 12px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.login-field input:focus {
+  background: #fff;
+  border-color: var(--poke-blue);
+  box-shadow: 0 0 0 4px rgba(255, 203, 5, 0.6);
+}
+
+.login-password {
+  position: relative;
+}
+
+.login-password input {
+  padding-right: 84px;
+}
+
+.login-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--poke-blue);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.login-toggle:hover {
+  background: rgba(61, 125, 202, 0.1);
+}
+
+.login-error {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--poke-red-dark);
+  background: #fdecea;
+  border: 2px solid var(--poke-red);
+  border-radius: 10px;
+}
+
+.login-submit {
+  margin-top: 8px;
+  padding: 14px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--poke-red);
+  border: 3px solid var(--poke-ink);
+  border-radius: 999px;
+  box-shadow: 0 5px 0 var(--poke-ink);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.2s;
+}
+
+.login-submit:hover {
+  background: var(--poke-red-dark);
+}
+
+.login-submit:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--poke-ink);
+}
+
+.login-submit:focus-visible,
+.login-toggle:focus-visible {
+  outline: 3px solid var(--poke-yellow);
+  outline-offset: 2px;
+}
