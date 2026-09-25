@@ -181,11 +181,15 @@ function PokemonCard({ pokemon }) {
 
         <section className="pokemon-card-secao">
           <h3>{`Jogos (${gameIndices.length})`}</h3>
-          <ul className="pokemon-card-chips">
-            {gameIndices.map(({ version }) => (
-              <li key={version.name}>{formatarNome(version.name)}</li>
-            ))}
-          </ul>
+          {gameIndices.length > 0 ? (
+            <ul className="pokemon-card-chips">
+              {gameIndices.map(({ version }) => (
+                <li key={version.name}>{formatarNome(version.name)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="pokemon-card-vazio">Nenhum</p>
+          )}
         </section>
 
         <dl className="pokemon-card-extras">

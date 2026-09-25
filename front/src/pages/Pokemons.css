@@ -156,12 +156,84 @@
   list-style: none;
 }
 
-.pokemons-vazio {
+/* Card provisório enquanto os dados do Pokémon chegam */
+.pokemons-card-carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 420px;
+  font-size: 14px;
+  color: #777;
+  background: #fff;
+  border: 3px dashed #c4c4c4;
+  border-radius: 16px;
+}
+
+.pokemons-card-carregando[aria-busy='true'] {
+  animation: pokemons-pulsar 1.2s ease-in-out infinite;
+}
+
+.pokemons-card-carregando-numero {
+  font-weight: 800;
+}
+
+.pokemons-card-carregando-nome {
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: capitalize;
+  color: var(--poke-ink);
+}
+
+@keyframes pokemons-pulsar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pokemons-card-carregando[aria-busy='true'] { animation: none; }
+}
+
+/* Mensagens de carregando, erro e busca vazia */
+.pokemons-status {
   margin: 48px 0;
   font-size: 16px;
   font-weight: 600;
   text-align: center;
   color: #555;
+}
+
+.pokemons-status p {
+  margin: 0 0 16px;
+}
+
+.pokemons-mais {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.pokemons-botao {
+  padding: 10px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--dex-red);
+  border: 3px solid var(--poke-ink);
+  border-radius: 999px;
+  box-shadow: 0 4px 0 var(--poke-ink);
+  cursor: pointer;
+}
+
+.pokemons-botao:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--poke-ink);
+}
+
+.pokemons-botao:focus-visible {
+  outline: 3px solid var(--poke-blue);
+  outline-offset: 2px;
 }
 
 .pokemons-sair:focus-visible {
