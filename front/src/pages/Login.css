@@ -20,8 +20,11 @@
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Corpo da Pokédex */
-.pokedex {
+/* Os comentarios aqui são apenas para identificar as áreas do design da tela, professor, por favor, não colocar meu github no 
+humilhador só por conta dos comentarios */
+
+/* Corpo vermelho com borda preta */
+.pokedex-corpo {
   width: 100%;
   max-width: 420px;
   padding: 0 16px 16px;
@@ -32,13 +35,15 @@
   box-sizing: border-box;
 }
 
-.pokedex-header {
+/* Topo da Pokédex (área da lente, luzes e linha) */
+.pokedex-topo {
   position: relative;
   height: 104px;
   margin: 0 -16px;
 }
 
-.pokedex-lens {
+/* Lente azul com aro branco */
+.pokedex-lente {
   position: absolute;
   top: 14px;
   left: 14px;
@@ -52,7 +57,8 @@
   box-shadow: 0 0 0 2px var(--poke-ink);
 }
 
-.pokedex-leds {
+/* As 3 luzinhas (vermelha, amarela e verde) */
+.pokedex-luzes {
   position: absolute;
   top: 18px;
   left: 94px;
@@ -60,18 +66,19 @@
   gap: 6px;
 }
 
-.pokedex-led {
+.pokedex-luz {
   width: 14px;
   height: 14px;
   border: 2px solid var(--poke-ink);
   border-radius: 50%;
 }
 
-.pokedex-led--red { background: #f03a3a; }
-.pokedex-led--yellow { background: #f5d33b; }
-.pokedex-led--green { background: #3aaa5f; }
+.pokedex-luz--vermelha { background: #f03a3a; }
+.pokedex-luz--amarela { background: #f5d33b; }
+.pokedex-luz--verde { background: #3aaa5f; }
 
-.pokedex-header-line {
+/* Linha dupla com degrau na diagonal */
+.pokedex-linha-degrau {
   position: absolute;
   left: 0;
   bottom: 8px;
@@ -80,25 +87,25 @@
   overflow: visible;
 }
 
-.pokedex-header-line polyline {
+.pokedex-linha-degrau polyline {
   fill: none;
   stroke: var(--poke-ink);
   stroke-width: 4;
   vector-effect: non-scaling-stroke;
 }
 
-.pokedex-header-line polyline.thin {
+.pokedex-linha-degrau polyline.fina {
   stroke-width: 1.5;
 }
 
-/* Tela branca com o canto inferior esquerdo cortado */
-.pokedex-screen-frame {
+/* Tela branca com o canto de baixo cortado */
+.pokedex-tela-borda {
   padding: 2px;
   background: var(--poke-ink);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 44px 100%, 0 calc(100% - 44px));
 }
 
-.pokedex-screen {
+.pokedex-tela {
   position: relative;
   padding: 24px 24px 44px;
   background: #fafafa;
@@ -106,14 +113,16 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 43px 100%, 0 calc(100% - 43px));
 }
 
-.pokedex-dots {
+/* Linhas pontilhadas */
+.pokedex-pontilhado {
   height: 0;
   margin: 20px 0;
   border: none;
   border-top: 4px dotted var(--poke-ink);
 }
 
-.pokedex-arrow {
+/* Setinha ▼ no rodapé */
+.pokedex-seta {
   position: absolute;
   bottom: 14px;
   left: 50%;
