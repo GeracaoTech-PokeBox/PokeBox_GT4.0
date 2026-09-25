@@ -1,0 +1,25 @@
+/* Reaproveita a Pokédex do Login.css; aqui ficam só as diferenças do cadastro */
+
+/* Praça à noite animada no fundo */
+.login-page.cadastro-page {
+  background-image: url('/cadastro-bg.gif');
+  background-position: center;
+}
+
+/* Professor Carvalho: recorta a caixa de diálogo que vem embaixo no GIF */
+.cadastro-professor {
+  width: 256px;
+  max-width: 100%;
+  aspect-ratio: 256 / 140;
+  margin: 0 auto 12px;
+  overflow: hidden;
+  border: 3px solid var(--poke-ink);
+  border-radius: 8px;
+  box-sizing: content-box;
+}
+
+.cadastro-professor img {
+  display: block;
+  width: 100%;
+  image-rendering: pixelated;
+}

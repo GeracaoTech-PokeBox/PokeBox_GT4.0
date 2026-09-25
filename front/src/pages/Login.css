@@ -258,6 +258,24 @@ humilhador só por conta dos comentarios */
   background: rgba(61, 125, 202, 0.1);
 }
 
+/* Link "Esqueci minha senha." logo abaixo da senha */
+.login-forgot {
+  align-self: flex-end;
+  margin-top: -8px;
+  padding: 2px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--poke-blue);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-forgot:hover {
+  text-decoration: underline;
+}
+
 .login-error {
   margin: 0;
   padding: 10px 12px;
@@ -289,6 +307,11 @@ humilhador só por conta dos comentarios */
 .login-submit:active {
   transform: translateY(4px);
   box-shadow: 0 1px 0 var(--poke-ink);
+}
+
+.login-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
 .login-register {
@@ -327,7 +350,8 @@ humilhador só por conta dos comentarios */
 }
 
 .login-submit:focus-visible,
-.login-toggle:focus-visible {
+.login-toggle:focus-visible,
+.login-forgot:focus-visible {
   outline: 3px solid var(--poke-yellow);
   outline-offset: 2px;
 }
