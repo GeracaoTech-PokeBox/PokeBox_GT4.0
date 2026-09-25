@@ -2,6 +2,8 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import './Login.css';
 
+const LOGIN_MAXIMO = 20;
+
 function Login({ onLogin, onCadastro, onEsqueciSenha }) {
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
@@ -58,6 +60,7 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
                   id="login-treinador"
                   type="text"
                   name="login"
+                  maxLength={LOGIN_MAXIMO}
                   placeholder="Seu usuário"
                   autoComplete="username"
                   value={login}

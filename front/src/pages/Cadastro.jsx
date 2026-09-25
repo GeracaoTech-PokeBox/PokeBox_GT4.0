@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import './Cadastro.css';
 
 const CELULAR_DIGITOS = 11;
-const SENHA_MINIMA = 6;
+const SENHA_MINIMA = 8;
+const LOGIN_MAXIMO = 20;
 
 function somenteDigitos(valor) {
   return valor.replace(/\D/g, '');
@@ -18,6 +19,13 @@ function formatarCelular(valor) {
 }
 
 // Cada validação devolve a mensagem de erro, ou null quando está tudo certo
+function validarLogin(login) {
+  if (login.trim().length > LOGIN_MAXIMO) {
+    return `O usuário pode ter no máximo ${LOGIN_MAXIMO} caracteres.`;
+  }
+  return null;
+}
+
 function validarCelular(celular) {
   if (somenteDigitos(celular).length !== CELULAR_DIGITOS) {
     return 'Informe um celular válido com DDD.';
@@ -47,7 +55,9 @@ function Cadastro({ onCadastrar, onVoltar }) {
     if (!login.trim() || !celular || !senha || !confirmarSenha) {
       return 'Preencha todos os campos para continuar.';
     }
-    return validarCelular(celular) ?? validarNovaSenha(senha, confirmarSenha);
+    return validarLogin(login)
+      ?? validarCelular(celular)
+      ?? validarNovaSenha(senha, confirmarSenha);
   };
 
   const handleSubmit = (e) => {
@@ -103,7 +113,8 @@ function Cadastro({ onCadastrar, onVoltar }) {
                   id="cadastro-treinador"
                   type="text"
                   name="login"
-                  placeholder="Escolha seu usuário"
+                  maxLength={LOGIN_MAXIMO}
+                  placeholder={`Até ${LOGIN_MAXIMO} caracteres`}
                   autoComplete="username"
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
