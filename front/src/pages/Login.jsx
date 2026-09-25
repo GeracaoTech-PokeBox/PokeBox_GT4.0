@@ -2,21 +2,21 @@ import { useState } from 'react'
 import './Login.css'
 
 function Login({ onLogin, onCadastro }) {
-  const [usuario, setUsuario] = useState('')
+  const [login, setLogin] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
-  const [erro, setErro] = useState('')
+  const [erro, setErro] = useState(null)
 
   function handleSubmit(e) {
     e.preventDefault()
 
-    if (!usuario.trim() || !senha) {
+    if (!login.trim() || !senha) {
       setErro('Preencha usuário e senha para continuar.')
       return
     }
 
-    setErro('')
-    onLogin?.({ usuario: usuario.trim(), senha })
+    setErro(null)
+    onLogin?.({ login: login.trim(), senha })
   }
 
   return (
@@ -55,11 +55,11 @@ function Login({ onLogin, onCadastro }) {
                 <span>Treinador</span>
                 <input
                   type="text"
-                  name="usuario"
+                  name="login"
                   placeholder="Seu usuário"
                   autoComplete="username"
-                  value={usuario}
-                  onChange={(e) => setUsuario(e.target.value)}
+                  value={login}
+                  onChange={(e) => setLogin(e.target.value)}
                 />
               </label>
 
