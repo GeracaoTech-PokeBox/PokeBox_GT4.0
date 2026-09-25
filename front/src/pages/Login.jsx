@@ -1,23 +1,24 @@
-import { useState } from 'react'
-import './Login.css'
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import './Login.css';
 
 function Login({ onLogin, onCadastro, onEsqueciSenha }) {
-  const [login, setLogin] = useState('')
-  const [senha, setSenha] = useState('')
-  const [mostrarSenha, setMostrarSenha] = useState(false)
-  const [erro, setErro] = useState(null)
+  const [login, setLogin] = useState('');
+  const [senha, setSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [erro, setErro] = useState(null);
 
-  function handleSubmit(e) {
-    e.preventDefault()
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
     if (!login.trim() || !senha) {
-      setErro('Preencha usuário e senha para continuar.')
-      return
+      setErro('Preencha usuário e senha para continuar.');
+      return;
     }
 
-    setErro(null)
-    onLogin?.({ login: login.trim(), senha })
-  }
+    setErro(null);
+    onLogin({ login: login.trim(), senha });
+  };
 
   return (
     <main className="login-page">
@@ -51,9 +52,10 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
             <hr className="pokedex-pontilhado" />
 
             <form className="login-form" onSubmit={handleSubmit} noValidate>
-              <label className="login-field">
+              <label className="login-field" htmlFor="login-treinador">
                 <span>Treinador</span>
                 <input
+                  id="login-treinador"
                   type="text"
                   name="login"
                   placeholder="Seu usuário"
@@ -63,10 +65,11 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
                 />
               </label>
 
-              <label className="login-field">
+              <label className="login-field" htmlFor="login-senha">
                 <span>Senha</span>
                 <div className="login-password">
                   <input
+                    id="login-senha"
                     type={mostrarSenha ? 'text' : 'password'}
                     name="senha"
                     placeholder="Sua senha"
@@ -88,7 +91,7 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
               <button
                 type="button"
                 className="login-forgot"
-                onClick={() => onEsqueciSenha?.()}
+                onClick={() => onEsqueciSenha()}
               >
                 Esqueci minha senha.
               </button>
@@ -111,7 +114,7 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
               <button
                 type="button"
                 className="login-register-button"
-                onClick={() => onCadastro?.()}
+                onClick={() => onCadastro()}
               >
                 Cadastre-se
               </button>
@@ -122,7 +125,13 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-export default Login
+Login.propTypes = {
+  onLogin: PropTypes.func.isRequired,
+  onCadastro: PropTypes.func.isRequired,
+  onEsqueciSenha: PropTypes.func.isRequired,
+};
+
+export default Login;

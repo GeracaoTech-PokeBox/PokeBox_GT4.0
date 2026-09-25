@@ -1,104 +1,105 @@
-import { useState } from 'react'
-import './RecuperarSenha.css'
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import './RecuperarSenha.css';
 
-const CELULAR_DIGITOS = 11
-const SENHA_MINIMA = 6
+const CELULAR_DIGITOS = 11;
+const SENHA_MINIMA = 6;
 
 function somenteDigitos(valor) {
-  return valor.replace(/\D/g, '')
+  return valor.replace(/\D/g, '');
 }
 
 // Mantém só os números e aplica a máscara (00) 00000-0000
 function formatarCelular(valor) {
-  const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS)
-  if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1')
-  if (digitos.length <= 7) return digitos.replace(/^(\d{2})(\d+)/, '($1) $2')
-  return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3')
+  const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS);
+  if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1');
+  if (digitos.length <= 7) return digitos.replace(/^(\d{2})(\d+)/, '($1) $2');
+  return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
 }
 
 // Cada validação devolve a mensagem de erro, ou null quando está tudo certo
 function validarCelular(celular) {
   if (somenteDigitos(celular).length !== CELULAR_DIGITOS) {
-    return 'Informe um celular válido com DDD.'
+    return 'Informe um celular válido com DDD.';
   }
-  return null
+  return null;
 }
 
 function validarNovaSenha(senha, confirmarSenha) {
   if (senha.length < SENHA_MINIMA) {
-    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`
+    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`;
   }
   if (senha !== confirmarSenha) {
-    return 'As senhas não conferem.'
+    return 'As senhas não conferem.';
   }
-  return null
+  return null;
 }
 
 // Etapa 1: confere login + celular. Etapa 2: define a nova senha daquele usuário.
 function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
-  const [etapa, setEtapa] = useState('verificar')
-  const [login, setLogin] = useState('')
-  const [celular, setCelular] = useState('')
-  const [senha, setSenha] = useState('')
-  const [confirmarSenha, setConfirmarSenha] = useState('')
-  const [mostrarSenha, setMostrarSenha] = useState(false)
-  const [verificando, setVerificando] = useState(false)
-  const [erro, setErro] = useState(null)
+  const [etapa, setEtapa] = useState('verificar');
+  const [login, setLogin] = useState('');
+  const [celular, setCelular] = useState('');
+  const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [verificando, setVerificando] = useState(false);
+  const [erro, setErro] = useState(null);
 
-  const dadosUsuario = () => ({ login: login.trim(), celular: somenteDigitos(celular) })
+  const dadosUsuario = () => ({ login: login.trim(), celular: somenteDigitos(celular) });
 
-  async function handleVerificar(e) {
-    e.preventDefault()
+  const handleVerificar = async (e) => {
+    e.preventDefault();
 
     if (!login.trim() || !celular) {
-      setErro('Preencha usuário e celular para continuar.')
-      return
+      setErro('Preencha usuário e celular para continuar.');
+      return;
     }
-    const erroCelular = validarCelular(celular)
+    const erroCelular = validarCelular(celular);
     if (erroCelular) {
-      setErro(erroCelular)
-      return
+      setErro(erroCelular);
+      return;
     }
 
-    setErro(null)
-    setVerificando(true)
+    setErro(null);
+    setVerificando(true);
     try {
-      const encontrado = await onVerificar?.(dadosUsuario())
+      const encontrado = await onVerificar(dadosUsuario());
       if (!encontrado) {
-        setErro('Não encontramos um treinador com esse usuário e celular.')
-        return
+        setErro('Não encontramos um treinador com esse usuário e celular.');
+        return;
       }
-      setEtapa('redefinir')
+      setEtapa('redefinir');
     } catch {
-      setErro('Não foi possível verificar agora. Tente novamente.')
+      setErro('Não foi possível verificar agora. Tente novamente.');
     } finally {
-      setVerificando(false)
+      setVerificando(false);
     }
-  }
+  };
 
-  function handleRedefinir(e) {
-    e.preventDefault()
+  const handleRedefinir = (e) => {
+    e.preventDefault();
 
     if (!senha || !confirmarSenha) {
-      setErro('Preencha a nova senha e a confirmação.')
-      return
+      setErro('Preencha a nova senha e a confirmação.');
+      return;
     }
-    const erroSenha = validarNovaSenha(senha, confirmarSenha)
+    const erroSenha = validarNovaSenha(senha, confirmarSenha);
     if (erroSenha) {
-      setErro(erroSenha)
-      return
+      setErro(erroSenha);
+      return;
     }
 
-    setErro(null)
-    onRedefinir?.({ ...dadosUsuario(), senha })
-  }
+    setErro(null);
+    onRedefinir({ ...dadosUsuario(), senha });
+  };
 
-  function handleTrocarUsuario() {
-    setEtapa('verificar')
-    setSenha('')
-    setConfirmarSenha('')
-    setErro(null)
-  }
+  const handleTrocarUsuario = () => {
+    setEtapa('verificar');
+    setSenha('');
+    setConfirmarSenha('');
+    setErro(null);
+  };
 
   return (
     <main className="recuperar-page">
@@ -135,9 +136,10 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
 
             {etapa === 'verificar' ? (
               <form className="recuperar-form" onSubmit={handleVerificar} noValidate>
-                <label className="recuperar-field">
+                <label className="recuperar-field" htmlFor="recuperar-treinador">
                   <span>Treinador</span>
                   <input
+                    id="recuperar-treinador"
                     type="text"
                     name="login"
                     placeholder="Seu usuário"
@@ -147,9 +149,10 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                   />
                 </label>
 
-                <label className="recuperar-field">
+                <label className="recuperar-field" htmlFor="recuperar-celular">
                   <span>Celular</span>
                   <input
+                    id="recuperar-celular"
                     type="tel"
                     name="celular"
                     placeholder="(00) 00000-0000"
@@ -172,10 +175,11 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
               </form>
             ) : (
               <form className="recuperar-form" onSubmit={handleRedefinir} noValidate>
-                <label className="recuperar-field">
+                <label className="recuperar-field" htmlFor="recuperar-senha">
                   <span>Nova senha</span>
                   <div className="recuperar-password">
                     <input
+                      id="recuperar-senha"
                       type={mostrarSenha ? 'text' : 'password'}
                       name="senha"
                       placeholder={`Mínimo de ${SENHA_MINIMA} caracteres`}
@@ -194,9 +198,10 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                   </div>
                 </label>
 
-                <label className="recuperar-field">
+                <label className="recuperar-field" htmlFor="recuperar-confirmar-senha">
                   <span>Confirmar nova senha</span>
                   <input
+                    id="recuperar-confirmar-senha"
                     type={mostrarSenha ? 'text' : 'password'}
                     name="confirmarSenha"
                     placeholder="Repita a nova senha"
@@ -229,7 +234,7 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
               <button
                 type="button"
                 className="recuperar-register-button"
-                onClick={() => onVoltar?.()}
+                onClick={() => onVoltar()}
               >
                 Voltar para o login
               </button>
@@ -240,7 +245,13 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-export default RecuperarSenha
+RecuperarSenha.propTypes = {
+  onVerificar: PropTypes.func.isRequired,
+  onRedefinir: PropTypes.func.isRequired,
+  onVoltar: PropTypes.func.isRequired,
+};
+
+export default RecuperarSenha;

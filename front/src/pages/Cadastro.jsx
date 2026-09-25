@@ -1,66 +1,67 @@
-import { useState } from 'react'
-import './Cadastro.css'
+import { useState } from 'react';
+import PropTypes from 'prop-types';
+import './Cadastro.css';
 
-const CELULAR_DIGITOS = 11
-const SENHA_MINIMA = 6
+const CELULAR_DIGITOS = 11;
+const SENHA_MINIMA = 6;
 
 function somenteDigitos(valor) {
-  return valor.replace(/\D/g, '')
+  return valor.replace(/\D/g, '');
 }
 
 // Mantém só os números e aplica a máscara (00) 00000-0000
 function formatarCelular(valor) {
-  const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS)
-  if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1')
-  if (digitos.length <= 7) return digitos.replace(/^(\d{2})(\d+)/, '($1) $2')
-  return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3')
+  const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS);
+  if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1');
+  if (digitos.length <= 7) return digitos.replace(/^(\d{2})(\d+)/, '($1) $2');
+  return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
 }
 
 // Cada validação devolve a mensagem de erro, ou null quando está tudo certo
 function validarCelular(celular) {
   if (somenteDigitos(celular).length !== CELULAR_DIGITOS) {
-    return 'Informe um celular válido com DDD.'
+    return 'Informe um celular válido com DDD.';
   }
-  return null
+  return null;
 }
 
 function validarNovaSenha(senha, confirmarSenha) {
   if (senha.length < SENHA_MINIMA) {
-    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`
+    return `A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`;
   }
   if (senha !== confirmarSenha) {
-    return 'As senhas não conferem.'
+    return 'As senhas não conferem.';
   }
-  return null
+  return null;
 }
 
 function Cadastro({ onCadastrar, onVoltar }) {
-  const [login, setLogin] = useState('')
-  const [celular, setCelular] = useState('')
-  const [senha, setSenha] = useState('')
-  const [confirmarSenha, setConfirmarSenha] = useState('')
-  const [mostrarSenha, setMostrarSenha] = useState(false)
-  const [erro, setErro] = useState(null)
+  const [login, setLogin] = useState('');
+  const [celular, setCelular] = useState('');
+  const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [erro, setErro] = useState(null);
 
-  function validar() {
+  const validar = () => {
     if (!login.trim() || !celular || !senha || !confirmarSenha) {
-      return 'Preencha todos os campos para continuar.'
+      return 'Preencha todos os campos para continuar.';
     }
-    return validarCelular(celular) ?? validarNovaSenha(senha, confirmarSenha)
-  }
+    return validarCelular(celular) ?? validarNovaSenha(senha, confirmarSenha);
+  };
 
-  function handleSubmit(e) {
-    e.preventDefault()
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-    const mensagem = validar()
+    const mensagem = validar();
     if (mensagem) {
-      setErro(mensagem)
-      return
+      setErro(mensagem);
+      return;
     }
 
-    setErro(null)
-    onCadastrar?.({ login: login.trim(), celular: somenteDigitos(celular), senha })
-  }
+    setErro(null);
+    onCadastrar({ login: login.trim(), celular: somenteDigitos(celular), senha });
+  };
 
   return (
     <main className="cadastro-page">
@@ -96,9 +97,10 @@ function Cadastro({ onCadastrar, onVoltar }) {
             <hr className="cadastro-pokedex-pontilhado" />
 
             <form className="cadastro-form" onSubmit={handleSubmit} noValidate>
-              <label className="cadastro-field">
+              <label className="cadastro-field" htmlFor="cadastro-treinador">
                 <span>Treinador</span>
                 <input
+                  id="cadastro-treinador"
                   type="text"
                   name="login"
                   placeholder="Escolha seu usuário"
@@ -108,9 +110,10 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 />
               </label>
 
-              <label className="cadastro-field">
+              <label className="cadastro-field" htmlFor="cadastro-celular">
                 <span>Celular</span>
                 <input
+                  id="cadastro-celular"
                   type="tel"
                   name="celular"
                   placeholder="(00) 00000-0000"
@@ -121,10 +124,11 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 />
               </label>
 
-              <label className="cadastro-field">
+              <label className="cadastro-field" htmlFor="cadastro-senha">
                 <span>Senha</span>
                 <div className="cadastro-password">
                   <input
+                    id="cadastro-senha"
                     type={mostrarSenha ? 'text' : 'password'}
                     name="senha"
                     placeholder={`Mínimo de ${SENHA_MINIMA} caracteres`}
@@ -143,9 +147,10 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 </div>
               </label>
 
-              <label className="cadastro-field">
+              <label className="cadastro-field" htmlFor="cadastro-confirmar-senha">
                 <span>Confirmar senha</span>
                 <input
+                  id="cadastro-confirmar-senha"
                   type={mostrarSenha ? 'text' : 'password'}
                   name="confirmarSenha"
                   placeholder="Repita a senha"
@@ -173,7 +178,7 @@ function Cadastro({ onCadastrar, onVoltar }) {
               <button
                 type="button"
                 className="cadastro-register-button"
-                onClick={() => onVoltar?.()}
+                onClick={() => onVoltar()}
               >
                 Entrar
               </button>
@@ -184,7 +189,12 @@ function Cadastro({ onCadastrar, onVoltar }) {
         </div>
       </div>
     </main>
-  )
+  );
 }
 
-export default Cadastro
+Cadastro.propTypes = {
+  onCadastrar: PropTypes.func.isRequired,
+  onVoltar: PropTypes.func.isRequired,
+};
+
+export default Cadastro;
