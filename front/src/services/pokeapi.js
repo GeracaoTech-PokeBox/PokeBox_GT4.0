@@ -1,4 +1,5 @@
 const API_URL = 'https://pokeapi.co/api/v2';
+const ARTWORK_URL = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork';
 
 // Guarda a promessa de cada Pokémon para não repetir a mesma requisição
 const cacheDetalhes = new Map();
@@ -20,6 +21,11 @@ function extrairId(url) {
 export async function listarPokemons() {
   const dados = await buscarJson(`${API_URL}/pokemon?limit=100000`);
   return dados.results.map(({ name, url }) => ({ id: extrairId(url), name }));
+}
+
+// Arte oficial pelo número, sem precisar buscar o Pokémon inteiro
+export function urlArtwork(id) {
+  return `${ARTWORK_URL}/${id}.png`;
 }
 
 // Dados completos de um Pokémon (/pokemon/{id})

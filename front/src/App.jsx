@@ -3,6 +3,7 @@ import Login from './pages/Login';
 import Cadastro from './pages/Cadastro';
 import RecuperarSenha from './pages/RecuperarSenha';
 import Pokemons from './pages/Pokemons';
+import MeusPokemons from './pages/MeusPokemons';
 
 function App() {
   const [tela, setTela] = useState('login');
@@ -10,8 +11,14 @@ function App() {
 
   const handleLogin = (credenciais) => {
     // TODO: integrar com o endpoint de autenticação do back.
-    // Enquanto o endpoint não existe, qualquer login entra.
-    setUsuario({ login: credenciais.login });
+    // Enquanto o endpoint não existe, qualquer login entra e começa sem Pokémon.
+    setUsuario({ login: credenciais.login, box: [] });
+    setTela('pokemons');
+  };
+
+  const handleEscolherInicial = (id) => {
+    // TODO: salvar o Pokémon inicial no back
+    setUsuario((atual) => ({ ...atual, box: [id] }));
   };
 
   const handleSair = () => {
@@ -37,8 +44,25 @@ function App() {
     setTela('login');
   };
 
+  if (usuario && tela === 'meusPokemons') {
+    return (
+      <MeusPokemons
+        usuario={usuario}
+        onEscolherInicial={handleEscolherInicial}
+        onTodosPokemons={() => setTela('pokemons')}
+        onSair={handleSair}
+      />
+    );
+  }
+
   if (usuario) {
-    return <Pokemons usuario={usuario} onSair={handleSair} />;
+    return (
+      <Pokemons
+        usuario={usuario}
+        onMeusPokemons={() => setTela('meusPokemons')}
+        onSair={handleSair}
+      />
+    );
   }
 
   if (tela === 'cadastro') {

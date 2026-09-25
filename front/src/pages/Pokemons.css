@@ -26,6 +26,7 @@
 .pokemons-topo-conteudo {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   max-width: 1200px;
@@ -64,6 +65,7 @@
 
 .pokemons-usuario {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   font-size: 15px;
@@ -83,6 +85,20 @@
   cursor: pointer;
 }
 
+/* Botão "Meus Pokémon" */
+.pokemons-meus {
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--poke-navy);
+  background: #fff;
+  border: 2px solid var(--poke-ink);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--poke-ink);
+  cursor: pointer;
+}
+
+.pokemons-meus:active,
 .pokemons-sair:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 var(--poke-ink);
@@ -236,6 +252,7 @@
   outline-offset: 2px;
 }
 
+.pokemons-meus:focus-visible,
 .pokemons-sair:focus-visible {
   outline: 3px solid #fff;
   outline-offset: 2px;

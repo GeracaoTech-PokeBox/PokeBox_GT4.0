@@ -22,7 +22,7 @@ function filtrarPokemons(pokemons, busca) {
   );
 }
 
-function Pokemons({ usuario, onSair }) {
+function Pokemons({ usuario, onMeusPokemons, onSair }) {
   const [lista, setLista] = useState(null);
   const [erroLista, setErroLista] = useState(null);
   const [tentativa, setTentativa] = useState(0);
@@ -180,6 +180,9 @@ function Pokemons({ usuario, onSair }) {
 
           <div className="pokemons-usuario">
             <span>{`Olá, ${usuario.login}!`}</span>
+            <button type="button" className="pokemons-meus" onClick={() => onMeusPokemons()}>
+              Meus Pokémon
+            </button>
             <button type="button" className="pokemons-sair" onClick={() => onSair()}>
               Sair
             </button>
@@ -198,6 +201,7 @@ Pokemons.propTypes = {
   usuario: PropTypes.shape({
     login: PropTypes.string.isRequired,
   }).isRequired,
+  onMeusPokemons: PropTypes.func.isRequired,
   onSair: PropTypes.func.isRequired,
 };
 
