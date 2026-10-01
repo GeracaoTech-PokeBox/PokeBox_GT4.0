@@ -9,6 +9,7 @@ Feito durante o curso FullCycle - Engenharia de Software do projeto Geração Te
 - Auri Joter
 - Felipe Viana
 - Lucas Mendes
+- Vitor Sousa
 
 ## Stack
 
