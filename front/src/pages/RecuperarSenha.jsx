@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import './RecuperarSenha.css';
 
 const CELULAR_DIGITOS = 11;
-const SENHA_MINIMA = 6;
+const SENHA_MINIMA = 8;
+const LOGIN_MAXIMO = 20;
 
 function somenteDigitos(valor) {
   return valor.replace(/\D/g, '');
 }
 
-// Mantém só os números e aplica a máscara (00) 00000-0000
+// números (00) 00000-0000
 function formatarCelular(valor) {
   const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS);
   if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1');
@@ -17,7 +18,14 @@ function formatarCelular(valor) {
   return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
 }
 
-// Cada validação devolve a mensagem de erro, ou null quando está tudo certo
+// Cada validação devolve a mensagem de erro, 
+function validarLogin(login) {
+  if (login.trim().length > LOGIN_MAXIMO) {
+    return `O usuário pode ter no máximo ${LOGIN_MAXIMO} caracteres.`;
+  }
+  return null;
+}
+
 function validarCelular(celular) {
   if (somenteDigitos(celular).length !== CELULAR_DIGITOS) {
     return 'Informe um celular válido com DDD.';
@@ -35,7 +43,9 @@ function validarNovaSenha(senha, confirmarSenha) {
   return null;
 }
 
-// Etapa 1: confere login + celular. Etapa 2: define a nova senha daquele usuário.
+// Etapa 1: confere login + celular. Etapa 2: define a nova senha daquele usuário. Caso contrario, chama a PF na hora
+
+
 function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
   const [etapa, setEtapa] = useState('verificar');
   const [login, setLogin] = useState('');
@@ -55,9 +65,9 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
       setErro('Preencha usuário e celular para continuar.');
       return;
     }
-    const erroCelular = validarCelular(celular);
-    if (erroCelular) {
-      setErro(erroCelular);
+    const erroDados = validarLogin(login) ?? validarCelular(celular);
+    if (erroDados) {
+      setErro(erroDados);
       return;
     }
 
@@ -142,6 +152,7 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                     id="recuperar-treinador"
                     type="text"
                     name="login"
+                    maxLength={LOGIN_MAXIMO}
                     placeholder="Seu usuário"
                     autoComplete="username"
                     value={login}

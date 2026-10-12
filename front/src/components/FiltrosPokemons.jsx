@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { listarOpcoesFiltro } from '../services/pokeapi';
 import './FiltrosPokemons.css';
 
-// "lightning-rod" -> "Lightning Rod"
+
 function formatarNome(nome) {
   return nome
     .split('-')
@@ -28,7 +28,9 @@ const FILTROS = [
   {
     recurso: 'type',
     rotulo: 'Tipo',
+
     // Tipos que não têm nenhum Pokémon
+    
     ignorar: ['stellar', 'unknown', 'shadow'],
     traducoes: {
       normal: 'Normal',
