@@ -1,3 +1,5 @@
+/* Camada de conexão com o postgres */
+
 const { Pool, types } = require('pg');
 
 // Por padrão o pg devolve BIGINT e NUMERIC como texto. Nossos ids cabem num
