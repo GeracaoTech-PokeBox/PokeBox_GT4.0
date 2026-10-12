@@ -10,7 +10,7 @@ function somenteDigitos(valor) {
   return valor.replace(/\D/g, '');
 }
 
-// Mantém só os números e aplica a máscara (00) 00000-0000
+// Formato de input (00) 00000-0000
 function formatarCelular(valor) {
   const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS);
   if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1');
@@ -18,7 +18,7 @@ function formatarCelular(valor) {
   return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
 }
 
-// Cada validação devolve a mensagem de erro, ou null quando está tudo certo
+// Cada validação devolve a mensagem de erro
 function validarLogin(login) {
   if (login.trim().length > LOGIN_MAXIMO) {
     return `O usuário pode ter no máximo ${LOGIN_MAXIMO} caracteres.`;

@@ -19,11 +19,11 @@ const TIPOS = {
   ghost: { nome: 'Fantasma', cor: '#735797' },
   dragon: { nome: 'Dragão', cor: '#6f35fc' },
   dark: { nome: 'Sombrio', cor: '#705746' },
-  steel: { nome: 'Aço', cor: '#b7b7ce' },
+  steel: { nome: 'Aço', cor: '#b7b7f0' },
   fairy: { nome: 'Fada', cor: '#d685ad' },
 };
 
-const TIPO_DESCONHECIDO = { nome: '???', cor: '#68a090' };
+const TIPO_DESCONHECIDO = { nome: '???', cor: '#ffffff' };
 
 const STATS = {
   hp: 'PS',
@@ -34,10 +34,10 @@ const STATS = {
   speed: 'Velocidade',
 };
 
-// Maior valor base possível de um atributo (Blissey tem 255 de PS)
+// Maior valor base possível de um atributo
 const STAT_MAXIMO = 255;
 
-// "lightning-rod" -> "Lightning Rod"
+
 function formatarNome(nome) {
   return nome
     .split('-')

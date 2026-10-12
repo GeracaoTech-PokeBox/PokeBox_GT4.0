@@ -23,7 +23,7 @@ function filtrarPokemons(pokemons, busca) {
   );
 }
 
-// Mantém só quem aparece em todos os filtros ativos
+// Mantém só quem aparece em todos os filtros
 function aplicarFiltros(pokemons, conjuntos) {
   if (conjuntos.length === 0) return pokemons;
 
@@ -38,12 +38,12 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
   const [lista, setLista] = useState(null);
   const [erroLista, setErroLista] = useState(null);
   const [tentativa, setTentativa] = useState(0);
-  // id -> dados do Pokémon, ou false quando a requisição falhou
+  // id -> dados do Pokémon
   const [detalhes, setDetalhes] = useState({});
   const [busca, setBusca] = useState('');
-  // recurso -> opção escolhida (ex.: { type: 'fire' }); filtro sem opção não entra aqui
+  // recurso -> opção escolhida (ex.: { type: 'fire' })
   const [filtros, setFiltros] = useState({});
-  // "recurso/nome" -> { alvo, ids }, ou false quando a requisição falhou
+  // "recurso/nome" -> { alvo, ids },
   const [conjuntos, setConjuntos] = useState({});
   const [quantidade, setQuantidade] = useState(PAGINA);
   const sentinelaRef = useRef(null);
@@ -97,7 +97,7 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
   const visiveis = useMemo(() => filtrados.slice(0, quantidade), [filtrados, quantidade]);
   const temMais = visiveis.length < filtrados.length;
 
-  // Busca os detalhes dos cards visíveis (o service evita requisições repetidas)
+  // Busca os detalhes dos cards visíveis 
   useEffect(() => {
     let ativo = true;
     visiveis.forEach(({ id }) => {
