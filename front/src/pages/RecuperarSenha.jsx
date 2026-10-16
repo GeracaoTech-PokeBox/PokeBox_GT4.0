@@ -10,7 +10,7 @@ function somenteDigitos(valor) {
   return valor.replace(/\D/g, '');
 }
 
-// números (00) 00000-0000
+// Mantém só os números e aplica a máscara (00) 00000-0000
 function formatarCelular(valor) {
   const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS);
   if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1');
@@ -18,7 +18,7 @@ function formatarCelular(valor) {
   return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
 }
 
-// Cada validação devolve a mensagem de erro, 
+// Cada validação devolve a mensagem de erro, ou null quando está tudo certo
 function validarLogin(login) {
   if (login.trim().length > LOGIN_MAXIMO) {
     return `O usuário pode ter no máximo ${LOGIN_MAXIMO} caracteres.`;
@@ -43,9 +43,7 @@ function validarNovaSenha(senha, confirmarSenha) {
   return null;
 }
 
-// Etapa 1: confere login + celular. Etapa 2: define a nova senha daquele usuário. Caso contrario, chama a PF na hora
-
-
+// Etapa 1: confere login + celular. Etapa 2: define a nova senha daquele usuário.
 function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
   const [etapa, setEtapa] = useState('verificar');
   const [login, setLogin] = useState('');
@@ -87,7 +85,7 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
     }
   };
 
-  const handleRedefinir = (e) => {
+  const handleRedefinir = async (e) => {
     e.preventDefault();
 
     if (!senha || !confirmarSenha) {
@@ -101,7 +99,13 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
     }
 
     setErro(null);
-    onRedefinir({ ...dadosUsuario(), senha });
+    setVerificando(true);
+    try {
+      await onRedefinir({ ...dadosUsuario(), senha });
+    } catch (falha) {
+      setErro(falha.message);
+      setVerificando(false);
+    }
   };
 
   const handleTrocarUsuario = () => {
@@ -228,8 +232,8 @@ function RecuperarSenha({ onVerificar, onRedefinir, onVoltar }) {
                   </p>
                 )}
 
-                <button type="submit" className="recuperar-submit">
-                  Redefinir senha
+                <button type="submit" className="recuperar-submit" disabled={verificando}>
+                  {verificando ? 'Salvando...' : 'Redefinir senha'}
                 </button>
 
                 <button type="button" className="recuperar-link" onClick={handleTrocarUsuario}>

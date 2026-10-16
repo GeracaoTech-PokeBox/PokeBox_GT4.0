@@ -10,7 +10,7 @@ function somenteDigitos(valor) {
   return valor.replace(/\D/g, '');
 }
 
-// Formato de input (00) 00000-0000
+// Mantém só os números e aplica a máscara (00) 00000-0000
 function formatarCelular(valor) {
   const digitos = somenteDigitos(valor).slice(0, CELULAR_DIGITOS);
   if (digitos.length <= 2) return digitos.replace(/^(\d{1,2})/, '($1');
@@ -18,7 +18,7 @@ function formatarCelular(valor) {
   return digitos.replace(/^(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
 }
 
-// Cada validação devolve a mensagem de erro
+// Cada validação devolve a mensagem de erro, ou null quando está tudo certo
 function validarLogin(login) {
   if (login.trim().length > LOGIN_MAXIMO) {
     return `O usuário pode ter no máximo ${LOGIN_MAXIMO} caracteres.`;
@@ -50,6 +50,7 @@ function Cadastro({ onCadastrar, onVoltar }) {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState(null);
+  const [enviando, setEnviando] = useState(false);
 
   const validar = () => {
     if (!login.trim() || !celular || !senha || !confirmarSenha) {
@@ -60,7 +61,7 @@ function Cadastro({ onCadastrar, onVoltar }) {
       ?? validarNovaSenha(senha, confirmarSenha);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const mensagem = validar();
@@ -70,7 +71,13 @@ function Cadastro({ onCadastrar, onVoltar }) {
     }
 
     setErro(null);
-    onCadastrar({ login: login.trim(), celular: somenteDigitos(celular), senha });
+    setEnviando(true);
+    try {
+      await onCadastrar({ login: login.trim(), celular: somenteDigitos(celular), senha });
+    } catch (falha) {
+      setErro(falha.message);
+      setEnviando(false);
+    }
   };
 
   return (
@@ -177,8 +184,8 @@ function Cadastro({ onCadastrar, onVoltar }) {
                 </p>
               )}
 
-              <button type="submit" className="cadastro-submit">
-                Começar minha jornada!
+              <button type="submit" className="cadastro-submit" disabled={enviando}>
+                {enviando ? 'Cadastrando...' : 'Começar minha jornada!'}
               </button>
             </form>
 

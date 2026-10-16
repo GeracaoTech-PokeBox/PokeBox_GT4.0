@@ -1,29 +1,9 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
+import {
+  TIPOS, TIPO_DESCONHECIDO, formatarNome, formatarNumero,
+} from './tipos';
 import './PokemonCard.css';
-
-const TIPOS = {
-  normal: { nome: 'Normal', cor: '#a8a77a' },
-  fire: { nome: 'Fogo', cor: '#ee8130' },
-  water: { nome: 'Água', cor: '#6390f0' },
-  grass: { nome: 'Planta', cor: '#7ac74c' },
-  electric: { nome: 'Elétrico', cor: '#f7d02c' },
-  ice: { nome: 'Gelo', cor: '#96d9d6' },
-  fighting: { nome: 'Lutador', cor: '#c22e28' },
-  poison: { nome: 'Venenoso', cor: '#a33ea1' },
-  ground: { nome: 'Terrestre', cor: '#e2bf65' },
-  flying: { nome: 'Voador', cor: '#a98ff3' },
-  psychic: { nome: 'Psíquico', cor: '#f95587' },
-  bug: { nome: 'Inseto', cor: '#a6b91a' },
-  rock: { nome: 'Pedra', cor: '#b6a136' },
-  ghost: { nome: 'Fantasma', cor: '#735797' },
-  dragon: { nome: 'Dragão', cor: '#6f35fc' },
-  dark: { nome: 'Sombrio', cor: '#705746' },
-  steel: { nome: 'Aço', cor: '#b7b7f0' },
-  fairy: { nome: 'Fada', cor: '#d685ad' },
-};
-
-const TIPO_DESCONHECIDO = { nome: '???', cor: '#ffffff' };
 
 const STATS = {
   hp: 'PS',
@@ -34,20 +14,8 @@ const STATS = {
   speed: 'Velocidade',
 };
 
-// Maior valor base possível de um atributo
+// Maior valor base possível de um atributo (Blissey tem 255 de PS)
 const STAT_MAXIMO = 255;
-
-
-function formatarNome(nome) {
-  return nome
-    .split('-')
-    .map((parte) => parte.charAt(0).toUpperCase() + parte.slice(1))
-    .join(' ');
-}
-
-function formatarNumero(id) {
-  return `#${String(id).padStart(4, '0')}`;
-}
 
 function PokemonCard({ pokemon }) {
   const [shiny, setShiny] = useState(false);

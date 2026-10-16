@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import PropTypes from 'prop-types';
 import FiltrosPokemons from '../components/FiltrosPokemons';
 import PokemonCard from '../components/PokemonCard';
 import { buscarFiltro, buscarPokemon, listarPokemons } from '../services/pokeapi';
@@ -23,7 +22,7 @@ function filtrarPokemons(pokemons, busca) {
   );
 }
 
-// Mantém só quem aparece em todos os filtros
+// Mantém só quem aparece em todos os filtros ativos
 function aplicarFiltros(pokemons, conjuntos) {
   if (conjuntos.length === 0) return pokemons;
 
@@ -34,16 +33,16 @@ function aplicarFiltros(pokemons, conjuntos) {
 
 const chaveFiltro = (recurso, nome) => `${recurso}/${nome}`;
 
-function Pokemons({ usuario, onMeusPokemons, onSair }) {
+function Pokemons() {
   const [lista, setLista] = useState(null);
   const [erroLista, setErroLista] = useState(null);
   const [tentativa, setTentativa] = useState(0);
-  // id -> dados do Pokémon
+  // id -> dados do Pokémon, ou false quando a requisição falhou
   const [detalhes, setDetalhes] = useState({});
   const [busca, setBusca] = useState('');
-  // recurso -> opção escolhida (ex.: { type: 'fire' })
+  // recurso -> opção escolhida (ex.: { type: 'fire' }); filtro sem opção não entra aqui
   const [filtros, setFiltros] = useState({});
-  // "recurso/nome" -> { alvo, ids },
+  // "recurso/nome" -> { alvo, ids }, ou false quando a requisição falhou
   const [conjuntos, setConjuntos] = useState({});
   const [quantidade, setQuantidade] = useState(PAGINA);
   const sentinelaRef = useRef(null);
@@ -97,7 +96,7 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
   const visiveis = useMemo(() => filtrados.slice(0, quantidade), [filtrados, quantidade]);
   const temMais = visiveis.length < filtrados.length;
 
-  // Busca os detalhes dos cards visíveis 
+  // Busca os detalhes dos cards visíveis (o service evita requisições repetidas)
   useEffect(() => {
     let ativo = true;
     visiveis.forEach(({ id }) => {
@@ -259,40 +258,7 @@ function Pokemons({ usuario, onMeusPokemons, onSair }) {
     );
   };
 
-  return (
-    <div className="pokemons-page">
-      <header className="pokemons-topo">
-        <div className="pokemons-topo-conteudo">
-          <div className="pokemons-marca">
-            <span className="pokemons-lente" aria-hidden="true" />
-            <h1 className="pokemons-titulo">PokeBox</h1>
-          </div>
-
-          <div className="pokemons-usuario">
-            <span>{`Olá, ${usuario.login}!`}</span>
-            <button type="button" className="pokemons-meus" onClick={() => onMeusPokemons()}>
-              Meus Pokémon
-            </button>
-            <button type="button" className="pokemons-sair" onClick={() => onSair()}>
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="pokemons-conteudo">
-        {renderConteudo()}
-      </main>
-    </div>
-  );
+  return renderConteudo();
 }
-
-Pokemons.propTypes = {
-  usuario: PropTypes.shape({
-    login: PropTypes.string.isRequired,
-  }).isRequired,
-  onMeusPokemons: PropTypes.func.isRequired,
-  onSair: PropTypes.func.isRequired,
-};
 
 export default Pokemons;
