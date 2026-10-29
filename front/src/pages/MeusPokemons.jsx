@@ -1,8 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
-import PokemonCard from '../components/PokemonCard';
-import { buscarPokemon, urlArtwork } from '../services/pokeapi';
+import CartaPokemon from '../components/CartaPokemon';
+import CantinhoCuidado from '../components/CantinhoCuidado';
+import FiltrosColecao from '../components/FiltrosColecao';
+import {
+  filtrarEOrdenar, lerFiltros, salvarFiltros, tiposDaColecao,
+} from '../components/colecao';
+import { formatoPokemon } from '../components/formatos';
+import { formatarNome, formatarNumero } from '../components/tipos';
+import { urlArtwork } from '../services/pokeapi';
 import './MeusPokemons.css';
+
+// Os filtros escolhidos ficam salvos neste navegador para a próxima visita
+const CHAVE_FILTROS = 'pokebox-filtros-colecao';
 
 // Em todas as gerações os iniciais vêm na ordem planta, fogo e água
 const TIPOS_INICIAIS = [
@@ -59,41 +69,66 @@ const INICIAIS = [
   },
 ];
 
+// Para a mensagem do bônus da evolução
+const NOMES_STATUS = [
+  { chave: 'hp', nome: 'PS' },
+  { chave: 'ataque', nome: 'Ataque' },
+  { chave: 'defesa', nome: 'Defesa' },
+  { chave: 'velocidade', nome: 'Velocidade' },
+];
+
 function encontrarInicial(id) {
   return INICIAIS.flatMap(({ pokemons }) => pokemons).find((pokemon) => pokemon.id === id) ?? null;
 }
 
 function MeusPokemons({
-  usuario,
-  onEscolherInicial,
-  onTodosPokemons,
-  onSair,
+  usuario, onEscolherInicial, onEvoluir, onCuidar, onRoletarGolpes, onDesbloquearGolpes,
 }) {
   const [escolhido, setEscolhido] = useState(null);
-  // id -> dados do Pokémon, ou false quando a requisição falhou
-  const [detalhes, setDetalhes] = useState({});
+  // Id do Pokémon aberto no cantinho de cuidado
+  const [cuidandoId, setCuidandoId] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [aviso, setAviso] = useState(null);
+  const [filtros, setFiltros] = useState(() => lerFiltros(CHAVE_FILTROS));
 
-  useEffect(() => {
-    let ativo = true;
-    usuario.box.forEach((id) => {
-      buscarPokemon(id)
-        .then((pokemon) => pokemon, () => false)
-        .then((resultado) => {
-          if (!ativo) return;
-          setDetalhes((atual) => (atual[id] === resultado ? atual : { ...atual, [id]: resultado }));
-        });
-    });
-    return () => {
-      ativo = false;
-    };
-  }, [usuario.box]);
+  const mudarFiltros = (novos) => {
+    setFiltros(novos);
+    salvarFiltros(CHAVE_FILTROS, novos);
+  };
 
   const inicialEscolhido = encontrarInicial(escolhido);
+  const cuidando = usuario.pokemons.find((pokemon) => pokemon.id === cuidandoId);
 
-  const handleConfirmar = () => {
-    onEscolherInicial(escolhido);
-    setEscolhido(null);
+  // As duas ações seguem o mesmo roteiro: trava os botões, mostra erro ou aviso
+  const executar = async (acao) => {
+    setEnviando(true);
+    setErro(null);
+    setAviso(null);
+    try {
+      await acao();
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setEnviando(false);
+    }
   };
+
+  const handleConfirmar = () => executar(async () => {
+    await onEscolherInicial(escolhido);
+    setEscolhido(null);
+  });
+
+  const handleEvoluir = (pokemon, evolucao) => executar(async () => {
+    const evoluido = await onEvoluir(pokemon.id, evolucao.especieId);
+    const ganhos = NOMES_STATUS
+      .filter(({ chave }) => evoluido.bonusGanho?.[chave] > 0)
+      .map(({ chave, nome }) => `+${evoluido.bonusGanho[chave]} ${nome}`);
+    const bonus = ganhos.length > 0
+      ? ` Bônus da evolução: ${ganhos.join(', ')}.`
+      : ' Desta vez nenhum status ganhou pontos extras.';
+    setAviso(`${formatarNome(pokemon.nome)} ${formatarNumero(pokemon.mintNumero)} evoluiu para ${formatarNome(evoluido.nome)}!${bonus}`);
+  });
 
   const renderEscolhaInicial = () => (
     <section className="meus-pokemons-inicial">
@@ -128,73 +163,86 @@ function MeusPokemons({
       {inicialEscolhido && (
         <div className="meus-pokemons-confirmar" role="status">
           <span>{`Você escolheu ${inicialEscolhido.nome}!`}</span>
-          <button type="button" className="meus-pokemons-botao" onClick={handleConfirmar}>
-            Confirmar
+          <button type="button" className="meus-pokemons-botao" onClick={handleConfirmar} disabled={enviando}>
+            {enviando ? 'Enviando...' : 'Confirmar'}
           </button>
         </div>
       )}
     </section>
   );
 
-  const renderBox = () => (
+  const visiveis = filtrarEOrdenar(usuario.pokemons, filtros);
+
+  const renderColecao = () => (
     <section>
       <h2 className="meus-pokemons-titulo-secao">Meus Pokémon</h2>
       <p className="meus-pokemons-texto">
-        {usuario.box.length === 1 ? '1 Pokémon' : `${usuario.box.length} Pokémon`}
+        {`${usuario.pokemons.length === 1 ? '1 Pokémon' : `${usuario.pokemons.length} Pokémon`}. `}
+        Cada card é único: IVs, altura, peso e shiny foram sorteados quando ele chegou até você.
+        Dê carinho, brinque e alimente seus Pokémon para ganhar corações de afeto.
       </p>
 
+      <FiltrosColecao
+        filtros={filtros}
+        onMudar={mudarFiltros}
+        tipos={tiposDaColecao(usuario.pokemons)}
+        mostrando={visiveis.length}
+        total={usuario.pokemons.length}
+      />
+
+      {visiveis.length === 0 && (
+        <p className="meus-pokemons-texto">Nenhum Pokémon combina com esses filtros.</p>
+      )}
+
       <ul className="meus-pokemons-grade">
-        {usuario.box.map((id) => (
-          <li key={id}>
-            {detalhes[id] ? (
-              <PokemonCard pokemon={detalhes[id]} />
-            ) : (
-              <div className="meus-pokemons-card-carregando" aria-busy={detalhes[id] !== false}>
-                {detalhes[id] === false ? 'Não foi possível carregar.' : 'Carregando...'}
-              </div>
-            )}
+        {visiveis.map((pokemon) => (
+          <li key={pokemon.id}>
+            <CartaPokemon
+              pokemon={pokemon}
+              onEvoluir={handleEvoluir}
+              evoluindo={enviando}
+              onCuidar={() => {
+                setAviso(null);
+                setCuidandoId(pokemon.id);
+                window.scrollTo(0, 0);
+              }}
+            />
           </li>
         ))}
       </ul>
     </section>
   );
 
+  if (cuidando) {
+    return (
+      <CantinhoCuidado
+        pokemon={cuidando}
+        onCuidar={onCuidar}
+        onRoletarGolpes={onRoletarGolpes}
+        onDesbloquearGolpes={onDesbloquearGolpes}
+        onVoltar={() => setCuidandoId(null)}
+      />
+    );
+  }
+
   return (
-    <div className="meus-pokemons-page">
-      <header className="meus-pokemons-topo">
-        <div className="meus-pokemons-topo-conteudo">
-          <div className="meus-pokemons-marca">
-            <span className="meus-pokemons-lente" aria-hidden="true" />
-            <h1 className="meus-pokemons-titulo">PokeBox</h1>
-          </div>
-
-          <div className="meus-pokemons-usuario">
-            <span>{`Olá, ${usuario.login}!`}</span>
-            <button type="button" className="meus-pokemons-todos" onClick={() => onTodosPokemons()}>
-              Todos os Pokémon
-            </button>
-            <button type="button" className="meus-pokemons-sair" onClick={() => onSair()}>
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="meus-pokemons-conteudo">
-        {usuario.box.length === 0 ? renderEscolhaInicial() : renderBox()}
-      </main>
-    </div>
+    <>
+      {erro && <p className="jogo-erro" role="alert">{erro}</p>}
+      {aviso && <p className="jogo-aviso" role="status">{aviso}</p>}
+      {usuario.pokemons.length === 0 ? renderEscolhaInicial() : renderColecao()}
+    </>
   );
 }
 
 MeusPokemons.propTypes = {
   usuario: PropTypes.shape({
-    login: PropTypes.string.isRequired,
-    box: PropTypes.arrayOf(PropTypes.number).isRequired,
+    pokemons: PropTypes.arrayOf(formatoPokemon).isRequired,
   }).isRequired,
   onEscolherInicial: PropTypes.func.isRequired,
-  onTodosPokemons: PropTypes.func.isRequired,
-  onSair: PropTypes.func.isRequired,
+  onEvoluir: PropTypes.func.isRequired,
+  onCuidar: PropTypes.func.isRequired,
+  onRoletarGolpes: PropTypes.func.isRequired,
+  onDesbloquearGolpes: PropTypes.func.isRequired,
 };
 
 export default MeusPokemons;

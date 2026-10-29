@@ -2,13 +2,16 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import './Login.css';
 
+const LOGIN_MAXIMO = 20;
+
 function Login({ onLogin, onCadastro, onEsqueciSenha }) {
   const [login, setLogin] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState(null);
+  const [entrando, setEntrando] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!login.trim() || !senha) {
@@ -17,7 +20,13 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
     }
 
     setErro(null);
-    onLogin({ login: login.trim(), senha });
+    setEntrando(true);
+    try {
+      await onLogin({ login: login.trim(), senha });
+    } catch (falha) {
+      setErro(falha.message);
+      setEntrando(false);
+    }
   };
 
   return (
@@ -58,6 +67,7 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
                   id="login-treinador"
                   type="text"
                   name="login"
+                  maxLength={LOGIN_MAXIMO}
                   placeholder="Seu usuário"
                   autoComplete="username"
                   value={login}
@@ -102,8 +112,8 @@ function Login({ onLogin, onCadastro, onEsqueciSenha }) {
                 </p>
               )}
 
-              <button type="submit" className="login-submit">
-                Eu escolho você!
+              <button type="submit" className="login-submit" disabled={entrando}>
+                {entrando ? 'Entrando...' : 'Eu escolho você!'}
               </button>
             </form>
 
