@@ -6,10 +6,9 @@ Feito durante o curso FullCycle - Engenharia de Software do projeto Geração Te
 
 ## Membros da equipe
 
-- Auri Joter
 - Felipe Viana
 - Lucas Mendes
-- Vitor Sousa
+- Victor Vale
 
 ## Stack
 
