@@ -1,0 +1,18 @@
+{
+  "dados": {
+    "treinador": "TreinadorTeste",
+    "senha": "SenhaTeste123",
+    "treinadorLongo": "TreinadorComMaisDeVinteCaracteres"
+  },
+  "mensagens": {
+    "camposObrigatorios": "Preencha usuário e senha para continuar.",
+    "credenciaisInvalidas": "Usuário ou senha incorretos.",
+    "senhaEmBranco": "Informe a senha.",
+    "limiteTentativas": "Muitas tentativas. Espere alguns minutos e tente de novo.",
+    "erroInterno": "Erro interno. Tente novamente.",
+    "bancoIndisponivel": "O banco de dados está fora do ar. Tente de novo em instantes.",
+    "falhaConexao": "Não foi possível falar com o servidor. Verifique sua conexão.",
+    "respostaInvalida": "O servidor respondeu algo inesperado. Ele pode estar desatualizado; reinicie o back.",
+    "sessaoExpirada": "Faça login para continuar."
+  }
+}
