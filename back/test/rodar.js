@@ -21,7 +21,7 @@ if (!container) {
 console.log(`Usando o Postgres do container ${container}`);
 
 
-// Procura um Postgres já rodando
+// Garante que o banco pokebox_teste existe
 
 
 
