@@ -1,2 +1,9 @@
 node_modules/
 dist/
+
+# Artefatos gerados pelo Cypress e Mochawesome
+cypress/reports/
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+cypress.env.json

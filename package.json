@@ -1,0 +1,15 @@
+{
+  "name": "pokebox-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Testes E2E do PokeBox com Cypress, Page Objects e Mochawesome.",
+  "scripts": {
+    "cy:open": "cypress open --e2e",
+    "cy:run": "cypress run --e2e",
+    "cy:verify": "cypress verify"
+  },
+  "devDependencies": {
+    "cypress": "^16.2.1",
+    "cypress-mochawesome-reporter": "^5.0.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "types": ["cypress", "cypress-mochawesome-reporter"]
+  },
+  "include": ["**/*.js", "**/*.d.ts"]
+}

@@ -1,0 +1,32 @@
+export const loginLocators = {
+  pagina: '.login-page',
+  titulo: '.login-page h1',
+  treinador: '#login-treinador',
+  senha: '#login-senha',
+  rotuloTreinador: 'label[for="login-treinador"] > span',
+  rotuloSenha: 'label[for="login-senha"] > span',
+  entrar: '.login-form button[type="submit"]',
+  erro: '.login-form [role="alert"]',
+  mostrarSenha: '.login-form button[aria-label="Mostrar senha"]',
+  ocultarSenha: '.login-form button[aria-label="Ocultar senha"]',
+  cadastrar: '.login-page .login-register-button',
+  recuperarSenha: '.login-form .login-forgot',
+  cadastro: {
+    pagina: '.cadastro-page',
+    treinador: '#cadastro-treinador',
+    celular: '#cadastro-celular',
+    voltar: '.cadastro-register-button',
+  },
+  recuperacao: {
+    pagina: '.recuperar-page',
+    treinador: '#recuperar-treinador',
+    celular: '#recuperar-celular',
+    voltar: '.recuperar-register-button',
+  },
+  sessao: {
+    pagina: '.layout-page',
+    treinador: '.layout-usuario > span:first-child',
+    menuAtivo: 'nav[aria-label="Menu"] button[aria-current="page"]',
+    sair: '.layout-sair',
+  },
+};
