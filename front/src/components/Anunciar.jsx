@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { formatoPokemon } from './formatos';
+import ItemEscolha from './ItemEscolha';
+import { carregar } from './carregar';
+import {
+  IV_TOTAL_MAXIMO, formatoPokemon, plural, somaValores,
+} from './formatos';
 import { dadosTipo, formatarNome, formatarNumero } from './tipos';
+import { useAcao } from './useAcao';
 import { urlArtwork, urlSprite } from '../services/pokeapi';
 import * as api from '../services/api';
 
 // Mesmo limite de back/src/jogo/config.js (PRECO_MAXIMO_ANUNCIO)
 const PRECO_MAXIMO = 100000;
 
-const somaIvs = (ivs) => Object.values(ivs).reduce((soma, iv) => soma + iv, 0);
+// [DRY] Cópia idêntica da que existia em PropostaForm.jsx. Agora vem de formatos.js (somaValores).
+// const somaIvs = (ivs) => Object.values(ivs).reduce((soma, iv) => soma + iv, 0);
 
 function Anunciar({ usuario, onAtualizarUsuario, onVerPropostas }) {
   const [escolhidoId, setEscolhidoId] = useState(null);
@@ -16,23 +22,51 @@ function Anunciar({ usuario, onAtualizarUsuario, onVerPropostas }) {
   const [preco, setPreco] = useState('');
   const [aceitaPropostas, setAceitaPropostas] = useState(true);
   const [meus, setMeus] = useState(null);
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState(null);
-  const [aviso, setAviso] = useState(null);
   // Muda para buscar "Meus anúncios" de novo
   const [versao, setVersao] = useState(0);
 
-  useEffect(() => {
-    let ativo = true;
-    api.listarMeusAnuncios().then((lista) => {
-      if (ativo) setMeus(lista);
-    }, (e) => {
-      if (ativo) setErro(e.message);
-    });
-    return () => {
-      ativo = false;
-    };
-  }, [versao]);
+  /* [DRY] Os estados enviando/erro/aviso e a função executar eram iguais aos de Propostas.jsx
+   * e Mercado.jsx. Agora vêm do hook useAcao; só o "recarregar a lista no fim" é deste componente.
+   * O useEffect usava o mesmo bloco "let ativo = true ... return () => { ativo = false }" das
+   * outras telas, agora centralizado em carregar().
+   *
+   * Código original:
+   *
+   * const [enviando, setEnviando] = useState(false);
+   * const [erro, setErro] = useState(null);
+   * const [aviso, setAviso] = useState(null);
+   *
+   * useEffect(() => {
+   *   let ativo = true;
+   *   api.listarMeusAnuncios().then((lista) => {
+   *     if (ativo) setMeus(lista);
+   *   }, (e) => {
+   *     if (ativo) setErro(e.message);
+   *   });
+   *   return () => {
+   *     ativo = false;
+   *   };
+   * }, [versao]);
+   *
+   * const executar = async (acao) => {
+   *   setEnviando(true);
+   *   setErro(null);
+   *   setAviso(null);
+   *   try {
+   *     await acao();
+   *   } catch (e) {
+   *     setErro(e.message);
+   *   } finally {
+   *     setEnviando(false);
+   *     setVersao((v) => v + 1);
+   *   }
+   * };
+   */
+  const {
+    enviando, erro, setErro, aviso, setAviso, executar,
+  } = useAcao(() => setVersao((v) => v + 1));
+
+  useEffect(() => carregar(api.listarMeusAnuncios(), setMeus, (e) => setErro(e.message)), [versao, setErro]);
 
   // Fora do time de batalha e ainda não anunciados
   const disponiveis = usuario.pokemons.filter((p) => !p.posicaoTime && !p.anunciado);
@@ -40,20 +74,6 @@ function Anunciar({ usuario, onAtualizarUsuario, onVerPropostas }) {
   const valor = Number(preco);
   const precoValido = Number.isInteger(valor) && valor >= 1 && valor <= PRECO_MAXIMO;
   const podeAnunciar = escolhido && (vender || aceitaPropostas) && (!vender || precoValido);
-
-  const executar = async (acao) => {
-    setEnviando(true);
-    setErro(null);
-    setAviso(null);
-    try {
-      await acao();
-    } catch (e) {
-      setErro(e.message);
-    } finally {
-      setEnviando(false);
-      setVersao((v) => v + 1);
-    }
-  };
 
   const handleAnunciar = (evento) => {
     evento.preventDefault();
@@ -87,18 +107,30 @@ function Anunciar({ usuario, onAtualizarUsuario, onVerPropostas }) {
             </p>
           ) : (
             <ul className="trocas-escolha">
+              {/* [DRY] O botão era idêntico ao de PropostaForm.jsx; agora é o componente ItemEscolha.
+                Código original:
+                {disponiveis.map((pokemon) => (
+                  <li key={pokemon.id}>
+                    <button
+                      type="button"
+                      className="trocas-escolha-item"
+                      aria-pressed={pokemon.id === escolhidoId}
+                      onClick={() => setEscolhidoId(pokemon.id)}
+                    >
+                      <img src={urlSprite(pokemon.especieId, pokemon.shiny)} alt="" loading="lazy" />
+                      <strong>{`${formatarNome(pokemon.nome)}${pokemon.shiny ? ' ★' : ''}`}</strong>
+                      <span>{`Nv. ${pokemon.nivel} · IVs ${somaIvs(pokemon.ivs)}`}</span>
+                    </button>
+                  </li>
+                ))}
+              */}
               {disponiveis.map((pokemon) => (
                 <li key={pokemon.id}>
-                  <button
-                    type="button"
-                    className="trocas-escolha-item"
-                    aria-pressed={pokemon.id === escolhidoId}
+                  <ItemEscolha
+                    pokemon={pokemon}
+                    selecionado={pokemon.id === escolhidoId}
                     onClick={() => setEscolhidoId(pokemon.id)}
-                  >
-                    <img src={urlSprite(pokemon.especieId, pokemon.shiny)} alt="" loading="lazy" />
-                    <strong>{`${formatarNome(pokemon.nome)}${pokemon.shiny ? ' ★' : ''}`}</strong>
-                    <span>{`Nv. ${pokemon.nivel} · IVs ${somaIvs(pokemon.ivs)}`}</span>
-                  </button>
+                  />
                 </li>
               ))}
             </ul>
@@ -112,7 +144,11 @@ function Anunciar({ usuario, onAtualizarUsuario, onVerPropostas }) {
               <img src={urlArtwork(escolhido.especieId, escolhido.shiny)} alt="" />
               <div>
                 <strong>{formatarNome(escolhido.nome)}</strong>
-                <span>{`${formatarNumero(escolhido.mintNumero)} · Nv. ${escolhido.nivel} · IVs ${somaIvs(escolhido.ivs)}/124`}</span>
+                {/* [DRY] O "124" era um número mágico repetido em 4 arquivos; agora é IV_TOTAL_MAXIMO.
+                  Código original:
+                  <span>{`${formatarNumero(escolhido.mintNumero)} · Nv. ${escolhido.nivel} · IVs ${somaIvs(escolhido.ivs)}/124`}</span>
+                */}
+                <span>{`${formatarNumero(escolhido.mintNumero)} · Nv. ${escolhido.nivel} · IVs ${somaValores(escolhido.ivs)}/${IV_TOTAL_MAXIMO}`}</span>
               </div>
             </div>
           ) : (
@@ -179,7 +215,11 @@ function Anunciar({ usuario, onAtualizarUsuario, onVerPropostas }) {
               </span>
               {anuncio.propostasPendentes > 0 && (
                 <button type="button" className="trocas-selo" onClick={onVerPropostas}>
-                  {`${anuncio.propostasPendentes} ${anuncio.propostasPendentes === 1 ? 'proposta' : 'propostas'}`}
+                  {/* [DRY] Refazia na mão a escolha singular/plural que já existe em plural().
+                    Código original:
+                    {`${anuncio.propostasPendentes} ${anuncio.propostasPendentes === 1 ? 'proposta' : 'propostas'}`}
+                  */}
+                  {plural(anuncio.propostasPendentes, 'proposta', 'propostas')}
                 </button>
               )}
               <button

@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { urlArtwork } from '../services/pokeapi';
+import BarraProgresso from './BarraProgresso';
 import Coracoes from './Coracoes';
 import { formatoPokemon, resumoEvolucao } from './formatos';
 import { dadosTipo, formatarNome, formatarNumero } from './tipos';
@@ -67,16 +68,21 @@ function CartaPokemon({
         <span className="carta-xp-texto">
           {pokemon.xpParaSubir ? `${pokemon.xp} / ${pokemon.xpParaSubir} XP` : 'Nível máximo'}
         </span>
-        <span
-          className="carta-xp"
-          role="progressbar"
-          aria-label="Experiência"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(porcentagemXp)}
-        >
-          <span style={{ width: `${porcentagemXp}%` }} />
-        </span>
+        {/* [DRY] Mesma barra acessível das barras de afeto e bem-estar de CantinhoCuidado.jsx;
+          agora é o componente BarraProgresso.
+          Código original:
+          <span
+            className="carta-xp"
+            role="progressbar"
+            aria-label="Experiência"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(porcentagemXp)}
+          >
+            <span style={{ width: `${porcentagemXp}%` }} />
+          </span>
+        */}
+        <BarraProgresso className="carta-xp" rotulo="Experiência" porcentagem={porcentagemXp} />
       </div>
 
       {compacto && evolucao && (

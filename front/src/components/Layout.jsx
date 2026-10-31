@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { plural } from './formatos';
 import './Layout.css';
 
 const MENU = [
@@ -51,7 +52,11 @@ function Layout({
             </span>
             <span className="layout-moedas" title="Pokébolas para capturar Pokémon na história">
               <span className="layout-pokebola" aria-hidden="true" />
-              {`${usuario.pokebolas ?? 0} Pokébola${usuario.pokebolas === 1 ? '' : 's'}`}
+              {/* [DRY] Refazia na mão a escolha singular/plural que já existe em plural() (formatos.js).
+                Código original:
+                {`${usuario.pokebolas ?? 0} Pokébola${usuario.pokebolas === 1 ? '' : 's'}`}
+              */}
+              {plural(usuario.pokebolas ?? 0, 'Pokébola', 'Pokébolas')}
             </span>
             <button type="button" className="layout-sair" onClick={() => onSair()}>
               Sair

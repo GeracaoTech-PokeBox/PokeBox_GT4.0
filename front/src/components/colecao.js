@@ -1,4 +1,5 @@
 // Filtros e ordenação da coleção (Meus Pokémon e Time). Tudo no navegador, sobre os cards que o back já mandou.
+import { somaValores } from './formatos';
 import { formatarNome } from './tipos';
 
 const PESO_RARIDADE = { mitico: 3, lendario: 2, comum: 1 };
@@ -12,16 +13,24 @@ export const CRITERIOS = {
   ataque: { rotulo: 'Ataque', valor: (p) => p.status.ataque, direcao: 'desc' },
   defesa: { rotulo: 'Defesa', valor: (p) => p.status.defesa, direcao: 'desc' },
   velocidade: { rotulo: 'Velocidade', valor: (p) => p.status.velocidade, direcao: 'desc' },
-  total: {
-    rotulo: 'Total de status',
-    valor: (p) => p.status.hp + p.status.ataque + p.status.defesa + p.status.velocidade,
-    direcao: 'desc',
-  },
-  ivs: {
-    rotulo: 'Total de IVs',
-    valor: (p) => p.ivs.hp + p.ivs.ataque + p.ivs.defesa + p.ivs.velocidade,
-    direcao: 'desc',
-  },
+  /* [DRY] As duas somas abaixo repetiam, campo a campo, a mesma conta que Anunciar.jsx e
+   * PropostaForm.jsx faziam com somaIvs. Agora todos usam somaValores() de formatos.js.
+   *
+   * Código original:
+   *
+   * total: {
+   *   rotulo: 'Total de status',
+   *   valor: (p) => p.status.hp + p.status.ataque + p.status.defesa + p.status.velocidade,
+   *   direcao: 'desc',
+   * },
+   * ivs: {
+   *   rotulo: 'Total de IVs',
+   *   valor: (p) => p.ivs.hp + p.ivs.ataque + p.ivs.defesa + p.ivs.velocidade,
+   *   direcao: 'desc',
+   * },
+   */
+  total: { rotulo: 'Total de status', valor: (p) => somaValores(p.status), direcao: 'desc' },
+  ivs: { rotulo: 'Total de IVs', valor: (p) => somaValores(p.ivs), direcao: 'desc' },
   afeto: { rotulo: 'Afeto', valor: (p) => p.afeto.pontos, direcao: 'desc' },
   tipo: { rotulo: 'Tipo', valor: (p) => p.tipos[0], direcao: 'asc' },
   raridade: { rotulo: 'Raridade', valor: (p) => PESO_RARIDADE[p.raridade] ?? 0, direcao: 'desc' },

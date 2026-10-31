@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import Avatar from './Avatar';
+import { carregar } from './carregar';
+import { IV_TOTAL_MAXIMO } from './formatos';
 import { formatarNome, formatarNumero } from './tipos';
 import { tempoDesde } from './tempo';
+import { useAcao } from './useAcao';
 import { urlArtwork } from '../services/pokeapi';
 import * as api from '../services/api';
 
@@ -32,7 +35,11 @@ function MiniCard({ pokemon, grande = false }) {
       <figcaption>
         <strong>{`${nome}${pokemon.shiny ? ' ★' : ''}`}</strong>
         <span>{`${formatarNumero(pokemon.mintNumero)} · Nv. ${pokemon.nivel}`}</span>
-        <span>{`IVs ${pokemon.ivTotal}/124`}</span>
+        {/* [DRY] Número mágico "124" repetido em 4 arquivos; agora é IV_TOTAL_MAXIMO.
+          Código original:
+          <span>{`IVs ${pokemon.ivTotal}/124`}</span>
+        */}
+        <span>{`IVs ${pokemon.ivTotal}/${IV_TOTAL_MAXIMO}`}</span>
       </figcaption>
     </figure>
   );
@@ -157,38 +164,60 @@ CardProposta.propTypes = {
 function Propostas({ onAtualizarUsuario, onMudou }) {
   const [lado, setLado] = useState('recebidas');
   const [dados, setDados] = useState(null);
-  const [erro, setErro] = useState(null);
-  const [aviso, setAviso] = useState(null);
-  const [enviando, setEnviando] = useState(false);
   const [versao, setVersao] = useState(0);
 
-  useEffect(() => {
-    let ativo = true;
-    api.listarPropostas().then((resposta) => {
-      if (ativo) setDados(resposta);
-    }, (e) => {
-      if (ativo) setErro(e.message);
-    });
-    return () => {
-      ativo = false;
-    };
-  }, [versao]);
+  /* [DRY] Os estados erro/aviso/enviando e a função executar repetiam os de Anunciar.jsx e
+   * Mercado.jsx (agora no hook useAcao). O useEffect repetia o bloco "let ativo = true ..."
+   * (agora em carregar()). Aqui só sobra o que é próprio desta tela: recarregar a lista e
+   * avisar a tela de cima (onMudou) no fim, e mostrar a mensagem de sucesso.
+   *
+   * Código original:
+   *
+   * const [erro, setErro] = useState(null);
+   * const [aviso, setAviso] = useState(null);
+   * const [enviando, setEnviando] = useState(false);
+   *
+   * useEffect(() => {
+   *   let ativo = true;
+   *   api.listarPropostas().then((resposta) => {
+   *     if (ativo) setDados(resposta);
+   *   }, (e) => {
+   *     if (ativo) setErro(e.message);
+   *   });
+   *   return () => {
+   *     ativo = false;
+   *   };
+   * }, [versao]);
+   *
+   * const executar = async (acao, mensagem) => {
+   *   setEnviando(true);
+   *   setErro(null);
+   *   setAviso(null);
+   *   try {
+   *     await acao();
+   *     setAviso(mensagem);
+   *   } catch (e) {
+   *     setErro(e.message);
+   *   } finally {
+   *     setEnviando(false);
+   *     setVersao((v) => v + 1);
+   *     onMudou();
+   *   }
+   * };
+   */
+  const {
+    enviando, erro, setErro, aviso, setAviso, executar: executarAcao,
+  } = useAcao(() => {
+    setVersao((v) => v + 1);
+    onMudou();
+  });
 
-  const executar = async (acao, mensagem) => {
-    setEnviando(true);
-    setErro(null);
-    setAviso(null);
-    try {
-      await acao();
-      setAviso(mensagem);
-    } catch (e) {
-      setErro(e.message);
-    } finally {
-      setEnviando(false);
-      setVersao((v) => v + 1);
-      onMudou();
-    }
-  };
+  useEffect(() => carregar(api.listarPropostas(), setDados, (e) => setErro(e.message)), [versao, setErro]);
+
+  const executar = (acao, mensagem) => executarAcao(async () => {
+    await acao();
+    setAviso(mensagem);
+  });
 
   const pendentes = (lista) => lista.filter((p) => p.status === 'pendente').length;
   const lista = dados?.[lado] ?? [];

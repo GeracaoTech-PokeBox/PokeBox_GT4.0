@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import {
-  TIPOS, TIPO_DESCONHECIDO, formatarNome, formatarNumero,
-} from './tipos';
+// [DRY] Importava TIPOS e TIPO_DESCONHECIDO para refazer aqui o que dadosTipo() já faz.
+// import {
+//   TIPOS, TIPO_DESCONHECIDO, formatarNome, formatarNumero,
+// } from './tipos';
+import { dadosTipo, formatarNome, formatarNumero } from './tipos';
 import './PokemonCard.css';
 
 const STATS = {
@@ -17,14 +19,39 @@ const STATS = {
 // Maior valor base possível de um atributo (Blissey tem 255 de PS)
 const STAT_MAXIMO = 255;
 
+/* [DRY] As seções "Movimentos", "Itens que pode carregar" e "Jogos" repetiam o mesmo bloco:
+ * uma <ul className="pokemon-card-chips"> com um <li> por nome formatado e, quando a lista
+ * estava vazia, <p className="pokemon-card-vazio">Nenhum</p>. Agora é este componente.
+ * Única diferença: "Movimentos" antes não mostrava "Nenhum" quando vazio (na prática todo
+ * Pokémon da PokeAPI tem movimentos), agora mostra, igual às outras seções.
+ */
+function ListaChips({ nomes }) {
+  if (nomes.length === 0) return <p className="pokemon-card-vazio">Nenhum</p>;
+  return (
+    <ul className="pokemon-card-chips">
+      {nomes.map((nome) => <li key={nome}>{formatarNome(nome)}</li>)}
+    </ul>
+  );
+}
+
+ListaChips.propTypes = { nomes: PropTypes.arrayOf(PropTypes.string).isRequired };
+
 function PokemonCard({ pokemon }) {
   const [shiny, setShiny] = useState(false);
 
-  const tipos = pokemon.types.map(({ type }) => ({
-    id: type.name,
-    ...(TIPOS[type.name] ?? TIPO_DESCONHECIDO),
-  }));
-  const corPrincipal = tipos[0]?.cor ?? TIPO_DESCONHECIDO.cor;
+  /* [DRY] "TIPOS[nome] ?? TIPO_DESCONHECIDO" é exatamente o que dadosTipo() faz em tipos.js.
+   * O "?? TIPO_DESCONHECIDO.cor" da cor principal também já é coberto por dadosTipo(undefined).
+   *
+   * Código original:
+   *
+   * const tipos = pokemon.types.map(({ type }) => ({
+   *   id: type.name,
+   *   ...(TIPOS[type.name] ?? TIPO_DESCONHECIDO),
+   * }));
+   * const corPrincipal = tipos[0]?.cor ?? TIPO_DESCONHECIDO.cor;
+   */
+  const tipos = pokemon.types.map(({ type }) => ({ id: type.name, ...dadosTipo(type.name) }));
+  const corPrincipal = dadosTipo(pokemon.types[0]?.type.name).cor;
 
   const artwork = pokemon.sprites.other?.['official-artwork'];
   const imagem = shiny
@@ -125,39 +152,56 @@ function PokemonCard({ pokemon }) {
       <details className="pokemon-card-detalhes">
         <summary>Mais informações</summary>
 
+        {/* [DRY] As três seções abaixo repetiam o mesmo bloco de chips; agora usam ListaChips.
+          Código original:
+          <section className="pokemon-card-secao">
+            <h3>{`Movimentos (${moves.length})`}</h3>
+            <ul className="pokemon-card-chips">
+              {moves.map(({ move }) => (
+                <li key={move.name}>{formatarNome(move.name)}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="pokemon-card-secao">
+            <h3>Itens que pode carregar</h3>
+            {heldItems.length > 0 ? (
+              <ul className="pokemon-card-chips">
+                {heldItems.map(({ item }) => (
+                  <li key={item.name}>{formatarNome(item.name)}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="pokemon-card-vazio">Nenhum</p>
+            )}
+          </section>
+
+          <section className="pokemon-card-secao">
+            <h3>{`Jogos (${gameIndices.length})`}</h3>
+            {gameIndices.length > 0 ? (
+              <ul className="pokemon-card-chips">
+                {gameIndices.map(({ version }) => (
+                  <li key={version.name}>{formatarNome(version.name)}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="pokemon-card-vazio">Nenhum</p>
+            )}
+          </section>
+        */}
         <section className="pokemon-card-secao">
           <h3>{`Movimentos (${moves.length})`}</h3>
-          <ul className="pokemon-card-chips">
-            {moves.map(({ move }) => (
-              <li key={move.name}>{formatarNome(move.name)}</li>
-            ))}
-          </ul>
+          <ListaChips nomes={moves.map(({ move }) => move.name)} />
         </section>
 
         <section className="pokemon-card-secao">
           <h3>Itens que pode carregar</h3>
-          {heldItems.length > 0 ? (
-            <ul className="pokemon-card-chips">
-              {heldItems.map(({ item }) => (
-                <li key={item.name}>{formatarNome(item.name)}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="pokemon-card-vazio">Nenhum</p>
-          )}
+          <ListaChips nomes={heldItems.map(({ item }) => item.name)} />
         </section>
 
         <section className="pokemon-card-secao">
           <h3>{`Jogos (${gameIndices.length})`}</h3>
-          {gameIndices.length > 0 ? (
-            <ul className="pokemon-card-chips">
-              {gameIndices.map(({ version }) => (
-                <li key={version.name}>{formatarNome(version.name)}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="pokemon-card-vazio">Nenhum</p>
-          )}
+          <ListaChips nomes={gameIndices.map(({ version }) => version.name)} />
         </section>
 
         <dl className="pokemon-card-extras">

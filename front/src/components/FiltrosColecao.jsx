@@ -48,7 +48,9 @@ function FiltrosColecao({
         type="button"
         className="filtros-colecao-direcao"
         onClick={() => mudar('direcao', decrescente ? 'asc' : 'desc')}
-        aria-label={decrescente ? 'Ordem decrescente. Clique para inverter' : 'Ordem crescente. Clique para inverter'}
+        // [KISS] As duas frases só diferiam em uma palavra; agora o ternário escolhe só essa palavra.
+        // aria-label={decrescente ? 'Ordem decrescente. Clique para inverter' : 'Ordem crescente. Clique para inverter'}
+        aria-label={`Ordem ${decrescente ? 'decrescente' : 'crescente'}. Clique para inverter`}
         title="Inverter a ordem"
       >
         {decrescente ? '↓ Maior primeiro' : '↑ Menor primeiro'}

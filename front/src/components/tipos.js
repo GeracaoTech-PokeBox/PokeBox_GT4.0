@@ -20,9 +20,16 @@ export const TIPOS = {
   fairy: { nome: 'Fada', cor: '#d685ad' },
 };
 
-export const TIPO_DESCONHECIDO = { nome: '???', cor: '#68a090' };
+// [YAGNI] Era exportada só para PokemonCard.jsx refazer a lógica de dadosTipo(). Agora que
+// PokemonCard usa dadosTipo(), nenhum outro arquivo precisa importar esta constante.
+// export const TIPO_DESCONHECIDO = { nome: '???', cor: '#68a090' };
+const TIPO_DESCONHECIDO = { nome: '???', cor: '#68a090' };
 
 export const dadosTipo = (tipo) => TIPOS[tipo] ?? TIPO_DESCONHECIDO;
+
+// [DRY] Novo: Mercado.jsx (2x) e pages/Vitrine.jsx montavam este texto com o mesmo map + join.
+// ['fire', 'flying'] -> "Fogo / Voador"
+export const nomesTipos = (tipos) => tipos.map((tipo) => dadosTipo(tipo).nome).join(' / ');
 
 // "lightning-rod" -> "Lightning Rod"
 export function formatarNome(nome) {

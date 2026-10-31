@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import Avatar from './Avatar';
 import PropostaForm from './PropostaForm';
-import { formatoPokemon } from './formatos';
-import { dadosTipo, formatarNome, formatarNumero } from './tipos';
+import { carregar } from './carregar';
+import { IV_TOTAL_MAXIMO, formatoPokemon, plural } from './formatos';
+import {
+  dadosTipo, formatarNome, formatarNumero, nomesTipos,
+} from './tipos';
+import { useAcao } from './useAcao';
 import { urlArtwork } from '../services/pokeapi';
 import * as api from '../services/api';
 
@@ -20,7 +24,8 @@ const ORDENS_ANUNCIOS = [
   { valor: 'recentes', nome: 'Mais recentes' },
 ];
 
-const IV_TOTAL_MAXIMO = 124; // 4 status x 31
+// [DRY] Movida para formatos.js: Anunciar, PropostaForm e Propostas usavam o mesmo 124 escrito à mão.
+// const IV_TOTAL_MAXIMO = 124; // 4 status x 31
 
 const STATUS = [
   { chave: 'hp', nome: 'PS' },
@@ -29,7 +34,8 @@ const STATUS = [
   { chave: 'velocidade', nome: 'Vel' },
 ];
 
-const plural = (n, singular, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? singular : varios}`;
+// [DRY] Movida para formatos.js: Anunciar.jsx e Layout.jsx refaziam a mesma escolha singular/plural.
+// const plural = (n, singular, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? singular : varios}`;
 
 function Ordenar({ valor, opcoes, onMudar }) {
   return (
@@ -70,22 +76,46 @@ function ListaEspecies({ onAbrir }) {
   const [especies, setEspecies] = useState(null);
   const [erro, setErro] = useState(null);
 
+  /* [DRY] O controle "let ativo = true ... ativo = false" era o mesmo das outras telas;
+   * agora usa carregar(). O debounce de 250 ms continua igual.
+   *
+   * Código original:
+   *
+   * useEffect(() => {
+   *   let ativo = true;
+   *   // Espera parar de digitar para não buscar a cada letra
+   *   const espera = setTimeout(() => {
+   *     api.listarMercado(busca.trim().toLowerCase().replace(/\s+/g, '-'), ordem).then((lista) => {
+   *       if (ativo) {
+   *         setEspecies(lista);
+   *         setErro(null);
+   *       }
+   *     }, (e) => {
+   *       if (ativo) setErro(e.message);
+   *     });
+   *   }, 250);
+   *   return () => {
+   *     ativo = false;
+   *     clearTimeout(espera);
+   *   };
+   * }, [busca, ordem]);
+   */
   useEffect(() => {
-    let ativo = true;
+    let cancelar = () => {};
     // Espera parar de digitar para não buscar a cada letra
     const espera = setTimeout(() => {
-      api.listarMercado(busca.trim().toLowerCase().replace(/\s+/g, '-'), ordem).then((lista) => {
-        if (ativo) {
+      cancelar = carregar(
+        api.listarMercado(busca.trim().toLowerCase().replace(/\s+/g, '-'), ordem),
+        (lista) => {
           setEspecies(lista);
           setErro(null);
-        }
-      }, (e) => {
-        if (ativo) setErro(e.message);
-      });
+        },
+        (e) => setErro(e.message),
+      );
     }, 250);
     return () => {
-      ativo = false;
       clearTimeout(espera);
+      cancelar();
     };
   }, [busca, ordem]);
 
@@ -123,7 +153,12 @@ function ListaEspecies({ onAbrir }) {
                 onClick={() => onAbrir(especie)}
               >
                 <span className="trocas-especie-tipo">
-                  {especie.tipos.map((tipo) => dadosTipo(tipo).nome).join(' / ')}
+                  {/* [DRY] Mesma junção de nomes de tipos de CardAnuncio e pages/Vitrine.jsx;
+                    agora é nomesTipos() de tipos.js.
+                    Código original:
+                    {especie.tipos.map((tipo) => dadosTipo(tipo).nome).join(' / ')}
+                  */}
+                  {nomesTipos(especie.tipos)}
                   {especie.shinies > 0 && <span className="trocas-shiny">{` · ★ ${especie.shinies} shiny`}</span>}
                 </span>
                 <strong className="trocas-especie-nome">{nome}</strong>
@@ -184,7 +219,11 @@ function CardAnuncio({ anuncio, saldo, enviando, onComprar, onPropor }) {
 
   return (
     <article className={`trocas-anuncio${pokemon.shiny ? ' trocas-anuncio--shiny' : ''}`} style={{ '--trocas-cor': dadosTipo(pokemon.tipos[0]).cor }}>
-      <span className="trocas-especie-tipo">{`${pokemon.tipos.map((tipo) => dadosTipo(tipo).nome).join(' / ')} · Nv. ${pokemon.nivel}`}</span>
+      {/* [DRY] Mesma junção de nomes de tipos de ListaEspecies; agora é nomesTipos().
+        Código original:
+        <span className="trocas-especie-tipo">{`${pokemon.tipos.map((tipo) => dadosTipo(tipo).nome).join(' / ')} · Nv. ${pokemon.nivel}`}</span>
+      */}
+      <span className="trocas-especie-tipo">{`${nomesTipos(pokemon.tipos)} · Nv. ${pokemon.nivel}`}</span>
       <strong className="trocas-especie-nome">
         {`${nome} ${formatarNumero(pokemon.mintNumero)}`}
         {pokemon.shiny && <span className="trocas-shiny"> ★ Shiny</span>}
@@ -241,40 +280,62 @@ CardAnuncio.propTypes = {
 function AnunciosDaEspecie({ especie, usuario, onVoltar, onAtualizarUsuario }) {
   const [ordem, setOrdem] = useState('preco');
   const [anuncios, setAnuncios] = useState(null);
-  const [erro, setErro] = useState(null);
-  const [aviso, setAviso] = useState(null);
-  const [enviando, setEnviando] = useState(false);
   const [propondo, setPropondo] = useState(null);
   // Muda para buscar a lista de novo depois de uma compra
   const [versao, setVersao] = useState(0);
 
-  useEffect(() => {
-    let ativo = true;
-    api.listarAnunciosDaEspecie(especie.especieId, ordem).then((lista) => {
-      if (ativo) setAnuncios(lista);
-    }, (e) => {
-      if (ativo) setErro(e.message);
-    });
-    return () => {
-      ativo = false;
-    };
-  }, [especie.especieId, ordem, versao]);
+  /* [DRY] erro/aviso/enviando e o try/catch/finally de handleComprar eram iguais ao
+   * "executar" de Anunciar.jsx e Propostas.jsx (agora no hook useAcao). O useEffect repetia
+   * o bloco "let ativo = true ..." (agora em carregar()).
+   *
+   * Código original:
+   *
+   * const [erro, setErro] = useState(null);
+   * const [aviso, setAviso] = useState(null);
+   * const [enviando, setEnviando] = useState(false);
+   *
+   * useEffect(() => {
+   *   let ativo = true;
+   *   api.listarAnunciosDaEspecie(especie.especieId, ordem).then((lista) => {
+   *     if (ativo) setAnuncios(lista);
+   *   }, (e) => {
+   *     if (ativo) setErro(e.message);
+   *   });
+   *   return () => {
+   *     ativo = false;
+   *   };
+   * }, [especie.especieId, ordem, versao]);
+   *
+   * const handleComprar = async (anuncio) => {
+   *   setEnviando(true);
+   *   setErro(null);
+   *   setAviso(null);
+   *   try {
+   *     const card = await api.comprarAnuncio(anuncio.id);
+   *     setAviso(`${formatarNome(card.nome)} ${formatarNumero(card.mintNumero)} agora é seu! Ele está em Meus Pokémon.`);
+   *     await onAtualizarUsuario();
+   *   } catch (e) {
+   *     setErro(e.message);
+   *   } finally {
+   *     setEnviando(false);
+   *     setVersao((v) => v + 1);
+   *   }
+   * };
+   */
+  const {
+    enviando, erro, setErro, aviso, setAviso, executar,
+  } = useAcao(() => setVersao((v) => v + 1));
 
-  const handleComprar = async (anuncio) => {
-    setEnviando(true);
-    setErro(null);
-    setAviso(null);
-    try {
-      const card = await api.comprarAnuncio(anuncio.id);
-      setAviso(`${formatarNome(card.nome)} ${formatarNumero(card.mintNumero)} agora é seu! Ele está em Meus Pokémon.`);
-      await onAtualizarUsuario();
-    } catch (e) {
-      setErro(e.message);
-    } finally {
-      setEnviando(false);
-      setVersao((v) => v + 1);
-    }
-  };
+  useEffect(
+    () => carregar(api.listarAnunciosDaEspecie(especie.especieId, ordem), setAnuncios, (e) => setErro(e.message)),
+    [especie.especieId, ordem, versao, setErro],
+  );
+
+  const handleComprar = (anuncio) => executar(async () => {
+    const card = await api.comprarAnuncio(anuncio.id);
+    setAviso(`${formatarNome(card.nome)} ${formatarNumero(card.mintNumero)} agora é seu! Ele está em Meus Pokémon.`);
+    await onAtualizarUsuario();
+  });
 
   const nome = formatarNome(especie.nome);
 

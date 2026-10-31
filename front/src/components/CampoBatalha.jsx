@@ -5,7 +5,10 @@ import '../pages/Batalha.css';
 
 // Peças do campo de batalha, usadas nas batalhas entre treinadores e na história
 
-export function BarraHp({ pokemon }) {
+// [YAGNI] Era exportada, mas só LadoCampo (neste mesmo arquivo) usa a barra. Exportar algo
+// que ninguém importa só aumenta a "superfície pública" do módulo.
+// export function BarraHp({ pokemon }) {
+function BarraHp({ pokemon }) {
   const porcentagem = (pokemon.hp / pokemon.hpMax) * 100;
   let nivel = 'alto';
   if (porcentagem <= 20) nivel = 'baixo';

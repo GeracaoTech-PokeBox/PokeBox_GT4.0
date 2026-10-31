@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import BarraProgresso from './BarraProgresso';
 import Coracoes from './Coracoes';
 import { ListaGolpes } from './Golpes';
+import { carregar } from './carregar';
 import { formatoPokemon } from './formatos';
 import { dadosTipo, formatarNome, formatarNumero } from './tipos';
 import { tempoDesde, tempoRestante } from './tempo';
@@ -37,6 +39,34 @@ function descreverHumor(pokemon) {
   return HUMORES[pokemon.afeto.coracoes];
 }
 
+/* [DRY] A barra acessível (role="progressbar" + aria + span interno) era a mesma da barra de
+ * afeto logo abaixo e da barra de XP de CartaPokemon.jsx; agora é o componente BarraProgresso.
+ *
+ * Código original:
+ *
+ * function BarraBemEstar({ nome, valor }) {
+ *   return (
+ *     <div className="cantinho-bem-estar">
+ *       <div className="cantinho-bem-estar-topo">
+ *         <span>{nome}</span>
+ *         <span>{`${valor}%`}</span>
+ *       </div>
+ *       <span
+ *         className="cantinho-bem-estar-barra"
+ *         data-baixo={valor < BEM_ESTAR_BAIXO}
+ *         data-tipo={nome.toLowerCase()}
+ *         role="progressbar"
+ *         aria-label={nome}
+ *         aria-valuemin={0}
+ *         aria-valuemax={100}
+ *         aria-valuenow={valor}
+ *       >
+ *         <span style={{ width: `${valor}%` }} />
+ *       </span>
+ *     </div>
+ *   );
+ * }
+ */
 function BarraBemEstar({ nome, valor }) {
   return (
     <div className="cantinho-bem-estar">
@@ -44,18 +74,13 @@ function BarraBemEstar({ nome, valor }) {
         <span>{nome}</span>
         <span>{`${valor}%`}</span>
       </div>
-      <span
+      <BarraProgresso
         className="cantinho-bem-estar-barra"
+        rotulo={nome}
+        porcentagem={valor}
         data-baixo={valor < BEM_ESTAR_BAIXO}
         data-tipo={nome.toLowerCase()}
-        role="progressbar"
-        aria-label={nome}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={valor}
-      >
-        <span style={{ width: `${valor}%` }} />
-      </span>
+      />
     </div>
   );
 }
@@ -64,6 +89,35 @@ BarraBemEstar.propTypes = { nome: PropTypes.string.isRequired, valor: PropTypes.
 
 // Atualiza os contadores de espera dos botões
 const RELOGIO_MS = 30 * 1000;
+
+/* [DRY] O CartaoGolpes tinha duas caixas de confirmação iguais (desbloqueio e roleta):
+ *
+ *   <div className="cantinho-confirmar">
+ *     <span>{texto}</span>
+ *     <button type="button" className="jogo-botao" disabled={girando} onClick={...}>Confirmar</button>
+ *     <button type="button" className="jogo-botao jogo-botao--claro" onClick={() => setConfirmar(null)}>Cancelar</button>
+ *   </div>
+ *
+ * Só mudavam o texto e a ação do "Confirmar"; agora é este componente.
+ */
+function Confirmacao({
+  texto, desabilitado, onConfirmar, onCancelar,
+}) {
+  return (
+    <div className="cantinho-confirmar">
+      <span>{texto}</span>
+      <button type="button" className="jogo-botao" disabled={desabilitado} onClick={onConfirmar}>Confirmar</button>
+      <button type="button" className="jogo-botao jogo-botao--claro" onClick={onCancelar}>Cancelar</button>
+    </div>
+  );
+}
+
+Confirmacao.propTypes = {
+  texto: PropTypes.string.isRequired,
+  desabilitado: PropTypes.bool.isRequired,
+  onConfirmar: PropTypes.func.isRequired,
+  onCancelar: PropTypes.func.isRequired,
+};
 
 // Golpes especiais: liberados com o afeto máximo, sorteados entre os que a espécie aprende
 function CartaoGolpes({
@@ -101,7 +155,8 @@ function CartaoGolpes({
             {`Com o afeto máximo (5 ♥), ${nome} poderá girar a roleta e aprender 2 golpes entre os que a espécie dele aprende.`}
           </p>
           {erro && <p className="jogo-erro" role="alert">{erro}</p>}
-          {confirmar === 'desbloqueio' ? (
+          {/* [DRY] Caixa de confirmação igual à da roleta; agora é o componente Confirmacao.
+            Código original:
             <div className="cantinho-confirmar">
               <span>{`Libera os golpes de ${nome} agora, sem esperar o afeto máximo, e já gira a primeira roleta. Custa ${pokemon.custoDesbloqueioGolpes} Pokécoins.`}</span>
               <button type="button" className="jogo-botao" disabled={girando} onClick={() => handleRoletar(onDesbloquear)}>
@@ -109,6 +164,14 @@ function CartaoGolpes({
               </button>
               <button type="button" className="jogo-botao jogo-botao--claro" onClick={() => setConfirmar(null)}>Cancelar</button>
             </div>
+          */}
+          {confirmar === 'desbloqueio' ? (
+            <Confirmacao
+              texto={`Libera os golpes de ${nome} agora, sem esperar o afeto máximo, e já gira a primeira roleta. Custa ${pokemon.custoDesbloqueioGolpes} Pokécoins.`}
+              desabilitado={girando}
+              onConfirmar={() => handleRoletar(onDesbloquear)}
+              onCancelar={() => setConfirmar(null)}
+            />
           ) : (
             <button
               type="button"
@@ -129,12 +192,21 @@ function CartaoGolpes({
           )}
           {mensagem && <p className="cantinho-dica" role="status"><strong>{mensagem}</strong></p>}
           {erro && <p className="jogo-erro" role="alert">{erro}</p>}
-          {confirmar === 'roleta' ? (
+          {/* [DRY] Caixa de confirmação igual à do desbloqueio; agora é o componente Confirmacao.
+            Código original:
             <div className="cantinho-confirmar">
               <span>{`Os golpes atuais serão trocados por 2 novos sorteados. Custa ${custo} Pokécoins.`}</span>
               <button type="button" className="jogo-botao" disabled={girando} onClick={() => handleRoletar()}>Confirmar</button>
               <button type="button" className="jogo-botao jogo-botao--claro" onClick={() => setConfirmar(null)}>Cancelar</button>
             </div>
+          */}
+          {confirmar === 'roleta' ? (
+            <Confirmacao
+              texto={`Os golpes atuais serão trocados por 2 novos sorteados. Custa ${custo} Pokécoins.`}
+              desabilitado={girando}
+              onConfirmar={() => handleRoletar()}
+              onCancelar={() => setConfirmar(null)}
+            />
           ) : (
             <button
               type="button"
@@ -171,15 +243,22 @@ function CantinhoCuidado({
   // Muda a cada cuidado para reiniciar a animação dos corações subindo
   const [animacao, setAnimacao] = useState(0);
 
-  useEffect(() => {
-    let ativo = true;
-    api.listarCuidados(pokemon.id).then((lista) => {
-      if (ativo) setHistorico(lista);
-    }, () => {});
-    return () => {
-      ativo = false;
-    };
-  }, [pokemon.id]);
+  /* [DRY] Mesmo bloco "let ativo = true ... ativo = false" das outras telas; agora é carregar().
+   * Os erros continuam ignorados (o histórico é só informativo).
+   *
+   * Código original:
+   *
+   * useEffect(() => {
+   *   let ativo = true;
+   *   api.listarCuidados(pokemon.id).then((lista) => {
+   *     if (ativo) setHistorico(lista);
+   *   }, () => {});
+   *   return () => {
+   *     ativo = false;
+   *   };
+   * }, [pokemon.id]);
+   */
+  useEffect(() => carregar(api.listarCuidados(pokemon.id), setHistorico), [pokemon.id]);
 
   useEffect(() => {
     const relogio = setInterval(() => setAgora(Date.now()), RELOGIO_MS);
@@ -209,7 +288,9 @@ function CantinhoCuidado({
   };
 
   const { afeto } = pokemon;
-  const progresso = afeto.maximo ? 100 : ((afeto.pontos % 100) / 100) * 100;
+  // [KISS] "((x % 100) / 100) * 100" divide e multiplica por 100 à toa: o resultado é só x % 100.
+  // const progresso = afeto.maximo ? 100 : ((afeto.pontos % 100) / 100) * 100;
+  const progresso = afeto.maximo ? 100 : afeto.pontos % 100;
   const cor = dadosTipo(pokemon.tipos[0]).cor;
 
   return (
@@ -281,16 +362,20 @@ function CantinhoCuidado({
           <section className="cantinho-cartao">
             <h3>Afeto por você</h3>
             <Coracoes quantidade={afeto.coracoes} tamanho="grande" />
-            <span
-              className="cantinho-barra"
-              role="progressbar"
-              aria-label="Progresso até o próximo coração"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(progresso)}
-            >
-              <span style={{ width: `${progresso}%` }} />
-            </span>
+            {/* [DRY] Mesma barra acessível de BarraBemEstar e de CartaPokemon; agora é BarraProgresso.
+              Código original:
+              <span
+                className="cantinho-barra"
+                role="progressbar"
+                aria-label="Progresso até o próximo coração"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progresso)}
+              >
+                <span style={{ width: `${progresso}%` }} />
+              </span>
+            */}
+            <BarraProgresso className="cantinho-barra" rotulo="Progresso até o próximo coração" porcentagem={progresso} />
             <p className="cantinho-dica">
               {afeto.maximo ? 'Afeto máximo!' : `${afeto.faltamParaProximo} pontos até o próximo ♥`}
             </p>

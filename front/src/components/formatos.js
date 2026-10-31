@@ -1,6 +1,31 @@
 import PropTypes from 'prop-types';
 import { formatarNome } from './tipos';
 
+/* [DRY] Utilitários novos, centralizando lógica que estava copiada em vários componentes:
+ *
+ * 1. somaValores: Anunciar.jsx e PropostaForm.jsx tinham cada um a sua cópia idêntica de
+ *      // const somaIvs = (ivs) => Object.values(ivs).reduce((soma, iv) => soma + iv, 0);
+ *    e colecao.js somava status e IVs campo a campo
+ *    (p.ivs.hp + p.ivs.ataque + p.ivs.defesa + p.ivs.velocidade). É a mesma conta: somar os
+ *    4 valores de um objeto { hp, ataque, defesa, velocidade }.
+ *
+ * 2. IV_TOTAL_MAXIMO: Mercado.jsx tinha a constante, mas Anunciar.jsx, PropostaForm.jsx e
+ *    Propostas.jsx escreviam o número mágico "/124" direto no texto. Se a regra mudar no back,
+ *    havia 4 lugares para lembrar de trocar.
+ *
+ * 3. plural: só existia em Mercado.jsx, enquanto Anunciar.jsx e Layout.jsx refaziam a mesma
+ *    escolha singular/plural na mão (`proposta`/`propostas`, `Pokébola`/`Pokébolas`).
+ */
+
+/** Soma os valores de um objeto, ex.: os 4 IVs ou os 4 status de um card */
+export const somaValores = (objeto) => Object.values(objeto).reduce((soma, valor) => soma + valor, 0);
+
+// Soma máxima dos IVs: 4 status x 31
+export const IV_TOTAL_MAXIMO = 124;
+
+// "1 anúncio", "1.500 Pokécoins"
+export const plural = (n, singular, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? singular : varios}`;
+
 /**
  * Resumo da evolução para cards e o time: "Evolui no Nv. 36 (faltam 4)", "Pode evoluir!" ou null se não evolui.
  * Com várias evoluções (Eevee), vale a de menor nível.

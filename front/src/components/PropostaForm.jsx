@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import Avatar from './Avatar';
-import { formatoPokemon } from './formatos';
+import ItemEscolha from './ItemEscolha';
+import { IV_TOTAL_MAXIMO, formatoPokemon } from './formatos';
 import { formatarNome, formatarNumero } from './tipos';
-import { urlArtwork, urlSprite } from '../services/pokeapi';
+import { urlArtwork } from '../services/pokeapi';
 import * as api from '../services/api';
 
 // Mesmo limite de back/src/jogo/config.js (POKEMONS_POR_PROPOSTA)
 const POKEMONS_MAXIMO = 6;
 
-const somaIvs = (ivs) => Object.values(ivs).reduce((soma, iv) => soma + iv, 0);
+// [DRY] Cópia idêntica da que existia em Anunciar.jsx. Agora a soma é feita dentro de
+// ItemEscolha.jsx, com somaValores() de formatos.js, e este arquivo não precisa mais dela.
+// const somaIvs = (ivs) => Object.values(ivs).reduce((soma, iv) => soma + iv, 0);
 
 // Monta a oferta (Pokémon da coleção + Pokécoins) para um anúncio que aceita propostas
 function PropostaForm({ anuncio, usuario, onCancelar, onEnviada }) {
@@ -55,7 +58,11 @@ function PropostaForm({ anuncio, usuario, onCancelar, onEnviada }) {
           Anúncio de
           {' '}
           <strong>{anuncio.vendedor}</strong>
-          {` · ${formatarNumero(alvo.mintNumero)} · Nv. ${alvo.nivel} · IVs ${alvo.ivTotal}/124`}
+          {/* [DRY] Número mágico "124" repetido em 4 arquivos; agora é IV_TOTAL_MAXIMO.
+            Código original:
+            {` · ${formatarNumero(alvo.mintNumero)} · Nv. ${alvo.nivel} · IVs ${alvo.ivTotal}/124`}
+          */}
+          {` · ${formatarNumero(alvo.mintNumero)} · Nv. ${alvo.nivel} · IVs ${alvo.ivTotal}/${IV_TOTAL_MAXIMO}`}
         </span>
       </p>
 
@@ -95,21 +102,39 @@ function PropostaForm({ anuncio, usuario, onCancelar, onEnviada }) {
           <>
             <p className="trocas-dica">Só aparecem os que estão fora do time de batalha.</p>
             <ul className="trocas-escolha">
-              {disponiveis.map((pokemon) => (
-                <li key={pokemon.id}>
-                  <button
-                    type="button"
-                    className="trocas-escolha-item"
-                    aria-pressed={selecionados.includes(pokemon.id)}
-                    disabled={!selecionados.includes(pokemon.id) && selecionados.length >= POKEMONS_MAXIMO}
-                    onClick={() => alternar(pokemon.id)}
-                  >
-                    <img src={urlSprite(pokemon.especieId, pokemon.shiny)} alt="" loading="lazy" />
-                    <strong>{`${formatarNome(pokemon.nome)}${pokemon.shiny ? ' ★' : ''}`}</strong>
-                    <span>{`Nv. ${pokemon.nivel} · IVs ${somaIvs(pokemon.ivs)}`}</span>
-                  </button>
-                </li>
-              ))}
+              {/* [DRY] Botão idêntico ao de Anunciar.jsx; agora é o componente ItemEscolha.
+                [KISS] selecionados.includes(pokemon.id) era calculado duas vezes por item;
+                agora é calculado uma vez e guardado em "marcado".
+                Código original:
+                {disponiveis.map((pokemon) => (
+                  <li key={pokemon.id}>
+                    <button
+                      type="button"
+                      className="trocas-escolha-item"
+                      aria-pressed={selecionados.includes(pokemon.id)}
+                      disabled={!selecionados.includes(pokemon.id) && selecionados.length >= POKEMONS_MAXIMO}
+                      onClick={() => alternar(pokemon.id)}
+                    >
+                      <img src={urlSprite(pokemon.especieId, pokemon.shiny)} alt="" loading="lazy" />
+                      <strong>{`${formatarNome(pokemon.nome)}${pokemon.shiny ? ' ★' : ''}`}</strong>
+                      <span>{`Nv. ${pokemon.nivel} · IVs ${somaIvs(pokemon.ivs)}`}</span>
+                    </button>
+                  </li>
+                ))}
+              */}
+              {disponiveis.map((pokemon) => {
+                const marcado = selecionados.includes(pokemon.id);
+                return (
+                  <li key={pokemon.id}>
+                    <ItemEscolha
+                      pokemon={pokemon}
+                      selecionado={marcado}
+                      desabilitado={!marcado && selecionados.length >= POKEMONS_MAXIMO}
+                      onClick={() => alternar(pokemon.id)}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

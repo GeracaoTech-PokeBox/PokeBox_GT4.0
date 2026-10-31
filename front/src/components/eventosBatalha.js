@@ -13,11 +13,36 @@ export function descreverEventos(eventos, estado) {
     ? `${nomePokemon(pokemonId)} selvagem`
     : `${nomePokemon(pokemonId)} de ${login(lado)}`);
 
+  /* [DRY] O trecho "<dano> de dano em <alvo> (crítico!)." estava escrito duas vezes, no golpe
+   * especial e no ataque básico. Agora as duas frases usam danoEm().
+   *
+   * Código original:
+   *
+   * // Golpe especial: "Venusaur usou Razor Leaf! Causou 40 de dano em Squirtle. É super efetivo!"
+   * const danoDeGolpe = (evento) => {
+   *   const usou = `${nomePokemon(evento.atacante)} usou ${formatarNome(evento.golpe)}!`;
+   *   if (evento.efetividade === 0) return `${usou} Não teve efeito em ${nomePokemon(evento.alvo)}.`;
+   *   let frase = `${usou} Causou ${evento.dano} de dano em ${nomePokemon(evento.alvo)}${evento.critico ? ' (crítico!)' : ''}.`;
+   *   if (evento.efetividade > 1) frase += ' É super efetivo!';
+   *   else if (evento.efetividade < 1) frase += ' Não foi muito efetivo...';
+   *   return frase;
+   * };
+   *
+   * ...e no switch:
+   *
+   *   case 'dano':
+   *     if (evento.golpe) return danoDeGolpe(evento);
+   *     return `${nomePokemon(evento.atacante)} causou ${evento.dano} de dano em ${nomePokemon(evento.alvo)}${evento.critico ? ' (crítico!)' : ''}.`;
+   */
+
+  // "40 de dano em Squirtle (crítico!)."
+  const danoEm = (evento) => `${evento.dano} de dano em ${nomePokemon(evento.alvo)}${evento.critico ? ' (crítico!)' : ''}.`;
+
   // Golpe especial: "Venusaur usou Razor Leaf! Causou 40 de dano em Squirtle. É super efetivo!"
   const danoDeGolpe = (evento) => {
     const usou = `${nomePokemon(evento.atacante)} usou ${formatarNome(evento.golpe)}!`;
     if (evento.efetividade === 0) return `${usou} Não teve efeito em ${nomePokemon(evento.alvo)}.`;
-    let frase = `${usou} Causou ${evento.dano} de dano em ${nomePokemon(evento.alvo)}${evento.critico ? ' (crítico!)' : ''}.`;
+    let frase = `${usou} Causou ${danoEm(evento)}`;
     if (evento.efetividade > 1) frase += ' É super efetivo!';
     else if (evento.efetividade < 1) frase += ' Não foi muito efetivo...';
     return frase;
@@ -27,7 +52,7 @@ export function descreverEventos(eventos, estado) {
     switch (evento.tipo) {
       case 'dano':
         if (evento.golpe) return danoDeGolpe(evento);
-        return `${nomePokemon(evento.atacante)} causou ${evento.dano} de dano em ${nomePokemon(evento.alvo)}${evento.critico ? ' (crítico!)' : ''}.`;
+        return `${nomePokemon(evento.atacante)} causou ${danoEm(evento)}`;
       case 'errou':
         return `${nomePokemon(evento.atacante)} usou ${formatarNome(evento.golpe)}, mas errou!`;
       case 'resistiu':
