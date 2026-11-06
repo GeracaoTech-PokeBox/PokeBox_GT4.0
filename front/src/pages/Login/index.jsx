@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import './index.css';
+import './Login.css';
 
 const LOGIN_MAXIMO = 20;
 

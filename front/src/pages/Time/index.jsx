@@ -8,7 +8,7 @@ import {
 import { formatoPokemon, resumoEvolucao } from '../../components/formatos';
 import { formatarNome, formatarNumero } from '../../components/tipos';
 import { urlArtwork } from '../../services/pokeapi';
-import './index.css';
+import './Time.css';
 
 const TAMANHO_TIME = 3;
 // Filtro próprio desta tela, salvo neste navegador (separado do de Meus Pokémon)

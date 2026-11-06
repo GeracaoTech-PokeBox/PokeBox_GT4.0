@@ -4,7 +4,7 @@ import { tempoDesde, tempoRestante } from '../../components/tempo';
 import { formatarNome } from '../../components/tipos';
 import { urlArtwork } from '../../services/pokeapi';
 import * as api from '../../services/api';
-import './index.css';
+import './Batalhas.css';
 
 // De quanto em quanto tempo a lista se atualiza sozinha (o oponente pode jogar a qualquer momento)
 const ATUALIZAR_MS = 30 * 1000;

@@ -7,7 +7,7 @@ import { BotoesGolpes } from '../../components/Golpes';
 import { descreverEventos } from '../../components/eventosBatalha';
 import { urlArtwork } from '../../services/pokeapi';
 import * as api from '../../services/api';
-import './index.css';
+import './Batalha.css';
 
 // Enquanto espera o oponente, confere a cada 15s se ele já jogou
 const ATUALIZAR_MS = 15 * 1000;

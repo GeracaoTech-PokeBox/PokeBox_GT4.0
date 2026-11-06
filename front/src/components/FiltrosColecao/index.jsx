@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { CRITERIOS, FILTROS_INICIAIS } from '../colecao';
 import { dadosTipo } from '../tipos';
-import './index.css';
+import './FiltrosColecao.css';
 
 // Barra de busca, filtros e ordenação da coleção (Meus Pokémon)
 function FiltrosColecao({

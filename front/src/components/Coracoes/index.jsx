@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import './index.css';
+import './Coracoes.css';
 
 const CORACOES_MAXIMO = 5;
 

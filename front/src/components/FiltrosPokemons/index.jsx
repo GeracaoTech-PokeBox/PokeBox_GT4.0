@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { carregar } from '../carregar';
 import { TIPOS, formatarNome } from '../tipos';
 import { listarOpcoesFiltro } from '../../services/pokeapi';
-import './index.css';
+import './FiltrosPokemons.css';
 
 // [DRY] Cópia letra por letra de formatarNome() de tipos.js. Agora é importada de lá.
 // // "lightning-rod" -> "Lightning Rod"

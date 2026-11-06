@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 //   TIPOS, TIPO_DESCONHECIDO, formatarNome, formatarNumero,
 // } from '../tipos';
 import { dadosTipo, formatarNome, formatarNumero } from '../tipos';
-import './index.css';
+import './PokemonCard.css';
 
 const STATS = {
   hp: 'PS',

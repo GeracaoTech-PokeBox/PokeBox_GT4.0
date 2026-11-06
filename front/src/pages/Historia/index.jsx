@@ -6,7 +6,7 @@ import { descreverEventos } from '../../components/eventosBatalha';
 import { formatarNome, formatarNumero } from '../../components/tipos';
 import { urlArtwork, urlSprite } from '../../services/pokeapi';
 import * as api from '../../services/api';
-import './index.css';
+import './Historia.css';
 
 const TAMANHO_TIME = 3;
 // A Pokébola balança um pouco antes de mostrar o resultado da captura

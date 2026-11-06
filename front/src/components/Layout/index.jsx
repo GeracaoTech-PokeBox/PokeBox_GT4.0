@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { plural } from '../formatos';
-import './index.css';
+import './Layout.css';
 
 const MENU = [
   { tela: 'pokemons', nome: 'Pokédex' },

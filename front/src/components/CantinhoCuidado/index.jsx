@@ -9,7 +9,7 @@ import { dadosTipo, formatarNome, formatarNumero } from '../tipos';
 import { tempoDesde, tempoRestante } from '../tempo';
 import { urlArtwork } from '../../services/pokeapi';
 import * as api from '../../services/api';
-import './index.css';
+import './CantinhoCuidado.css';
 
 // Mesmos valores de back/src/jogo/config.js (CUIDADOS), para os textos dos botões
 const CUIDADOS = [

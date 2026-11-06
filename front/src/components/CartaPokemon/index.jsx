@@ -4,7 +4,7 @@ import BarraProgresso from '../BarraProgresso';
 import Coracoes from '../Coracoes';
 import { formatoPokemon, resumoEvolucao } from '../formatos';
 import { dadosTipo, formatarNome, formatarNumero } from '../tipos';
-import './index.css';
+import './CartaPokemon.css';
 
 const STATUS = [
   { chave: 'hp', nome: 'PS' },

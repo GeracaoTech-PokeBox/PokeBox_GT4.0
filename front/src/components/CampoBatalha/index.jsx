@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { formatarNome, formatarNumero } from '../tipos';
 import { urlArtwork } from '../../services/pokeapi';
-import '../../pages/Batalha/index.css';
+import '../../pages/Batalha/Batalha.css';
 
 // Peças do campo de batalha, usadas nas batalhas entre treinadores e na história
 
