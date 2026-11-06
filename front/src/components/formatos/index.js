@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { formatarNome } from './tipos';
+import { formatarNome } from '../tipos';
 
 /* [DRY] Utilitários novos, centralizando lógica que estava copiada em vários componentes:
  *

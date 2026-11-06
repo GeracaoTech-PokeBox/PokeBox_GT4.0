@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import Avatar from './Avatar';
-import { carregar } from './carregar';
-import { IV_TOTAL_MAXIMO } from './formatos';
-import { formatarNome, formatarNumero } from '../tipos/tipos';
-import { tempoDesde } from '../tempo/tempo';
-import { useAcao } from '../useAcao/useAcao';
+import Avatar from '../Avatar';
+import { carregar } from '../carregar';
+import { IV_TOTAL_MAXIMO } from '../formatos';
+import { formatarNome, formatarNumero } from '../tipos';
+import { tempoDesde } from '../tempo';
+import { useAcao } from '../useAcao';
 import { urlArtwork } from '../../services/pokeapi';
 import * as api from '../../services/api';
 

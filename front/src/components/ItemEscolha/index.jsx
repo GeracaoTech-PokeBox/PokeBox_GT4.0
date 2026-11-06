@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { formatoPokemon, somaValores } from './formatos';
+import { formatoPokemon, somaValores } from '../formatos';
 import { formatarNome } from '../tipos';
 import { urlSprite } from '../../services/pokeapi';
 

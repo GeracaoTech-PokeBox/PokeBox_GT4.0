@@ -7,7 +7,7 @@ import {
 import FiltrosPokemons from '../../components/FiltrosPokemons';
 import PokemonCard from '../../components/PokemonCard';
 import { buscarFiltro, buscarPokemon, listarPokemons } from '../../services/pokeapi';
-import './Pokemons.css';
+import './index.css';
 
 // Quantos cards são carregados por vez ao rolar a página
 const PAGINA = 24;

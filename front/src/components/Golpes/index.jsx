@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
-import { dadosTipo, formatarNome } from './tipos';
-import './Golpes.css';
+import { dadosTipo, formatarNome } from '../tipos';
+import './index.css';
 
 // Golpes especiais (sorteados na roleta com o afeto máximo): lista no cantinho e botões na batalha
 

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import Avatar from './Avatar';
-import ItemEscolha from './ItemEscolha';
-import { IV_TOTAL_MAXIMO, formatoPokemon } from './formatos';
-import { formatarNome, formatarNumero } from './tipos';
-import { urlArtwork } from '../services/pokeapi';
-import * as api from '../services/api';
+import Avatar from '../Avatar';
+import ItemEscolha from '../ItemEscolha';
+import { IV_TOTAL_MAXIMO, formatoPokemon } from '../formatos';
+import { formatarNome, formatarNumero } from '../tipos';
+import { urlArtwork } from '../../services/pokeapi';
+import * as api from '../../services/api';
 
 // Mesmo limite de back/src/jogo/config.js (POKEMONS_POR_PROPOSTA)
 const POKEMONS_MAXIMO = 6;

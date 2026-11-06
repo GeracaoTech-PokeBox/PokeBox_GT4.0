@@ -1,6 +1,6 @@
 // Filtros e ordenação da coleção (Meus Pokémon e Time). Tudo no navegador, sobre os cards que o back já mandou.
 import { somaValores } from '../formatos';
-import { formatarNome } from '../tipos/tipos';
+import { formatarNome } from '../tipos';
 
 const PESO_RARIDADE = { mitico: 3, lendario: 2, comum: 1 };
 

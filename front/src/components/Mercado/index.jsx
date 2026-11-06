@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import Avatar from './Avatar';
+import Avatar from '../Avatar';
 import PropostaForm from '../PropostaForm';
-import { carregar } from './carregar';
-import { IV_TOTAL_MAXIMO, formatoPokemon, plural } from './formatos';
+import { carregar } from '../carregar';
+import { IV_TOTAL_MAXIMO, formatoPokemon, plural } from '../formatos';
 import {
   dadosTipo, formatarNome, formatarNumero, nomesTipos,
-} from '../tipos/tipos';
-import { useAcao } from '../useAcao/useAcao';
+} from '../tipos';
+import { useAcao } from '../useAcao';
 import { urlArtwork } from '../../services/pokeapi';
 import * as api from '../../services/api';
 

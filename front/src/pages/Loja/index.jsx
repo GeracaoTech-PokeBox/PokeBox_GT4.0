@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import CartaPokemon from '../../components/CartaPokemon';
 import { formatarNome, formatarNumero } from '../../components/tipos';
-import './Loja.css';
+import './index.css';
 
 const PRECO = 100;
 // Mesmo valor do back (config.PRECO_POKEBOLA)

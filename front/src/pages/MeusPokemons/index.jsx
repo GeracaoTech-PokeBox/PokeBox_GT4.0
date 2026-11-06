@@ -9,7 +9,7 @@ import {
 import { formatoPokemon } from '../../components/formatos';
 import { formatarNome, formatarNumero } from '../../components/tipos';
 import { urlArtwork } from '../../services/pokeapi';
-import './MeusPokemons.css';
+import './index.css';
 
 // Os filtros escolhidos ficam salvos neste navegador para a próxima visita
 const CHAVE_FILTROS = 'pokebox-filtros-colecao';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import './Cadastro.css';
+import './index.css';
 
 const CELULAR_DIGITOS = 11;
 const SENHA_MINIMA = 8;

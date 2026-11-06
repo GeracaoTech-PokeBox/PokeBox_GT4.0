@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import './Avatar.css';
+import './index.css';
 
 // Cor a partir do login, para cada treinador ter sempre a sua
 function corDoLogin(login) {

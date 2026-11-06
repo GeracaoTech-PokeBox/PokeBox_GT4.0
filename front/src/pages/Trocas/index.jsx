@@ -5,7 +5,7 @@ import Anunciar from '../../components/Anunciar';
 import Propostas from '../../components/Propostas';
 import { formatoPokemon } from '../../components/formatos';
 import * as api from '../../services/api';
-import './Trocas.css';
+import './index.css';
 
 const ABAS = [
   { valor: 'mercado', nome: 'Mercado' },

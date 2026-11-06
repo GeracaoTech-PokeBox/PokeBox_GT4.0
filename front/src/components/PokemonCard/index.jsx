@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 // [DRY] Importava TIPOS e TIPO_DESCONHECIDO para refazer aqui o que dadosTipo() já faz.
 // import {
 //   TIPOS, TIPO_DESCONHECIDO, formatarNome, formatarNumero,
-// } from './tipos';
-import { dadosTipo, formatarNome, formatarNumero } from '../tipos/tipos';
-import './PokemonCard.css';
+// } from '../tipos';
+import { dadosTipo, formatarNome, formatarNumero } from '../tipos';
+import './index.css';
 
 const STATS = {
   hp: 'PS',

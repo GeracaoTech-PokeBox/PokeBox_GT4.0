@@ -6,7 +6,7 @@ import { formatoPokemon } from '../../components/formatos';
 import { dadosTipo, formatarNome, formatarNumero } from '../../components/tipos';
 import { urlArtwork, urlSprite } from '../../services/pokeapi';
 import * as api from '../../services/api';
-import './Vitrine.css';
+import './index.css';
 
 // Mesmos limites de back/src/jogo/config.js
 const DESTAQUES_MAXIMO = 6;

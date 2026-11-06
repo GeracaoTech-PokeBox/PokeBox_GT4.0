@@ -1,4 +1,4 @@
-import { formatarNome } from './tipos';
+import { formatarNome } from '../tipos';
 
 // Transforma os eventos de uma jogada em frases para o histórico da batalha.
 // O lado do Pokémon selvagem da história não tem treinador (usuarioId null).

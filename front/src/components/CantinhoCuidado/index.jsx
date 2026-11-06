@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import BarraProgresso from './BarraProgresso';
+import BarraProgresso from '../BarraProgresso';
 import Coracoes from '../Coracoes';
 import { ListaGolpes } from '../Golpes';
 import { carregar } from '../carregar';
@@ -9,7 +9,7 @@ import { dadosTipo, formatarNome, formatarNumero } from '../tipos';
 import { tempoDesde, tempoRestante } from '../tempo';
 import { urlArtwork } from '../../services/pokeapi';
 import * as api from '../../services/api';
-import './CantinhoCuidado.css';
+import './index.css';
 
 // Mesmos valores de back/src/jogo/config.js (CUIDADOS), para os textos dos botões
 const CUIDADOS = [

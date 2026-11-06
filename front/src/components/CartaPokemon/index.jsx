@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import { urlArtwork } from '../../services/pokeapi';
-import BarraProgresso from './BarraProgresso';
-import Coracoes from '../Coracoes/Coracoes';
+import BarraProgresso from '../BarraProgresso';
+import Coracoes from '../Coracoes';
 import { formatoPokemon, resumoEvolucao } from '../formatos';
-import { dadosTipo, formatarNome, formatarNumero } from '../tipos/tipos';
-import './CartaPokemon.css';
+import { dadosTipo, formatarNome, formatarNumero } from '../tipos';
+import './index.css';
 
 const STATUS = [
   { chave: 'hp', nome: 'PS' },
