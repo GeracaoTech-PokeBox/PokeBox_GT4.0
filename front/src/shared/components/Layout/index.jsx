@@ -11,6 +11,7 @@ const MENU = [
   { tela: 'vitrine', nome: 'Vitrine' },
   { tela: 'trocas', nome: 'Trocas' },
   { tela: 'batalhas', nome: 'Batalhas' },
+  { tela: 'sobre', nome: 'Sobre nós' },
 ];
 
 // Barra vermelha da Pokédex com o menu, usada por todas as telas depois do login

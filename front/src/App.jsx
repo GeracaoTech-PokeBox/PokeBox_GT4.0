@@ -9,6 +9,7 @@ import { Batalhas, Batalha } from '@/features/batalhas';
 import { Vitrine } from '@/features/vitrine';
 import { Trocas } from '@/features/trocas';
 import { Historia } from '@/features/historia';
+import { Sobre } from '@/features/sobre';
 
 /* [SOLID-S] Antes, o App tinha 4 responsabilidades: sessão, navegação, as ações de outras telas
  * (evoluir, comprar, salvar o time...) e montar a interface. Agora só decide qual tela mostrar.
@@ -109,6 +110,7 @@ function App() {
     ),
     batalhas: () => <Batalhas onAbrir={handleAbrirBatalha} />,
     batalha: () => <Batalha key={batalhaId} batalhaId={batalhaId} onVoltar={() => handleNavegar('batalhas')} />,
+    sobre: () => <Sobre />,
   };
   const renderTela = telas[tela] ?? telas.batalhas;
 
