@@ -10,6 +10,12 @@ const PARAMETROS_PERMITIDOS = ['limit', 'offset'];
 
 const app = express();
 
+// No Render as requisições chegam pelo proxy dele, então sem isto req.ip seria o IP do
+// proxy para todo mundo, e o limite de tentativas de login/cadastro (rotas.js) valeria
+// para a turma inteira junta. Com isto o Express usa o IP real do X-Forwarded-For.
+// O Render define RENDER=true sozinho; no docker-compose nada muda.
+if (process.env.RENDER) app.set('trust proxy', true);
+
 // O front roda em outra porta, então precisa de CORS. Como o login usa o
 // cabeçalho Authorization (e não cookie), liberar qualquer origem é seguro.
 app.use((req, res, next) => {
@@ -21,6 +27,12 @@ app.use((req, res, next) => {
     return;
   }
   next();
+});
+
+// Resposta rápida, sem banco: usada pelo health check do Render e pelo front para
+// "acordar" o back (no plano grátis do Render ele dorme depois de 15 min sem acesso)
+app.get('/api/saude', (req, res) => {
+  res.json({ ok: true });
 });
 
 // Repassa GET /api/pokeapi/<caminho> para https://pokeapi.co/api/v2/<caminho>
