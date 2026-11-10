@@ -1,0 +1,11 @@
+# Deploy do front no Netlify (o passo a passo está no README).
+# A URL do back no Render NÃO fica aqui: configure VITE_BACK_URL no painel do Netlify
+# (Site configuration → Environment variables). Sem ela o build falha de propósito.
+
+[build]
+  base = "front"            # instala as dependências e roda o build dentro de front/
+  command = "npm run build"
+  publish = "dist"          # relativo ao base, ou seja, front/dist
+
+[build.environment]
+  NODE_VERSION = "22"
