@@ -3,6 +3,7 @@ import { filtrarEOrdenar, tiposDaColecao } from '../../models/index_models';
 import { formatarNome, formatarNumero } from '@/shared';
 import * as api from '../../services/index_services';
 import { useSessao } from '@/features/auth';
+import { useTutorialCuidados } from '@/features/tutorial';
 import { useFiltrosColecao } from '../../hooks/index_hooks';
 
 /* [MVVM] Novo. ViewModel de Meus Pokémon (./index.jsx): inicial, evolução, filtros e cantinho.
@@ -88,6 +89,8 @@ export function useMeusPokemonsViewModel() {
   const [erro, setErro] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [filtros, mudarFiltros] = useFiltrosColecao(CHAVE_FILTROS);
+  // Tutorial de cuidados: abre sozinho na primeira visita com coleção ou pelo botão "Como cuidar"
+  const tutorialCuidados = useTutorialCuidados();
 
   // As duas ações seguem o mesmo roteiro: trava os botões, mostra erro ou aviso
   const executar = async (acao) => {
@@ -125,6 +128,7 @@ export function useMeusPokemonsViewModel() {
   };
 
   return {
+    tutorialCuidados,
     semPokemons: pokemons.length === 0,
     total: pokemons.length,
     escolhido,

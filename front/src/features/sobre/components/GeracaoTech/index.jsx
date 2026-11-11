@@ -5,8 +5,8 @@ function GeracaoTech() {
       <h2 id="sobre-geracao-titulo" className="sobre-titulo">Geração Tech 4.0</h2>
       <p>
         O PokeBox nasceu como projeto final do curso Geração Tech 4.0. Foi aqui que colocamos em
-        prática o que aprendemos antes e durante o curso, neste trabalho, usamos: front-end com React, back-end com Node, banco de dados, Docker,
-        testes automatizados e boas práticas de código.
+        prática o que aprendemos antes e durante o curso, neste trabalho, usamos: Docker, testes automatizados e boas práticas de código.
+        Também o que já tinhamos conhecimento prévio para desenvolver esse projeto:  front-end com React, back-end com Node, banco de dados.  
       </p>
       <p>
         Agradecimentos especiais ao professor Abelardo por sua paciência e pelas revisões, e aos colegas de

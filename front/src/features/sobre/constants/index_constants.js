@@ -1,20 +1,5 @@
-/* Conteúdo da aba "Sobre nós".
- * Os recortes de código vêm do próprio código-fonte (import '...?raw' do Vite): se o arquivo mudar,
- * o recorte acompanha. Por isso estes imports apontam para arquivos de outras features por caminho
- * completo: é só o texto do arquivo, não a API dele.
- */
-import appFonte from '@/App.jsx?raw';
-import clienteHttpFonte from '@/core/services/index_services.js?raw';
-import loginViewModelFonte from '@/features/auth/components/Login/index_viewmodels.js?raw';
-import sessaoContextoFonte from '@/features/auth/context/index_context.js?raw';
-import campoBatalhaFonte from '@/features/batalhas/components/CampoBatalha/index.jsx?raw';
-import cantinhoViewModelFonte from '@/features/colecao/components/CantinhoCuidado/index_viewmodels.js?raw';
-import lojaViewModelFonte from '@/features/loja/components/Loja/index_viewmodels.js?raw';
-import lojaPokebolasViewModelFonte from '@/features/loja/components/LojaPokebolas/index_viewmodels.js?raw';
-import mercadoFonte from '@/features/trocas/components/Mercado/index.jsx?raw';
-import trocasViewModelFonte from '@/features/trocas/components/Trocas/index_viewmodels.js?raw';
-import layoutFonte from '@/shared/components/Layout/index.jsx?raw';
-import utilsFonte from '@/shared/utils/index_utils.js?raw';
+// Conteúdo da aba "Sobre nós". Os casos de cada critério não ficam aqui: são lidos do próprio
+// código-fonte (ver ../services e ../models).
 
 export const ABAS = [
   { valor: 'geracaoTech', nome: 'Geração Tech 4.0' },
@@ -22,178 +7,16 @@ export const ABAS = [
   { valor: 'criterios', nome: 'Critérios de avaliação' },
 ];
 
-// Cada exemplo: arquivo (como aparece no projeto), fonte (texto do arquivo) e onde recortar
+// Critérios de avaliação: o id é a tag usada nos comentários do código ([KISS], [SOLID-S]...)
 export const CRITERIOS = [
-  {
-    id: 'KISS',
-    nome: 'Keep It Simple, Stupid',
-    resumo: 'Preferir a solução mais simples que resolve o problema.',
-    exemplos: [
-      {
-        arquivo: 'src/App.jsx',
-        fonte: appFonte,
-        marcador: '// [KISS] Uma função para a regra',
-        depois: 2,
-        explicacao: 'A escolha da primeira tela virou uma função de uma linha, usada no login e na sessão salva.',
-      },
-      {
-        arquivo: 'src/features/colecao/components/CantinhoCuidado/index_viewmodels.js',
-        fonte: cantinhoViewModelFonte,
-        marcador: '// [KISS] "((x % 100)',
-        depois: 1,
-        explicacao: 'Uma conta que dividia e multiplicava por 100 à toa ficou só com o resto da divisão.',
-      },
-    ],
-  },
-  {
-    id: 'DRY',
-    nome: "Don't Repeat Yourself",
-    resumo: 'Cada regra existe em um só lugar.',
-    exemplos: [
-      {
-        arquivo: 'src/shared/utils/index_utils.js',
-        fonte: utilsFonte,
-        marcador: 'export function carregar(',
-        antes: 4,
-        depois: 10,
-        explicacao: 'O bloco "let ativo = true ..." era copiado em seis telas; agora todas usam carregar().',
-      },
-      {
-        arquivo: 'src/shared/utils/index_utils.js',
-        fonte: utilsFonte,
-        marcador: '// "1 anúncio"',
-        depois: 1,
-        explicacao: 'Singular/plural ("1 anúncio", "3 anúncios") era refeito à mão em várias telas.',
-      },
-    ],
-  },
-  {
-    id: 'YAGNI',
-    nome: "You Aren't Gonna Need It",
-    resumo: 'Não manter o que ninguém usa.',
-    exemplos: [
-      {
-        arquivo: 'src/features/batalhas/components/CampoBatalha/index.jsx',
-        fonte: campoBatalhaFonte,
-        marcador: '// [YAGNI] Era exportada',
-        depois: 3,
-        explicacao: 'BarraHp deixou de ser exportada: só o LadoCampo, no mesmo arquivo, usa.',
-      },
-      {
-        arquivo: 'src/shared/utils/index_utils.js',
-        fonte: utilsFonte,
-        marcador: '// [YAGNI] Era exportada só para PokemonCard',
-        depois: 3,
-        explicacao: 'TIPO_DESCONHECIDO virou interna depois que o último arquivo que a importava parou de usar.',
-      },
-    ],
-  },
-  {
-    id: 'SOLID-S',
-    nome: 'Responsabilidade única',
-    resumo: 'Cada módulo tem um só motivo para mudar.',
-    exemplos: [
-      {
-        arquivo: 'src/features/auth/components/Login/index_viewmodels.js',
-        fonte: loginViewModelFonte,
-        marcador: '/* [MVVM] ViewModel da tela Login',
-        depois: 10,
-        explicacao: 'O ViewModel que atendia Login, Cadastro e RecuperarSenha foi dividido: um por tela.',
-      },
-      {
-        arquivo: 'src/features/trocas/components/Mercado/index.jsx',
-        fonte: mercadoFonte,
-        marcador: 'function Mercado()',
-        depois: 8,
-        explicacao: 'O Mercado só escolhe a subtela; cada subtela tem o seu componente e o seu ViewModel.',
-      },
-    ],
-  },
-  {
-    id: 'SOLID-O',
-    nome: 'Aberto/fechado',
-    resumo: 'Dá para estender sem editar o que já funciona.',
-    exemplos: [
-      {
-        arquivo: 'src/App.jsx',
-        fonte: appFonte,
-        marcador: 'const telas = {',
-        depois: 18,
-        explicacao: 'Uma tela nova (como esta, "Sobre nós") é só mais uma entrada no mapa, sem mexer nas outras.',
-      },
-      {
-        arquivo: 'src/shared/components/Layout/index.jsx',
-        fonte: layoutFonte,
-        marcador: 'const MENU = [',
-        depois: 10,
-        explicacao: 'O menu é montado a partir desta lista: um item novo não muda o JSX do Layout.',
-      },
-    ],
-  },
-  {
-    id: 'SOLID-L',
-    nome: 'Substituição de Liskov',
-    resumo: 'Um subtipo pode ser usado onde se espera o tipo base.',
-    exemplos: [
-      {
-        arquivo: 'src/core/services/index_services.js',
-        fonte: clienteHttpFonte,
-        marcador: '// Erro com a mensagem que o back mandou',
-        depois: 6,
-        explicacao: 'ErroApi estende Error sem mudar o contrato: continua tendo message e só acrescenta status.',
-      },
-      {
-        arquivo: 'src/features/loja/components/Loja/index_viewmodels.js',
-        fonte: lojaViewModelFonte,
-        marcador: 'const comprar = async (numeroGeracao)',
-        depois: 11,
-        explicacao: 'Quem trata o erro só conhece Error (e.message): um ErroApi do back entra no lugar sem nenhuma mudança.',
-      },
-    ],
-  },
-  {
-    id: 'SOLID-I',
-    nome: 'Segregação de interface',
-    resumo: 'Cada componente recebe só o que usa.',
-    exemplos: [
-      {
-        arquivo: 'src/features/loja/components/LojaPokebolas/index_viewmodels.js',
-        fonte: lojaPokebolasViewModelFonte,
-        marcador: 'return {',
-        depois: 7,
-        explicacao: 'A compra de Pokébolas recebe só pokebolas, podePagar e comprar, e não o usuário inteiro.',
-      },
-      {
-        arquivo: 'src/features/trocas/components/Trocas/index_viewmodels.js',
-        fonte: trocasViewModelFonte,
-        marcador: '[SOLID-I] Trocas recebia',
-        antes: 1,
-        depois: 5,
-        explicacao: 'Trocas não recebe mais props só para repassar: cada filho lê o que precisa da sessão.',
-      },
-    ],
-  },
-  {
-    id: 'SOLID-D',
-    nome: 'Inversão de dependência',
-    resumo: 'Depender de abstrações, não de detalhes.',
-    exemplos: [
-      {
-        arquivo: 'src/features/auth/context/index_context.js',
-        fonte: sessaoContextoFonte,
-        marcador: '// Treinador logado e ações de conta',
-        depois: 8,
-        explicacao: 'As telas dependem de useSessao(), não de props vindas do App nem de como a sessão é guardada.',
-      },
-      {
-        arquivo: 'src/features/auth/components/Login/index_viewmodels.js',
-        fonte: loginViewModelFonte,
-        marcador: 'const entrar = async () =>',
-        depois: 14,
-        explicacao: 'O ViewModel do login recebe a ação onLogin pronta: não sabe se ela vai para a API, para um mock ou para um teste.',
-      },
-    ],
-  },
+  { id: 'KISS', nome: 'Keep It Simple, Stupid', resumo: 'Preferir a solução mais simples que resolve o problema.' },
+  { id: 'DRY', nome: "Don't Repeat Yourself", resumo: 'Cada regra existe em um só lugar.' },
+  { id: 'YAGNI', nome: "You Aren't Gonna Need It", resumo: 'Não manter o que ninguém usa.' },
+  { id: 'SOLID-S', nome: 'Responsabilidade única', resumo: 'Cada módulo tem um só motivo para mudar.' },
+  { id: 'SOLID-O', nome: 'Aberto/fechado', resumo: 'Dá para estender sem editar o que já funciona.' },
+  { id: 'SOLID-L', nome: 'Substituição de Liskov', resumo: 'Um subtipo pode ser usado onde se espera o tipo base.' },
+  { id: 'SOLID-I', nome: 'Segregação de interface', resumo: 'Cada componente recebe só o que usa.' },
+  { id: 'SOLID-D', nome: 'Inversão de dependência', resumo: 'Depender de abstrações, não de detalhes.' },
 ];
 
 // Estrutura do repositório, uma visão por botão na seção "Estrutura do projeto".
@@ -213,6 +36,7 @@ export const ESTRUTURAS = [
           { caminho: 'cypress/', descricao: 'Testes de ponta a ponta (E2E) da interface' },
           { caminho: 'cypress.config.js', descricao: 'Configuração do Cypress e do relatório Mochawesome' },
           { caminho: 'docker-compose.yml', descricao: 'Sobe banco, back e front juntos' },
+          { caminho: 'docker-compose.prod.yml', descricao: 'Produção: só banco e back (o front fica na Vercel); a senha vem do .env' },
           { caminho: 'package.json', descricao: 'Dependências e scripts dos testes E2E (cy:open, cy:run)' },
         ],
       },
@@ -249,6 +73,7 @@ export const ESTRUTURAS = [
           { caminho: '  historia/', descricao: 'Modo história' },
           { caminho: '  vitrine/', descricao: 'Vitrine pública de cada treinador' },
           { caminho: '  trocas/', descricao: 'Mercado, anúncios e propostas' },
+          { caminho: '  tutorial/', descricao: 'Tutorial de primeiro acesso e de cuidados' },
           { caminho: '  sobre/', descricao: 'Esta aba' },
         ],
       },
@@ -278,6 +103,7 @@ export const ESTRUTURAS = [
           { caminho: 'src/app.js', descricao: 'App Express sem o listen (os testes sobem numa porta qualquer); repassa /api/pokeapi' },
           { caminho: 'src/rotas.js', descricao: 'Endpoints do jogo; erros de regra voltam como 400 { erro }' },
           { caminho: 'src/db.js', descricao: 'Conexão com o PostgreSQL' },
+          { caminho: 'src/migracoes.js', descricao: 'Ao subir, aplica as migrações de db/migracoes que o banco ainda não tem' },
           { caminho: 'test/', descricao: 'Testes de integração: sobem o app, chamam os endpoints e conferem o banco' },
         ],
       },
@@ -312,7 +138,7 @@ export const ESTRUTURAS = [
         titulo: 'db/',
         itens: [
           { caminho: 'db.sql', descricao: 'Esquema completo, executado na primeira subida do container' },
-          { caminho: 'migracoes/', descricao: 'Mudanças em bancos já existentes, numeradas em ordem (001, 002...)' },
+          { caminho: 'migracoes/', descricao: 'Mudanças em bancos já existentes, numeradas em ordem (001, 002...); o back aplica sozinho as que faltam' },
         ],
       },
       {

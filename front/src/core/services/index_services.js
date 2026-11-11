@@ -32,6 +32,9 @@ export function salvarToken(token) {
 export const temSessao = () => Boolean(lerToken());
 
 // Erro com a mensagem que o back mandou ({ erro: "..." }) e o status HTTP
+// [SOLID-L] ErroApi estende Error sem mudar o contrato: continua tendo `message` e só acrescenta
+// `status`. Os ViewModels tratam qualquer falha com "catch (e) { setErro(e.message) }" e recebem um
+// ErroApi no lugar de um Error comum sem precisar saber disso.
 export class ErroApi extends Error {
   constructor(mensagem, status) {
     super(mensagem);

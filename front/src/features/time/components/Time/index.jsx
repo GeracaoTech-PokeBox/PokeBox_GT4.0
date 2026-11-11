@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
-import { CartaPokemon, resumoEvolucao, formatarNome, formatarNumero, urlArtwork } from '@/shared';
+import {
+  CartaPokemon, TabelaTipos, resumoEvolucao, formatarNome, formatarNumero, urlArtwork,
+} from '@/shared';
 import { FiltrosColecao } from '@/features/colecao';
 import { TAMANHO_TIME, useTimeViewModel } from './index_viewmodels';
 import './Time.css';
@@ -32,6 +34,9 @@ function Time({ onIrParaLoja }) {
       <p className="jogo-texto">
         {`Escolha ${TAMANHO_TIME} Pokémon da coleção. O primeiro abre a batalha, e quando um é nocauteado o próximo da fila entra.`}
       </p>
+      <div className="time-tabela-tipos">
+        <TabelaTipos />
+      </div>
 
       <ol className="time-slots">
         {vm.vagas.map((pokemon, i) => {

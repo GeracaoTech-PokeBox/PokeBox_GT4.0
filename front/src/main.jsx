@@ -35,7 +35,8 @@ import { SessaoProvider } from '@/features/auth';
  *   [DRY]      não repetir código
  *   [KISS]     manter simples
  *   [YAGNI]    não manter o que ninguém usa
- *   (O "L" do SOLID, substituição de Liskov, não guiou nenhuma mudança: o projeto não usa herança.)
+ *   [SOLID-L]  Substituição de Liskov: um subtipo funciona onde se espera o tipo base. O projeto
+ *              quase não usa herança; o caso é o ErroApi (core), que estende Error.
  *
  * [MVVM][SOLID-D] O SessaoProvider envolve o App: qualquer tela lê o usuário logado com useSessao().
  */

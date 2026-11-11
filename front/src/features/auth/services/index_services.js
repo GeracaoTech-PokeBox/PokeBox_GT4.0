@@ -27,3 +27,5 @@ export const verificarUsuario = async (dados) => (await chamar('POST', '/auth/ve
 export const redefinirSenha = (dados) => chamar('POST', '/auth/redefinir-senha', dados);
 
 export const buscarEu = () => chamar('GET', '/eu');
+// Sinal de vida enquanto o jogo está aberto (status online)
+export const marcarPresenca = () => chamar('POST', '/presenca');

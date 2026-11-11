@@ -1,12 +1,13 @@
-import RecorteCodigo from '../RecorteCodigo';
+import CasoCriterio from '../CasoCriterio';
 import EstruturaProjeto from '../EstruturaProjeto';
+import { plural } from '@/shared';
 import { useCriteriosViewModel } from './index_viewmodels';
 
-/* [MVVM] View: só desenha. Qual card está aberto e os recortes de código ficam em
+/* [MVVM] View: só desenha. Os casos (lidos do código-fonte) e qual card está aberto ficam em
  * index_viewmodels.js, nesta pasta.
  */
 
-// Critérios de avaliação do projeto final: um card por princípio; ao clicar, mostra onde foi usado
+// Critérios de avaliação do projeto final: um card por princípio; ao clicar, todos os casos dele
 function Criterios() {
   const {
     criterios, abertoId, aberto, alternar,
@@ -16,10 +17,15 @@ function Criterios() {
     <>
       <section className="sobre-painel" aria-labelledby="sobre-criterios-titulo">
         <h2 id="sobre-criterios-titulo" className="sobre-titulo">Critérios de avaliação</h2>
-        <p className="sobre-dica">Clique em um critério para ver onde ele aparece no código do PokeBox.</p>
+        <p className="sobre-dica">
+          Cada caso vem direto do código: os comentários marcados com a tag do critério explicam a
+          mudança e, quando houve refatoração, guardam o código original. Clique em um critério para ver todos.
+        </p>
 
         <ul className="sobre-criterios">
-          {criterios.map(({ id, nome, resumo }) => (
+          {criterios.map(({
+            id, nome, resumo, casos,
+          }) => (
             <li key={id}>
               <button
                 type="button"
@@ -31,20 +37,28 @@ function Criterios() {
                 <strong>{id}</strong>
                 <span className="sobre-criterio-nome">{nome}</span>
                 <span className="sobre-criterio-resumo">{resumo}</span>
+                <span className="sobre-criterio-total">{plural(casos.length, 'caso', 'casos')}</span>
               </button>
             </li>
           ))}
         </ul>
 
         {aberto && (
-          <div id="sobre-criterio-detalhe" className="sobre-criterio-detalhe" role="region" aria-label={`Exemplos de ${aberto.id}`}>
+          <div id="sobre-criterio-detalhe" className="sobre-criterio-detalhe" role="region" aria-label={`Casos de ${aberto.id}`}>
             <h3 className="sobre-subtitulo">{`${aberto.id} · ${aberto.nome}`}</h3>
-            {aberto.exemplos.map(({ arquivo, explicacao, recorte }) => (
-              <article key={`${arquivo}-${explicacao}`} className="sobre-exemplo">
-                <p>{explicacao}</p>
-                <RecorteCodigo arquivo={arquivo} recorte={recorte} />
-              </article>
-            ))}
+            <p className="sobre-dica">
+              {`${plural(aberto.casos.length, 'caso encontrado', 'casos encontrados')}, ${aberto.comAntesEDepois} com antes e depois. `}
+              Clique em um caso para abrir.
+            </p>
+            <div className="sobre-legenda" aria-hidden="true">
+              <span className="sobre-legenda-antes">Antes: código original, guardado no comentário</span>
+              <span className="sobre-legenda-depois">Depois: como o código está hoje</span>
+            </div>
+            <ul className="sobre-casos">
+              {aberto.casos.map((caso) => (
+                <li key={caso.id}><CasoCriterio caso={caso} /></li>
+              ))}
+            </ul>
           </div>
         )}
       </section>

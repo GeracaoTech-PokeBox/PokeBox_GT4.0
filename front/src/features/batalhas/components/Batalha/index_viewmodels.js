@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import { tempoRestante } from '@/shared';
 import { descreverEventos, reservasDoLado } from '../../models/index_models';
 import * as api from '../../services/index_services';
 import { useSessao } from '@/features/auth';
 
 /* [MVVM] Novo. ViewModel da batalha PvP (./index.jsx). Veio da tela: carregar a batalha,
- * conferir a cada 15s enquanto é a vez do oponente e enviar as jogadas.
+ * conferir a cada 2s enquanto ela está em andamento e enviar as jogadas.
  * [SOLID-S] A View não sabe mais montar uma jogada ({ tipo: 'golpe', indice }): chama atacar(),
  *   usarGolpe(), trocar() e desistir().
  * [KISS] Lados, reservas e histórico em frases já saem prontos daqui; a View não refaz a conta
@@ -12,8 +13,10 @@ import { useSessao } from '@/features/auth';
  * [SOLID-D] onAtualizarUsuario deixou de vir por props: o saldo é atualizado com useSessao().
  */
 
-// Enquanto espera o oponente, confere a cada 15s se ele já jogou
-const ATUALIZAR_MS = 15 * 1000;
+// Durante a batalha confere a cada 2s se o oponente jogou (ou se algum prazo de 1 min venceu)
+const ATUALIZAR_MS = 2 * 1000;
+// O contador do prazo anda de segundo em segundo
+const RELOGIO_MS = 1000;
 
 /** Uma batalha PvP: carrega, atualiza sozinha enquanto é a vez do oponente e envia as jogadas */
 export function useBatalhaViewModel(batalhaId) {
@@ -23,6 +26,7 @@ export function useBatalhaViewModel(batalhaId) {
   const [enviando, setEnviando] = useState(false);
   const [trocando, setTrocando] = useState(false);
   const [confirmarDesistencia, setConfirmarDesistencia] = useState(false);
+  const [agora, setAgora] = useState(Date.now);
 
   const aplicar = useCallback((resposta) => {
     setDados(resposta);
@@ -51,13 +55,18 @@ export function useBatalhaViewModel(batalhaId) {
   }, [batalhaId, aplicar]);
 
   const batalha = dados?.batalha;
-  const esperandoOponente = batalha?.status === 'em_andamento' && !batalha.minhaVez;
+  const emAndamento = batalha?.status === 'em_andamento';
 
+  // Também na sua vez: se o seu minuto acabar, a vez passa e a tela precisa mostrar isso
   useEffect(() => {
-    if (!esperandoOponente) return undefined;
+    if (!emAndamento) return undefined;
     const timer = setInterval(carregar, ATUALIZAR_MS);
-    return () => clearInterval(timer);
-  }, [esperandoOponente, carregar]);
+    const relogio = setInterval(() => setAgora(Date.now()), RELOGIO_MS);
+    return () => {
+      clearInterval(timer);
+      clearInterval(relogio);
+    };
+  }, [emAndamento, carregar]);
 
   const enviarJogada = async (jogada) => {
     setEnviando(true);
@@ -85,6 +94,8 @@ export function useBatalhaViewModel(batalhaId) {
     carregado: Boolean(dados),
     erro,
     batalha,
+    // Tempo que falta no prazo da jogada atual ("38s"), atualizado a cada segundo
+    prazoRestante: emAndamento ? tempoRestante(batalha.prazoEm, agora) : null,
     comecou: Boolean(estado),
     eu,
     oponente,

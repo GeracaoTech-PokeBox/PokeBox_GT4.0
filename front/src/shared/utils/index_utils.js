@@ -2,7 +2,7 @@
  * models/formatos, models/tempo, viewmodels/carregar e os endereços de imagem de models/pokeapi.
  * As constantes foram para shared/constants e o formatoPokemon para shared/types.
  */
-import { TIPOS } from '../constants/index_constants';
+import { EFETIVIDADE, TIPOS } from '../constants/index_constants';
 
 // ---------------------------------------------------------------- tipos
 // [YAGNI] Era exportada só para PokemonCard.jsx refazer a lógica de dadosTipo(). Agora que
@@ -15,6 +15,27 @@ export const dadosTipo = (tipo) => TIPOS[tipo] ?? TIPO_DESCONHECIDO;
 // [DRY] Novo: Mercado.jsx (2x) e pages/Vitrine.jsx montavam este texto com o mesmo map + join.
 // ['fire', 'flying'] -> "Fogo / Voador"
 export const nomesTipos = (tipos) => tipos.map((tipo) => dadosTipo(tipo).nome).join(' / ');
+
+// Multiplicador de um golpe contra um Pokémon com esses tipos (os dois tipos se multiplicam)
+function efetividade(tipoGolpe, tiposAlvo) {
+  const linha = EFETIVIDADE[tipoGolpe];
+  return tiposAlvo.reduce((total, tipo) => {
+    if (linha.nulo.includes(tipo)) return 0;
+    if (linha.forte.includes(tipo)) return total * 2;
+    if (linha.fraco.includes(tipo)) return total * 0.5;
+    return total;
+  }, 1);
+}
+
+/** Tipos contra os quais os golpes do Pokémon são super efetivos (vantagem) */
+export const vantagensDe = (tipos) => Object.keys(TIPOS).filter(
+  (alvo) => tipos.some((tipo) => EFETIVIDADE[tipo]?.forte.includes(alvo)),
+);
+
+/** Tipos de golpe que causam dano dobrado (ou mais) no Pokémon (desvantagem) */
+export const fraquezasDe = (tipos) => Object.keys(TIPOS).filter(
+  (golpe) => efetividade(golpe, tipos) >= 2,
+);
 
 // "lightning-rod" -> "Lightning Rod"
 export function formatarNome(nome) {
@@ -48,8 +69,11 @@ export function formatarNumero(numero) {
 /** Soma os valores de um objeto, ex.: os 4 IVs ou os 4 status de um card */
 export const somaValores = (objeto) => Object.values(objeto).reduce((soma, valor) => soma + valor, 0);
 
+// Só a palavra, no singular ou no plural: "Pokébola", "Pokébolas"
+export const flexionar = (n, singular, varios) => (n === 1 ? singular : varios);
+
 // "1 anúncio", "1.500 Pokécoins"
-export const plural = (n, singular, varios) => `${n.toLocaleString('pt-BR')} ${n === 1 ? singular : varios}`;
+export const plural = (n, singular, varios) => `${n.toLocaleString('pt-BR')} ${flexionar(n, singular, varios)}`;
 
 /**
  * Resumo da evolução para cards e o time: "Evolui no Nv. 36 (faltam 4)", "Pode evoluir!" ou null se não evolui.
@@ -68,10 +92,12 @@ export function resumoEvolucao(pokemon) {
 }
 
 // ---------------------------------------------------------------- tempo
-// "3h 12min", "45min" ou "menos de 1 min" até a data informada
+// "3h 12min", "45min", "38s" ou "0s" até a data informada
 export function tempoRestante(data, agora = Date.now()) {
-  const minutos = Math.floor((new Date(data).getTime() - agora) / 60000);
-  if (minutos < 1) return 'menos de 1 min';
+  // Com o prazo de 1 min por jogada, os segundos importam: "38s" em vez de "menos de 1 min"
+  const segundos = Math.max(Math.floor((new Date(data).getTime() - agora) / 1000), 0);
+  if (segundos < 60) return `${segundos}s`;
+  const minutos = Math.floor(segundos / 60);
   const horas = Math.floor(minutos / 60);
   return horas > 0 ? `${horas}h ${minutos % 60}min` : `${minutos}min`;
 }

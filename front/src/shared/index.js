@@ -8,6 +8,10 @@ export { default as CartaPokemon } from './components/CartaPokemon';
 export { default as Coracoes } from './components/Coracoes';
 export { BotoesGolpes, ListaGolpes } from './components/Golpes';
 export { default as Layout } from './components/Layout';
+export { default as StatusOnline } from './components/StatusOnline';
+export { default as TabelaTipos } from './components/TabelaTipos';
+export { default as Tutorial } from './components/Tutorial';
+export { default as VantagensTipo } from './components/VantagensTipo';
 
 // Hooks
 export { useAcao } from './hooks/index_hooks';

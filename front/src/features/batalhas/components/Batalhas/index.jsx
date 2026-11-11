@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
-import { tempoDesde, tempoRestante, formatarNome, urlArtwork } from '@/shared';
+import {
+  StatusOnline, tempoRestante, formatarNome, urlArtwork,
+} from '@/shared';
 import { MOTIVOS } from '../../models/index_models';
 import { TAMANHO_TIME, useBatalhasViewModel } from './index_viewmodels';
 import './Batalhas.css';
@@ -52,7 +54,7 @@ function Batalhas({ onAbrir }) {
     <section className="batalhas">
       <h1 className="jogo-titulo">Batalhas</h1>
       <p className="jogo-texto">
-        As batalhas são por turnos e ninguém precisa estar online ao mesmo tempo: cada jogador tem 4h para jogar.
+        As batalhas são por turnos e cada jogador tem 1 min para jogar, então vale desafiar quem está online.
         Perder o prazo passa a vez; perder duas vezes seguidas é derrota por W.O.
       </p>
 
@@ -86,13 +88,13 @@ function Batalhas({ onAbrir }) {
 
       <section className="batalhas-secao" aria-labelledby="batalhas-ativos-titulo">
         <h2 id="batalhas-ativos-titulo">
-          {`Treinadores ativos nas últimas 24h (${ativos.length})`}
+          {`Treinadores online agora (${ativos.length})`}
         </h2>
         {ativos.length === 0 ? (
           <p className="batalhas-dica">
             {vm.filtrando
-              ? `Nenhum treinador ativo com "${oponente.trim()}". Você ainda pode desafiar pelo login exato no campo acima.`
-              : 'Ninguém com time completo entrou no jogo nas últimas 24h.'}
+              ? `Nenhum treinador online com "${oponente.trim()}". Você ainda pode desafiar pelo login exato no campo acima.`
+              : 'Nenhum treinador com time completo está online agora. Você ainda pode desafiar qualquer um pelo login no campo acima.'}
           </p>
         ) : (
           <ul className="batalhas-ativos">
@@ -102,7 +104,10 @@ function Batalhas({ onAbrir }) {
                 <li key={treinador.login} className="batalhas-ativo">
                   <div className="batalhas-ativo-info">
                     <strong>{treinador.login}</strong>
-                    <span>{`Visto ${tempoDesde(treinador.ultimoAcessoEm)} · nível médio ${treinador.nivelMedio}`}</span>
+                    <span>
+                      <StatusOnline online />
+                      {` · nível médio ${treinador.nivelMedio}`}
+                    </span>
                   </div>
                   <ul className="batalhas-ativo-time" aria-label={`Time de ${treinador.login}`}>
                     {treinador.time.map((pokemon, i) => (
@@ -134,7 +139,10 @@ function Batalhas({ onAbrir }) {
       {secao('Sua vez', minhaVez, (b) => (
         <li key={b.id} className="batalhas-item batalhas-item--vez">
           <div>
-            <strong>{`vs ${b.oponente}`}</strong>
+            <strong>
+              {`vs ${b.oponente} `}
+              <StatusOnline online={b.oponenteOnline} />
+            </strong>
             <span>{`Turno ${b.turno} · faltam ${tempoRestante(b.prazoEm)} para jogar`}</span>
           </div>
           {botaoAbrir(b, 'Jogar')}
@@ -144,7 +152,10 @@ function Batalhas({ onAbrir }) {
       {secao('Desafios recebidos', recebidos, (b) => (
         <li key={b.id} className="batalhas-item">
           <div>
-            <strong>{`${b.oponente} desafiou você`}</strong>
+            <strong>
+              {`${b.oponente} desafiou você `}
+              <StatusOnline online={b.oponenteOnline} />
+            </strong>
             <span>{`Expira em ${tempoRestante(b.expiraEm)}`}</span>
           </div>
           <div className="batalhas-botoes">
@@ -161,7 +172,10 @@ function Batalhas({ onAbrir }) {
       {secao('Esperando o oponente', esperando, (b) => (
         <li key={b.id} className="batalhas-item">
           <div>
-            <strong>{`vs ${b.oponente}`}</strong>
+            <strong>
+              {`vs ${b.oponente} `}
+              <StatusOnline online={b.oponenteOnline} />
+            </strong>
             <span>{`Turno ${b.turno} · ${b.oponente} tem ${tempoRestante(b.prazoEm)} para jogar`}</span>
           </div>
           {botaoAbrir(b)}
@@ -171,7 +185,10 @@ function Batalhas({ onAbrir }) {
       {secao('Desafios enviados', enviados, (b) => (
         <li key={b.id} className="batalhas-item">
           <div>
-            <strong>{`Você desafiou ${b.oponente}`}</strong>
+            <strong>
+              {`Você desafiou ${b.oponente} `}
+              <StatusOnline online={b.oponenteOnline} />
+            </strong>
             <span>{`Esperando resposta · expira em ${tempoRestante(b.expiraEm)}`}</span>
           </div>
         </li>

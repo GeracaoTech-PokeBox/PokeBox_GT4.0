@@ -1,5 +1,7 @@
 import PropTypes from 'prop-types';
-import { formatarNome, formatarNumero, urlArtwork } from '@/shared';
+import {
+  StatusOnline, formatarNome, formatarNumero, urlArtwork,
+} from '@/shared';
 import '../Batalha/Batalha.css';
 
 // Peças do campo de batalha, usadas nas batalhas entre treinadores e na história
@@ -36,7 +38,7 @@ const formatoPokemonBatalha = PropTypes.shape({
 BarraHp.propTypes = { pokemon: formatoPokemonBatalha.isRequired };
 
 // Um lado do campo: o Pokémon ativo grande e o banco de reserva
-export function LadoCampo({ lado, meu }) {
+export function LadoCampo({ lado, meu, online = null }) {
   const ativo = lado.pokemons[lado.ativo];
   const selvagem = lado.usuarioId === null;
   let treinador = lado.login;
@@ -47,7 +49,10 @@ export function LadoCampo({ lado, meu }) {
       <div className="batalha-ativo">
         <img src={urlArtwork(ativo.especieId, ativo.shiny)} alt={formatarNome(ativo.nome)} />
         <div className="batalha-ativo-info">
-          <span className="batalha-treinador">{treinador}</span>
+          <span className="batalha-treinador">
+            {treinador}
+            {online !== null && <StatusOnline online={online} />}
+          </span>
           <strong>
             {formatarNome(ativo.nome)}
             {ativo.shiny && ' ★'}
@@ -84,4 +89,6 @@ LadoCampo.propTypes = {
     pokemons: PropTypes.arrayOf(formatoPokemonBatalha).isRequired,
   }).isRequired,
   meu: PropTypes.bool.isRequired,
+  // null = não mostra (Pokémon selvagem na história)
+  online: PropTypes.bool,
 };

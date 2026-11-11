@@ -1,15 +1,17 @@
+import PropTypes from 'prop-types';
 import { CartaPokemon, formatarNome, formatarNumero } from '@/shared';
 import LojaPokebolas from '../LojaPokebolas';
 import { GERACOES, PRECO_POKEMON, useLojaViewModel } from './index_viewmodels';
 import './Loja.css';
 
 /* [MVVM] View: só desenha. Estado, efeitos e chamadas à API ficam em index_viewmodels.js. A compra de Pokébolas é o componente ../LojaPokebolas.
- * [SOLID-D] Não recebe mais `usuario`, onComprar e onComprarPokebolas do App.
+ * [SOLID-D] Não recebe mais `usuario`, onComprar e onComprarPokebolas do App. onIrParaTime continua
+ *   por props: é navegação.
  */
 
-function Loja() {
+function Loja({ onIrParaTime }) {
   const {
-    saldo, podeComprar, comprando, erro, ultimo, anteriores, comprar,
+    saldo, podeComprar, comprando, erro, revelado, fecharRevelado, comprados, comprar,
   } = useLojaViewModel();
 
   return (
@@ -58,24 +60,38 @@ function Loja() {
 
       {erro && <p className="jogo-erro" role="alert">{erro}</p>}
 
-      {ultimo && (
-        <div className="loja-revelado" role="status">
-          <p className="loja-revelado-titulo">
-            {`Você recebeu ${formatarNome(ultimo.nome)} ${formatarNumero(ultimo.mintNumero)}!`}
-            {ultimo.shiny && ' É shiny!'}
-            {ultimo.posicaoTime ? ` Ele entrou no seu time na posição ${ultimo.posicaoTime}.` : ' Ele foi para a sua coleção.'}
+      {revelado && (
+        // showModal no ref: abre como modal (fundo escuro, Esc fecha, foco preso no diálogo)
+        <dialog
+          ref={(dialogo) => dialogo && !dialogo.open && dialogo.showModal()}
+          className="loja-revelado"
+          aria-labelledby="loja-revelado-titulo"
+          onClose={fecharRevelado}
+        >
+          <p id="loja-revelado-titulo" className="loja-revelado-titulo">
+            {`Você recebeu ${formatarNome(revelado.nome)} ${formatarNumero(revelado.mintNumero)}!`}
+            {revelado.shiny && ' É shiny!'}
+            {revelado.posicaoTime ? ` Ele entrou no seu time na posição ${revelado.posicaoTime}.` : ' Ele foi para a sua coleção.'}
           </p>
           <div className="loja-revelado-carta">
-            <CartaPokemon pokemon={ultimo} />
+            <CartaPokemon pokemon={revelado} />
           </div>
-        </div>
+          <div className="loja-revelado-acoes">
+            <button type="button" className="jogo-botao jogo-botao--claro" onClick={fecharRevelado} autoFocus>
+              Comprar mais
+            </button>
+            <button type="button" className="jogo-botao" onClick={() => onIrParaTime()}>
+              Ir para o time
+            </button>
+          </div>
+        </dialog>
       )}
 
-      {anteriores.length > 0 && (
+      {comprados.length > 0 && (
         <>
-          <h2 className="loja-subtitulo">Compras anteriores</h2>
+          <h2 className="loja-subtitulo">Compras desta visita</h2>
           <ul className="loja-grade">
-            {anteriores.map((pokemon) => (
+            {comprados.map((pokemon) => (
               <li key={pokemon.id}><CartaPokemon pokemon={pokemon} compacto /></li>
             ))}
           </ul>
@@ -84,5 +100,9 @@ function Loja() {
     </section>
   );
 }
+
+Loja.propTypes = {
+  onIrParaTime: PropTypes.func.isRequired,
+};
 
 export default Loja;

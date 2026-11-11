@@ -18,7 +18,7 @@ function CreditosPokeApi() {
       </p>
       <p className="sobre-dica">
         Pokémon e os nomes dos Pokémon são marcas registradas da Nintendo, Game Freak e The Pokémon
-        Company. O PokeBox é um projeto de estudo, sem fins comerciais e sem vínculo com essas empresas.
+        Company. O PokeBox é um projeto de estudo, sem fins comerciais e sem vínculo com essas empresas. Não há nenhuma forma de monetização ou transições monetárias nesta aplicação.
       </p>
     </section>
   );

@@ -1,4 +1,4 @@
-import { CartaPokemon, urlArtwork } from '@/shared';
+import { CartaPokemon, Tutorial, urlArtwork } from '@/shared';
 import CantinhoCuidado from '../CantinhoCuidado';
 import FiltrosColecao from '../FiltrosColecao';
 import { INICIAIS, useMeusPokemonsViewModel } from './index_viewmodels';
@@ -69,6 +69,14 @@ function MeusPokemons() {
         Dê carinho, brinque e alimente seus Pokémon para ganhar corações de afeto.
       </p>
 
+      <button
+        type="button"
+        className="jogo-botao jogo-botao--azul meus-pokemons-como-cuidar"
+        onClick={vm.tutorialCuidados.rever}
+      >
+        Como cuidar dos Pokémon
+      </button>
+
       <FiltrosColecao
         filtros={vm.filtros}
         onMudar={vm.mudarFiltros}
@@ -96,6 +104,17 @@ function MeusPokemons() {
           </li>
         ))}
       </ul>
+
+      {/* Os alvos dos passos (afeto e "Cuidar de...") ficam no primeiro card da coleção */}
+      {vm.tutorialCuidados.aberto && (
+        <Tutorial
+          key={vm.tutorialCuidados.passo}
+          passos={vm.tutorialCuidados.passos}
+          passo={vm.tutorialCuidados.passo}
+          onProximo={vm.tutorialCuidados.proximo}
+          onPular={vm.tutorialCuidados.pular}
+        />
+      )}
     </section>
   );
 

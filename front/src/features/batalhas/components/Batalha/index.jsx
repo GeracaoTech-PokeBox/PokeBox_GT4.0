@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import { tempoRestante } from '@/shared';
 import { MOTIVOS } from '../../models/index_models';
 import AcoesBatalha from '../AcoesBatalha';
 import { LadoCampo } from '../CampoBatalha';
@@ -47,10 +46,11 @@ function Batalha({ batalhaId, onVoltar }) {
         {voltar}
         <h1 className="jogo-titulo">{`vs ${batalha.oponente}`}</h1>
         {batalha.status === 'em_andamento' && (
-          <p className="batalha-turno" role="status">
+          // Sem role="status": o contador muda a cada segundo e seria lido o tempo todo
+          <p className="batalha-turno">
             {batalha.minhaVez
-              ? `Turno ${batalha.turno} · Sua vez! Faltam ${tempoRestante(batalha.prazoEm)}.`
-              : `Turno ${batalha.turno} · Vez de ${batalha.oponente} (${tempoRestante(batalha.prazoEm)} restantes). Você pode fechar a página.`}
+              ? `Turno ${batalha.turno} · Sua vez! Faltam ${vm.prazoRestante}.`
+              : `Turno ${batalha.turno} · Vez de ${batalha.oponente} (${vm.prazoRestante} restantes).`}
           </p>
         )}
       </div>
@@ -66,8 +66,8 @@ function Batalha({ batalhaId, onVoltar }) {
       )}
 
       <div className="batalha-campo">
-        <LadoCampo lado={oponente} meu={false} />
-        <LadoCampo lado={eu} meu />
+        <LadoCampo lado={oponente} meu={false} online={batalha.oponenteOnline} />
+        <LadoCampo lado={eu} meu online />
       </div>
 
       {vm.erro && <p className="jogo-erro" role="alert">{vm.erro}</p>}

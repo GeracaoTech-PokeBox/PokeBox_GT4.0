@@ -10,6 +10,7 @@ import { Vitrine } from '@/features/vitrine';
 import { Trocas } from '@/features/trocas';
 import { Historia } from '@/features/historia';
 import { Sobre } from '@/features/sobre';
+import { TutorialGeral, TutorialProvider } from '@/features/tutorial';
 
 /* [SOLID-S] Antes, o App tinha 4 responsabilidades: sessão, navegação, as ações de outras telas
  * (evoluir, comprar, salvar o time...) e montar a interface. Agora só decide qual tela mostrar.
@@ -94,12 +95,14 @@ function App() {
     );
   }
 
+  // [SOLID-O] Uma tela nova é só mais uma entrada neste mapa (foi assim que "Sobre nós" entrou),
+  // sem mexer nas outras telas nem no resto do App.
   const telas = {
     pokemons: () => <Pokemons />,
     meusPokemons: () => <MeusPokemons />,
     vitrine: () => <Vitrine />,
     trocas: () => <Trocas />,
-    loja: () => <Loja />,
+    loja: () => <Loja onIrParaTime={() => handleNavegar('time')} />,
     historia: () => <Historia onIrPara={handleNavegar} />,
     time: () => (
       <Time
@@ -121,7 +124,11 @@ function App() {
       onNavegar={handleNavegar}
       onSair={handleSair}
     >
-      {renderTela()}
+      {/* O tutorial de primeiro acesso troca de tela pelo mesmo handleNavegar do menu */}
+      <TutorialProvider onNavegar={handleNavegar}>
+        {renderTela()}
+        <TutorialGeral />
+      </TutorialProvider>
     </Layout>
   );
 }

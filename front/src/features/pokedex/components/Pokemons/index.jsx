@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import FiltrosPokemons from '../FiltrosPokemons';
 import PokemonCard from '../PokemonCard';
-import { formatarNumero } from '@/shared';
+import { TabelaTipos, formatarNumero } from '@/shared';
 import { usePokemonsViewModel } from './index_viewmodels';
 import './Pokemons.css';
 
@@ -89,6 +89,7 @@ function Pokemons() {
         <p className="pokemons-contagem" aria-live="polite">
           {`${vm.totalFiltrados} de ${vm.total} Pokémon`}
         </p>
+        <TabelaTipos />
       </div>
 
       <FiltrosPokemons

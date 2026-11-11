@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { dadosTipo, formatarNome, formatarNumero } from '@/shared';
+import {
+  VantagensTipo, dadosTipo, formatarNome, formatarNumero,
+} from '@/shared';
 import './PokemonCard.css';
 
 const STATS = {
@@ -113,6 +115,11 @@ function PokemonCard({ pokemon }) {
           <dd>{pokemon.base_experience ?? '—'}</dd>
         </div>
       </dl>
+
+      <section className="pokemon-card-secao">
+        <h3>Vantagens de tipo</h3>
+        <VantagensTipo tipos={tipos.map(({ id }) => id)} />
+      </section>
 
       <section className="pokemon-card-secao">
         <h3>Habilidades</h3>

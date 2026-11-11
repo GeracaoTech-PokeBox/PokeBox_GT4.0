@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import CreditosPokeApi from '../CreditosPokeApi';
-import Criterios from '../Criterios';
 import GeracaoTech from '../GeracaoTech';
 import { ABAS } from '../../constants/index_constants';
 import './Sobre.css';
@@ -8,6 +7,9 @@ import './Sobre.css';
 /* [MVVM] View: só desenha. A sub-aba aberta é estado só visual, então fica aqui mesmo
  * (como a subtela do Mercado); quem tem estado de verdade (Criterios) tem o seu ViewModel.
  */
+
+// Os critérios carregam o código-fonte do front como texto: só baixa quando a aba é aberta
+const Criterios = lazy(() => import('../Criterios'));
 
 const CONTEUDO = {
   geracaoTech: GeracaoTech,
@@ -43,7 +45,9 @@ function Sobre() {
         </div>
       </header>
 
-      <Conteudo />
+      <Suspense fallback={<p className="sobre-dica" aria-busy="true">Lendo o código do projeto...</p>}>
+        <Conteudo />
+      </Suspense>
     </section>
   );
 }

@@ -1,6 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import {
+  useCallback, useEffect, useMemo, useState,
+} from 'react';
 import PropTypes from 'prop-types';
 import { SessaoContext } from './index_context';
+import { PRESENCA_MS } from '../constants/index_constants';
 import * as api from '../services/index_services';
 
 /* [MVVM] Novo. ViewModel global da sessão, que veio do App.jsx.
@@ -76,6 +79,14 @@ function SessaoProvider({ children }) {
     await api.sair().catch(() => {});
     setUsuario(null);
   }, []);
+
+  // Status online: enquanto alguém está logado, manda um sinal de vida para o back de tempos em tempos
+  const usuarioId = usuario?.id;
+  useEffect(() => {
+    if (!usuarioId) return undefined;
+    const timer = setInterval(() => api.marcarPresenca().catch(() => {}), PRESENCA_MS);
+    return () => clearInterval(timer);
+  }, [usuarioId]);
 
   const sessao = useMemo(() => ({
     usuario,

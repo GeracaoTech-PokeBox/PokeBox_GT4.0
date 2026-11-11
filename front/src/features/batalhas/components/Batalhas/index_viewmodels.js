@@ -14,8 +14,8 @@ export { TAMANHO_TIME };
  * [DRY] TAMANHO_TIME vem de @/shared.
  */
 
-// De quanto em quanto tempo a lista se atualiza sozinha (o oponente pode jogar a qualquer momento)
-const ATUALIZAR_MS = 30 * 1000;
+// De quanto em quanto tempo a lista se atualiza sozinha (o oponente pode jogar ou ficar offline a qualquer momento)
+const ATUALIZAR_MS = 10 * 1000;
 
 // Por que um treinador ativo não pode ser desafiado agora (null = pode)
 function bloqueioDesafio(treinador) {

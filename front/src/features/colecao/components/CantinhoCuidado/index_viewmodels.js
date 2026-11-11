@@ -80,13 +80,15 @@ export function useCantinhoCuidadoViewModel(pokemon, onCuidar) {
     setErro(null);
     try {
       const coracoesAntes = pokemon.afeto.coracoes;
-      const { pokemon: atualizado, ganho } = await onCuidar(pokemon.id, tipo);
+      const { pokemon: atualizado, ganho, pokecoins } = await onCuidar(pokemon.id, tipo);
       let texto = ganho > 0 ? REACOES[tipo](nome) : `${nome} já te adora o máximo possível!`;
       if (atualizado.afeto.coracoes > coracoesAntes) {
         texto += atualizado.afeto.maximo
           ? ` Afeto máximo! Agora ${nome} pode aguentar firme um golpe letal nas batalhas e aprender golpes especiais.`
           : ' Vocês ganharam um novo coração!';
       }
+      // Cada coração completado paga Pokécoins (uma vez por coração do card)
+      if (pokecoins > 0) texto += ` Você ganhou ${pokecoins} Pokécoins!`;
       setReacao(texto);
       setAnimacao((n) => n + 1);
       setHistorico(await api.listarCuidados(pokemon.id));

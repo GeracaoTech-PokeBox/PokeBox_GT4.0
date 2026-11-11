@@ -21,6 +21,9 @@ services:
     environment:
       DATABASE_URL: postgres://pokebox:pokebox@db:5432/pokebox
       PORT: 8080
+    volumes:
+      # O back aplica sozinho, ao subir, as migrações desta pasta que o banco ainda não tem
+      - ./db/migracoes:/db/migracoes:ro
     ports:
       - "8080:8080"
     depends_on:
@@ -36,6 +39,11 @@ services:
       - "5174:5174"
     depends_on:
       - back
+
+  # Túnel https até o back, para o front na Vercel conversar com esta máquina.
+  # Só sobe com: docker compose --profile online up -d
+  # A URL (https://xxxx.trycloudflare.com) aparece em: docker compose logs tunel
+  # Ela muda a cada reinício do túnel; aí é preciso atualizar VITE_BACK_URL na Vercel e fazer Redeploy
   tunel:
     image: cloudflare/cloudflared:2025.4.0
     profiles: [online]

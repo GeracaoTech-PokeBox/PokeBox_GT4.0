@@ -78,7 +78,7 @@ test('integração', { skip: pular, timeout: 10 * 60 * 1000 }, async (s) => {
 
   // ------------------------------------------------------------------
   // CADASTRO E LOGIN
-  // Cria as contas ("Ash" e "Gary") com 600 Pokécoins, recusa login repetido
+  // Cria as contas ("Ash" e "Gary") com 1000 Pokécoins, recusa login repetido
   // (sem diferenciar maiúsculas) e senha curta, testa login certo/errado
   // e confere que rota protegida sem token dá 401.
   // ------------------------------------------------------------------
@@ -86,7 +86,7 @@ test('integração', { skip: pular, timeout: 10 * 60 * 1000 }, async (s) => {
     const conta = { login: 'Ash', celular: '11999999999', senha: 'pikachu123' };
     const cadastro = await api('POST', '/auth/cadastro', { corpo: conta });
     assert.equal(cadastro.status, 201);
-    assert.equal(cadastro.dados.usuario.pokecoins, 600);
+    assert.equal(cadastro.dados.usuario.pokecoins, 1000);
     t.ash = { token: cadastro.dados.token };
 
     const repetido = await api('POST', '/auth/cadastro', { corpo: { ...conta, login: 'ASH' } });
