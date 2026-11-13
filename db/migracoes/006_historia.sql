@@ -37,6 +37,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS historia_encontro_aberto_idx ON historia_encon
 ALTER TABLE transacoes_pokecoins DROP CONSTRAINT IF EXISTS transacoes_pokecoins_motivo_check;
 ALTER TABLE transacoes_pokecoins ADD CONSTRAINT transacoes_pokecoins_motivo_check
   CHECK (motivo IN ('bonus_cadastro', 'compra_loja', 'recompensa_batalha', 'compra_mercado', 'venda_mercado', 'troca',
-                    'compra_pokebola', 'recompensa_historia'));
+                    'compra_pokebola', 'recompensa_historia')) NOT VALID;
 
 COMMIT;

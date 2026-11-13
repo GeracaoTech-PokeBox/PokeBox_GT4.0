@@ -6,7 +6,7 @@ ALTER TABLE historia_encontros ADD COLUMN IF NOT EXISTS revanche BOOLEAN NOT NUL
 
 ALTER TABLE historia_encontros DROP CONSTRAINT IF EXISTS historia_encontros_status_check;
 ALTER TABLE historia_encontros ADD CONSTRAINT historia_encontros_status_check
-  CHECK (status IN ('encontrado', 'vencido', 'capturado', 'fugiu'));
+  CHECK (status IN ('encontrado', 'vencido', 'capturado', 'fugiu')) NOT VALID;
 
 -- Um ponto passa a ter vários encontros; só o primeiro de cada ponto continua único
 ALTER TABLE historia_encontros DROP CONSTRAINT IF EXISTS historia_encontros_usuario_id_trilha_ponto_key;
