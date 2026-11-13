@@ -4,8 +4,19 @@
  */
 
 // Chamadas aos endpoints do jogo no back (/api/...)
-const BACK_URL = import.meta.env.VITE_BACK_URL ?? '';
+
+// Endereço do back. Vazio = mesmo endereço do front (no docker-compose e no `npm run dev`
+// o Vite repassa /api para o back). Publicado no Netlify, vem de VITE_BACK_URL (URL do
+// Render). A barra final é removida para não virar "...onrender.com//api".
+export const BACK_URL = (import.meta.env.VITE_BACK_URL ?? '').trim().replace(/\/+$/, '');
 const CHAVE_TOKEN = 'pokebox-token';
+
+// No plano grátis do Render o back dorme depois de 15 min sem acesso e leva cerca de
+// 1 min para acordar. Chamado ao abrir o site, para ele ir acordando enquanto a pessoa
+// digita o login.
+export function acordarServidor() {
+  fetch(`${BACK_URL}/api/saude`).catch(() => {});
+}
 
 // O token fica no localStorage para o login sobreviver a um F5.
 // Em aba anônima ou com armazenamento bloqueado, o login dura só até fechar a aba.

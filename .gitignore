@@ -8,3 +8,8 @@ cypress/videos/
 cypress/downloads/
 cypress.env.json
 .env
+
+# Estado local da CLI do Netlify
+.netlify/
+.neon
+.env.local

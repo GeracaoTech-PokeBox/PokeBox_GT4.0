@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 // O CSS global vem antes de tudo: os estilos dos componentes podem sobrescrevê-lo
 import './index.css';
 import App from './App';
+import { acordarServidor } from '@/core';
 import { SessaoProvider } from '@/features/auth';
 
 /* Arquitetura do front: MVVM organizado por funcionalidade (feature-first).
@@ -40,6 +41,9 @@ import { SessaoProvider } from '@/features/auth';
  *
  * [MVVM][SOLID-D] O SessaoProvider envolve o App: qualquer tela lê o usuário logado com useSessao().
  */
+
+// Começa a acordar o back (Render, plano grátis) enquanto a pessoa digita o login
+acordarServidor();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

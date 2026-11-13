@@ -3,7 +3,8 @@
  */
 
 // As chamadas passam pelo back, que repassa para https://pokeapi.co/api/v2
-const BACK_URL = import.meta.env.VITE_BACK_URL ?? '';
+import { BACK_URL } from '@/core';
+
 const API_URL = `${BACK_URL}/api/pokeapi`;
 // Guarda a promessa de cada requisição para não repetir a mesma chamada
 const cache = new Map();
