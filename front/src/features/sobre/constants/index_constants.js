@@ -4,8 +4,11 @@
 export const ABAS = [
   { valor: 'geracaoTech', nome: 'Geração Tech 4.0' },
   { valor: 'pokeapi', nome: 'PokeAPI' },
-  { valor: 'criterios', nome: 'Critérios de avaliação' },
+  // Só aparece para o usuário de login exatamente 'admin'
+  { valor: 'criterios', nome: 'Critérios de avaliação', somenteAdmin: true },
 ];
+
+export const LOGIN_ADMIN = 'admin';
 
 // Critérios de avaliação: o id é a tag usada nos comentários do código ([KISS], [SOLID-S]...)
 export const CRITERIOS = [
