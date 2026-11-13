@@ -11,10 +11,11 @@ services:
       - ./db/db.sql:/docker-entrypoint-initdb.d/01-db.sql:ro
       - dados:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pokebox -d pokebox"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pokebox -d pokebox"]
       interval: 2s
       timeout: 3s
       retries: 20
+      start_period: 10s
 
   back:
     build: ./back
