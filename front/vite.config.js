@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url'
 import process from 'node:process'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
@@ -19,6 +20,11 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    resolve: {
+      // '@/features/loja' -> 'src/features/loja'. Entre features e para shared/core, importe
+      // sempre pela fachada (index.js) com este alias.
+      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    },
     server: {
       // Escuta na rede local para abrir pelo celular (http://<ip-do-pc>:5173)
       host: true,

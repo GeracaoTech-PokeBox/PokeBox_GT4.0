@@ -1,86 +1,63 @@
-import { useCallback, useEffect, useState } from 'react';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Cadastro from './pages/Cadastro';
-import RecuperarSenha from './pages/RecuperarSenha';
-import Pokemons from './pages/Pokemons';
-import MeusPokemons from './pages/MeusPokemons';
-import Loja from './pages/Loja';
-import Time from './pages/Time';
-import Batalhas from './pages/Batalhas';
-import Batalha from './pages/Batalha';
-import Vitrine from './pages/Vitrine';
-import Trocas from './pages/Trocas';
-import Historia from './pages/Historia';
-import * as api from './services/api';
+import { useEffect, useState } from 'react';
+import { Layout } from '@/shared';
+import { Login, Cadastro, RecuperarSenha, useSessao } from '@/features/auth';
+import { Pokemons } from '@/features/pokedex';
+import { MeusPokemons } from '@/features/colecao';
+import { Loja } from '@/features/loja';
+import { Time } from '@/features/time';
+import { Batalhas, Batalha } from '@/features/batalhas';
+import { Vitrine } from '@/features/vitrine';
+import { Trocas } from '@/features/trocas';
+import { Historia } from '@/features/historia';
+import { Sobre } from '@/features/sobre';
+import { TutorialGeral, TutorialProvider } from '@/features/tutorial';
 
-const TAMANHO_TIME = 3;
+/* [SOLID-S] Antes, o App tinha 4 responsabilidades: sessão, navegação, as ações de outras telas
+ * (evoluir, comprar, salvar o time...) e montar a interface. Agora só decide qual tela mostrar.
+ *   - Sessão e ações de conta foram para o SessaoProvider (features/auth/context).
+ *   - As ações de cada tela foram para o ViewModel dela (ex.: evoluir → useMeusPokemonsViewModel).
+ * [SOLID-O] Uma ação nova na Loja (ou em qualquer tela) não obriga mais a editar o App.
+ * [DRY] O par "await api.algumaCoisa(); await recarregarUsuario();" aparecia 8 vezes aqui;
+ *   virou executarEAtualizar() no SessaoProvider.
+ * [SOLID-I] As telas não recebem mais `usuario` e `onAtualizarUsuario` por props (prop drilling):
+ *   quem precisa lê com useSessao(). Por props só desce navegação (onIrPara, onAbrir, onVoltar).
+ * [YAGNI] O App não importa mais models/api e não guarda TAMANHO_TIME (Batalhas calcula o temTime).
+ */
 
+// [KISS] Uma função para a regra que antes aparecia duas vezes no App (login e sessão salva).
+// Quem ainda não tem Pokémon cai direto na escolha do inicial
+const telaInicial = (pokemons) => (pokemons.length === 0 ? 'meusPokemons' : 'batalhas');
+
+// Só decide qual tela mostrar. Usuário e ações de conta ficam no SessaoProvider.
 function App() {
+  const {
+    usuario, conferindoSessao, restaurarSessao, entrar, cadastrar, sair, verificarUsuario, redefinirSenha, atualizarUsuario,
+  } = useSessao();
   const [tela, setTela] = useState('login');
-  // { id, login, pokecoins, pokemons } ou null se não está logado
-  const [usuario, setUsuario] = useState(null);
-  // Enquanto confere se o token salvo ainda vale, não mostra o login para não "piscar"
-  const [conferindoSessao, setConferindoSessao] = useState(api.temSessao);
   const [batalhaId, setBatalhaId] = useState(null);
-
-  // Busca saldo e coleção de novo (depois de comprar, evoluir, batalhar...)
-  const recarregarUsuario = useCallback(async () => {
-    try {
-      const { usuario: dados, pokemons } = await api.buscarEu();
-      setUsuario({ ...dados, pokemons });
-      return pokemons;
-    } catch (erro) {
-      // Sessão expirou ou a senha foi trocada em outro lugar
-      if (erro.status === 401) {
-        setUsuario(null);
-        setTela('login');
-      }
-      throw erro;
-    }
-  }, []);
-
-  // Recarrega sem deixar o erro escapar (usado em atualizações de fundo)
-  const atualizarUsuario = useCallback(() => {
-    recarregarUsuario().catch(() => {});
-  }, [recarregarUsuario]);
 
   // Login salvo de uma visita anterior
   useEffect(() => {
-    if (!api.temSessao()) return;
-    // Se o token não vale mais, o api.js o apaga e o usuário cai no login
-    api.buscarEu()
-      .then(({ usuario: dados, pokemons }) => {
-        setUsuario({ ...dados, pokemons });
-        setTela(pokemons.length === 0 ? 'meusPokemons' : 'batalhas');
-      }, () => {})
-      .finally(() => setConferindoSessao(false));
-  }, []);
-
-  const entrarNoJogo = async () => {
-    const pokemons = await recarregarUsuario();
-    // Quem ainda não tem Pokémon cai direto na escolha do inicial
-    setTela(pokemons.length === 0 ? 'meusPokemons' : 'batalhas');
-  };
+    restaurarSessao().then((pokemons) => {
+      if (pokemons) setTela(telaInicial(pokemons));
+    });
+  }, [restaurarSessao]);
 
   const handleLogin = async ({ login, senha }) => {
-    await api.entrar(login, senha);
-    await entrarNoJogo();
+    setTela(telaInicial(await entrar(login, senha)));
   };
 
   const handleCadastrar = async (dados) => {
-    await api.cadastrar(dados);
-    await entrarNoJogo();
+    setTela(telaInicial(await cadastrar(dados)));
   };
 
   const handleRedefinirSenha = async (dados) => {
-    await api.redefinirSenha(dados);
+    await redefinirSenha(dados);
     setTela('login');
   };
 
   const handleSair = async () => {
-    await api.sair().catch(() => {});
-    setUsuario(null);
+    await sair();
     setTela('login');
   };
 
@@ -103,7 +80,7 @@ function App() {
     if (tela === 'recuperarSenha') {
       return (
         <RecuperarSenha
-          onVerificar={api.verificarUsuario}
+          onVerificar={verificarUsuario}
           onRedefinir={handleRedefinirSenha}
           onVoltar={() => setTela('login')}
         />
@@ -118,83 +95,25 @@ function App() {
     );
   }
 
+  // [SOLID-O] Uma tela nova é só mais uma entrada neste mapa (foi assim que "Sobre nós" entrou),
+  // sem mexer nas outras telas nem no resto do App.
   const telas = {
     pokemons: () => <Pokemons />,
-    meusPokemons: () => (
-      <MeusPokemons
-        usuario={usuario}
-        onEscolherInicial={async (especieId) => {
-          await api.escolherInicial(especieId);
-          await recarregarUsuario();
-        }}
-        onEvoluir={async (pokemonId, especieId) => {
-          const evoluido = await api.evoluir(pokemonId, especieId);
-          await recarregarUsuario();
-          return evoluido;
-        }}
-        onCuidar={async (pokemonId, tipo) => {
-          const cuidado = await api.cuidar(pokemonId, tipo);
-          await recarregarUsuario();
-          return cuidado;
-        }}
-        onRoletarGolpes={async (pokemonId) => {
-          const roleta = await api.roletarGolpes(pokemonId);
-          await recarregarUsuario();
-          return roleta;
-        }}
-        onDesbloquearGolpes={async (pokemonId) => {
-          const desbloqueio = await api.desbloquearGolpes(pokemonId);
-          await recarregarUsuario();
-          return desbloqueio;
-        }}
-      />
-    ),
-    vitrine: () => <Vitrine usuario={usuario} />,
-    trocas: () => <Trocas usuario={usuario} onAtualizarUsuario={recarregarUsuario} />,
-    loja: () => (
-      <Loja
-        usuario={usuario}
-        onComprar={async (geracao) => {
-          const compra = await api.comprarPokemon(geracao);
-          await recarregarUsuario();
-          return compra;
-        }}
-        onComprarPokebolas={async (quantidade) => {
-          await api.comprarPokebolas(quantidade);
-          await recarregarUsuario();
-        }}
-      />
-    ),
-    historia: () => (
-      <Historia usuario={usuario} onAtualizarUsuario={recarregarUsuario} onIrPara={handleNavegar} />
-    ),
+    meusPokemons: () => <MeusPokemons />,
+    vitrine: () => <Vitrine />,
+    trocas: () => <Trocas />,
+    loja: () => <Loja onIrParaTime={() => handleNavegar('time')} />,
+    historia: () => <Historia onIrPara={handleNavegar} />,
     time: () => (
       <Time
         // key: remonta com a seleção salva quando a coleção muda (ex.: depois de salvar)
         key={usuario.pokemons.map((p) => `${p.id}:${p.posicaoTime}`).join()}
-        usuario={usuario}
-        onSalvar={async (ids) => {
-          await api.salvarTime(ids);
-          await recarregarUsuario();
-        }}
         onIrParaLoja={() => handleNavegar('loja')}
       />
     ),
-    batalhas: () => (
-      <Batalhas
-        temTime={usuario.pokemons.filter((p) => p.posicaoTime).length === TAMANHO_TIME}
-        onAbrir={handleAbrirBatalha}
-        onAtualizarUsuario={atualizarUsuario}
-      />
-    ),
-    batalha: () => (
-      <Batalha
-        key={batalhaId}
-        batalhaId={batalhaId}
-        onVoltar={() => handleNavegar('batalhas')}
-        onAtualizarUsuario={atualizarUsuario}
-      />
-    ),
+    batalhas: () => <Batalhas onAbrir={handleAbrirBatalha} />,
+    batalha: () => <Batalha key={batalhaId} batalhaId={batalhaId} onVoltar={() => handleNavegar('batalhas')} />,
+    sobre: () => <Sobre />,
   };
   const renderTela = telas[tela] ?? telas.batalhas;
 
@@ -205,7 +124,11 @@ function App() {
       onNavegar={handleNavegar}
       onSair={handleSair}
     >
-      {renderTela()}
+      {/* O tutorial de primeiro acesso troca de tela pelo mesmo handleNavegar do menu */}
+      <TutorialProvider onNavegar={handleNavegar}>
+        {renderTela()}
+        <TutorialGeral />
+      </TutorialProvider>
     </Layout>
   );
 }
