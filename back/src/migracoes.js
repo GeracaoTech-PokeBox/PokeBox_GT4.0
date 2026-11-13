@@ -19,19 +19,13 @@ async function aplicarMigracoes() {
   const client = await pool.connect();
   try {
     await client.query('SELECT pg_advisory_lock($1)', [TRAVA]);
-    const { rows: [{ existe }] } = await client.query("SELECT to_regclass('migracoes') IS NOT NULL AS existe");
-
-    if (!existe) {
-      // Primeira vez: o banco veio do db.sql (que já tem tudo) ou já recebeu as migrações à mão,
-      // então as que existem hoje contam como aplicadas. Daqui para frente só as novas rodam.
-      await client.query(`CREATE TABLE migracoes (
-        nome        TEXT PRIMARY KEY,
-        aplicada_em TIMESTAMPTZ NOT NULL DEFAULT now()
-      )`);
-      await client.query('INSERT INTO migracoes (nome) SELECT unnest($1::text[])', [arquivos]);
-      console.log(`Migrações: controle criado, ${arquivos.length} migração(ões) marcadas como já aplicadas.`);
-      return;
-    }
+    // Primeira vez num banco: roda todas. As migrações são escritas para poder rodar de novo
+    // sem estragar nada (IF NOT EXISTS, DROP ... IF EXISTS), então tanto um banco antigo quanto
+    // um recém-criado pelo db.sql terminam iguais. Nunca marcar como aplicada sem executar.
+    await client.query(`CREATE TABLE IF NOT EXISTS migracoes (
+      nome        TEXT PRIMARY KEY,
+      aplicada_em TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`);
 
     const { rows } = await client.query('SELECT nome FROM migracoes');
     const aplicadas = new Set(rows.map((r) => r.nome));
