@@ -35,10 +35,15 @@ O `.env` não vai para o Git. Nunca coloque nele a connection string de produç�
 ## Testes
 
 ```bash
-npm test
+npm run test:unit       # unitários: regras, motor de batalha, tipos, proxy da PokeAPI (sem banco, < 1 s)
+npm run test:int        # integração ponta a ponta (precisa do Docker)
+npm test                # os dois
+npm run test:cobertura  # unitários com relatório de cobertura
 ```
 
-Precisa do Docker: o script sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda o teste de integração ponta a ponta.
+Os unitários ficam em `test/unit` e não precisam de banco nem de rede. Os sorteios usam `rngSequencia` (`test/helpers/rng.js`), que devolve valores fixos e falha se a regra sortear mais vezes do que o teste previu. A PokeAPI é trocada por `instalarPokeApiFake` (`test/helpers/pokeapi-fake.js`).
+
+O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda o teste de integração ponta a ponta.
 
 ## Estrutura
 
