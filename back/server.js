@@ -1,5 +1,13 @@
-// Lê back/.env (DATABASE_URL, PORT) antes de tudo; variáveis já definidas no terminal têm prioridade
-require('dotenv').config({ path: `${__dirname}/.env`, quiet: true });
+// Lê back/.env (DATABASE_URL, PORT) antes de tudo; variáveis já definidas no terminal têm prioridade.
+// O .env não vai para o Git: copie back/.env.example para back/.env. Sem o arquivo o back sobe mesmo
+// assim, usando só as variáveis do ambiente (é o caso do Docker Compose e do Render).
+const fs = require('node:fs');
+const path = require('node:path');
+
+const ARQUIVO_ENV = path.join(__dirname, '.env');
+if (fs.existsSync(ARQUIVO_ENV)) {
+  require('dotenv').config({ path: ARQUIVO_ENV, quiet: true });
+}
 
 const app = require('./src/app');
 
@@ -27,6 +35,7 @@ if (process.env.DATABASE_URL) {
       process.exit(1);
     });
 } else {
-  console.warn('DATABASE_URL não configurada: só o proxy da PokeAPI vai funcionar. Copie back/.env.example para back/.env.');
+  console.warn('DATABASE_URL não configurada: só o proxy da PokeAPI vai funcionar. '
+    + 'Copie back/.env.example para back/.env (ou defina DATABASE_URL no ambiente).');
   iniciar();
 }
