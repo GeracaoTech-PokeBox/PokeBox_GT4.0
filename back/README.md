@@ -43,7 +43,9 @@ npm run test:cobertura  # unitários com relatório de cobertura
 
 Os unitários ficam em `test/unit` e não precisam de banco nem de rede. Os sorteios usam `rngSequencia` (`test/helpers/rng.js`), que devolve valores fixos e falha se a regra sortear mais vezes do que o teste previu. A PokeAPI é trocada por `instalarPokeApiFake` (`test/helpers/pokeapi-fake.js`).
 
-O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda o teste de integração ponta a ponta.
+O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda o teste de integração ponta a ponta. Com `DATABASE_URL_TESTE` definida, ele usa esse banco direto e não precisa de Docker. O nome do banco precisa terminar em `_teste`, porque o teste apaga e recria o schema.
+
+No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.yml) roda os unitários (com cobertura) e a integração (com um Postgres 16 do próprio Actions) em todo PR e push na `main` que mexa em `back/` ou `db/`.
 
 ## Estrutura
 

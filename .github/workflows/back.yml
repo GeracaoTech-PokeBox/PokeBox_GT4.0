@@ -1,0 +1,66 @@
+# Testes do back: unitários (sem banco) e integração (com Postgres de verdade).
+# Roda só quando algo do back, do banco ou este arquivo muda.
+name: Back
+
+on:
+  push:
+    branches: [main]
+    paths: ['back/**', 'db/**', '.github/workflows/back.yml']
+  pull_request:
+    paths: ['back/**', 'db/**', '.github/workflows/back.yml']
+  workflow_dispatch:
+
+# Um push novo no mesmo branch/PR cancela a execução anterior
+concurrency:
+  group: back-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: back
+
+jobs:
+  unitarios:
+    name: Unitários
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: back/package-lock.json
+      - run: npm ci
+      - run: npm run test:cobertura
+
+  integracao:
+    name: Integração
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine # mesma do docker-compose.yml
+        env:
+          POSTGRES_USER: pokebox
+          POSTGRES_PASSWORD: pokebox
+          POSTGRES_DB: pokebox_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pokebox -d pokebox_teste"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      # Com ela o rodar.js usa este banco e não tenta usar Docker
+      DATABASE_URL_TESTE: postgres://pokebox:pokebox@localhost:5432/pokebox_teste
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: back/package-lock.json
+      - run: npm ci
+      - run: npm run test:int
