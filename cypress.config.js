@@ -1,6 +1,8 @@
 const { existsSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 const { defineConfig } = require('cypress');
+const { allureCypress } = require('allure-cypress/reporter');
+const cypressOnFix = require('cypress-on-fix');
 
 const envPath = path.join(__dirname, 'cypress.env.json');
 const localEnv = existsSync(envPath)
@@ -24,11 +26,14 @@ module.exports = defineConfig({
     overwrite: true,
   },
   e2e: {
-    baseUrl: localEnv.baseUrl,
+    baseUrl: process.env.CYPRESS_BASE_URL || localEnv.baseUrl || 'http://localhost:5174',
     specPattern: 'cypress/e2e/**/*.cy.js',
     supportFile: 'cypress/support/e2e.js',
     setupNodeEvents(on, config) {
-      require('cypress-mochawesome-reporter/plugin')(on);
+      // Os dois relatórios precisam receber os eventos after:spec e after:run.
+      const register = cypressOnFix(on);
+      require('cypress-mochawesome-reporter/plugin')(register);
+      allureCypress(register, config, { resultsDir: 'allure-results' });
       return config;
     },
   },

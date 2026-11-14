@@ -80,5 +80,7 @@ npx netlify-cli deploy --build --prod
 
 ## Testes automatizados
 
-Os testes E2E usam Cypress com Page Objects e relatórios Mochawesome. A configuração e as dependências da automação ficam na raiz do projeto.
+A execução diária às **06h de Brasília**, a publicação do relatório Allure no GitHub Pages e as notificações no Discord.
+
+Os testes E2E usam Cypress com Page Objects e relatórios Mochawesome e Allure. A configuração e as dependências da automação ficam na raiz do projeto.
 

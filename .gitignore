@@ -7,6 +7,8 @@ cypress/screenshots/
 cypress/videos/
 cypress/downloads/
 cypress.env.json
+allure-results/
+allure-report/
 .env
 
 # Estado local da CLI do Netlify
