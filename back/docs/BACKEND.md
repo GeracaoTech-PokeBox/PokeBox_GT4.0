@@ -14,7 +14,7 @@ Este documento explica a arquitetura do back, os fluxos principais do jogo e ond
 | Dados externos | [PokeAPI](https://pokeapi.co), consultada só uma vez por espécie/golpe e guardada no banco como cache |
 | Autenticação | Token opaco no cabeçalho `Authorization: Bearer <token>`. O banco guarda só o hash SHA-256 do token |
 | Tempo real | Não há WebSocket. O front consulta o back de tempos em tempos (polling), e um agendador interno resolve os prazos das batalhas |
-| Deploy | Docker Compose (local) ou Render + Neon (produção, `render.yaml`) |
+| Deploy | Docker Compose (local), Render + Neon (`render.yaml`) ou back + banco numa máquina própria (`docker-compose.prod.yml`) |
 
 ### Estrutura de pastas
 
@@ -85,13 +85,13 @@ HTTP ──► app.js ──► rotas.js ──► jogo/<área>.js ──► db.
 - **`trust proxy`** é ativado quando `RENDER` está definido, para que `req.ip` seja o IP real do cliente. O limitador de tentativas depende disso.
 - **CORS** aceita qualquer origem (`*`). Isso é seguro porque a autenticação vai no cabeçalho `Authorization`, e não em cookie. `OPTIONS` responde 204.
 - **`GET /api/saude`**: `{ ok: true }` sem tocar no banco. Serve de health check do Render e para "acordar" o back no plano gratuito.
-- **`GET /api/pokeapi/<recurso>[/<id>]`**: proxy para a PokeAPI. Aceita só caminhos `^/[a-z0-9-]+(/[a-z0-9-]+)?/?$` e os parâmetros `limit`/`offset`; qualquer outro método recebe 405.
+- **`GET /api/pokeapi/<recurso>[/<id>]`**: proxy para a PokeAPI. Aceita só caminhos `^/[a-z0-9-]+(/[a-z0-9-]+)?/?$` (sem diferenciar maiúsculas) e repassa só os parâmetros `limit`/`offset`. Caminho fora do padrão recebe 400, outro método recebe 405 e PokeAPI inacessível recebe 502.
 - **`/api/*`**: router do jogo (`rotas.js`).
 
 ### `rotas.js` — padrões
 - Body JSON limitado a **10 kb**.
 - **Autenticação** (middleware `autenticar`): extrai o token do Bearer e chama `usuarios.usuarioDaSessao(token)`. Se der certo, preenche `req.usuario = { id, login, pokecoins, pokebolas }`; se não, responde 401. Esse mesmo middleware atualiza `ultimo_acesso_em`/`online_em`, no máximo uma vez a cada 15 s.
-- **Rate limit** em memória para `/api/auth/*`: 20 requisições por IP+rota a cada 15 minutos (429). O contador zera quando o processo reinicia.
+- **Rate limit** em memória para tudo sob `/api/auth` (inclusive `/auth/sair`): 20 requisições por IP+rota a cada 15 minutos (429). O contador zera quando o processo reinicia e não é compartilhado entre instâncias.
 - **Tratamento de erros** (último middleware):
 
 | Origem | Resposta |
@@ -255,10 +255,10 @@ capturado/fugiu/ignorado ─► refazer (25 Pokécoins) ─► revanche contra u
 
 ### 6.6 Mercado de trocas — `trocas.js`
 
-- **Anunciar** — `POST /api/anuncios` `{pokemonId, preco?, aceitaPropostas}`: o anúncio precisa ter preço, aceitar propostas ou as duas coisas. O card precisa estar fora do time. Cada jogador pode ter até 20 anúncios ativos, e cada card só pode ter um anúncio ativo.
+- **Anunciar** — `POST /api/anuncios` `{pokemonId, preco?, aceitaPropostas}`: o anúncio precisa ter preço (de 1 a 100.000 Pokécoins), aceitar propostas ou as duas coisas. O card precisa estar fora do time. Cada jogador pode ter até 20 anúncios ativos, e cada card só pode ter um anúncio ativo.
 - **Navegar**: `GET /api/mercado?busca=&ordem=` lista as espécies com anúncios; `GET /api/mercado/:especieId?ordem=` lista os anúncios de uma espécie; `GET /api/anuncios/meus` lista os do próprio jogador. Os cards aparecem sem o bônus de afeto (`cardPublico`), porque o afeto zera na troca.
 - **Compra direta** — `POST /api/anuncios/:id/comprar`: trava os usuários, o anúncio e o card, move as Pokécoins (`compra_mercado`/`venda_mercado`) e transfere o card.
-- **Proposta** — `POST /api/anuncios/:id/propostas` `{pokemonIds, pokecoins}`: até 6 Pokémon e/ou Pokécoins. Cada jogador pode ter até 10 propostas pendentes e só 1 por anúncio. **Nada fica reservado**: os cards e o saldo são conferidos de novo no momento em que a proposta é aceita.
+- **Proposta** — `POST /api/anuncios/:id/propostas` `{pokemonIds, pokecoins}`: até 6 Pokémon (fora do time) e/ou de 0 a 100.000 Pokécoins. Cada jogador pode ter até 10 propostas pendentes e só 1 por anúncio. **Nada fica reservado**: os cards e o saldo são conferidos de novo no momento em que a proposta é aceita.
 - **Aceitar** — `POST /api/propostas/:id/aceitar`: troca tudo numa só transação.
 - `recusar` (vendedor) e `DELETE /api/propostas/:id` (proponente) encerram a proposta.
 
@@ -290,7 +290,7 @@ Todos ficam sob `/api`. 🔒 = exige `Authorization: Bearer <token>`.
 | GET | `/saude` | infra |
 | GET | `/pokeapi/:recurso[/:id]` | proxy |
 | POST | `/auth/cadastro`, `/auth/login`, `/auth/verificar`, `/auth/redefinir-senha` | conta (rate limit) |
-| POST 🔒 | `/auth/sair` | conta |
+| POST 🔒 | `/auth/sair` | conta (rate limit) |
 | GET 🔒 | `/eu` | coleção |
 | POST 🔒 | `/eu/inicial` | coleção |
 | POST 🔒 | `/loja/comprar`, `/loja/pokebolas` | loja |
@@ -349,7 +349,11 @@ npm test
 ```
 `test/rodar.js` encontra (ou sobe) o Postgres do compose, cria o banco `pokebox_teste` e roda `test/integracao.test.js`. O teste recria o esquema, sobe o app numa porta aleatória e percorre via HTTP cadastro, inicial, loja, time, cuidados, vitrine, desafio, batalha completa, W.O., expiração, evolução, anti-farm, trocas, história e golpes. Para pular a parte do Docker, defina `DATABASE_URL_TESTE` manualmente. Os testes não dependem do `back/.env`.
 
-**Produção** (`render.yaml`): Web Service Node 22 no Render (`rootDir: back`, health check em `/api/saude`) com o banco no Neon (`DATABASE_URL` configurado no painel).
+**Produção**, uma de duas opções:
+- **Render + Neon** (`render.yaml`): Web Service Node 22 no Render (`rootDir: back`, health check em `/api/saude`) com o banco no Neon (`DATABASE_URL` configurado no painel).
+- **Máquina própria** (`docker-compose.prod.yml`): sobe só o banco e o back, com a senha do Postgres lida do `.env` da raiz e o banco sem porta exposta. O back precisa ser exposto em https (Cloudflare Tunnel, Caddy...) para o front na Vercel (`VITE_BACK_URL`).
+
+> O `Dockerfile` usa Node 20 e o Render usa Node 22. O código roda nos dois, mas vale alinhar as versões se aparecer alguma diferença entre local e produção.
 
 ---
 
@@ -362,5 +366,5 @@ npm test
 | Mudar dano, crítico ou turnos da batalha | `src/jogo/motor.js` |
 | Mudar a tabela de tipos | `src/jogo/tipos.js` |
 | Criar um endpoint | `src/rotas.js` (validação) + o módulo em `src/jogo/` (regra) |
-| Alterar o banco | Criar um `db/migracoes/NNN_nome.sql` idempotente **e** atualizar `db/db.sql` |
+| Alterar o banco | Criar um `db/migracoes/NNN_nome.sql` idempotente **e** atualizar `db/db.sql`. Use o próximo número livre: as migrações rodam em ordem alfabética, e já existem duas com `012` |
 | Adicionar um motivo de extrato | Acrescentá-lo ao `CHECK` de `transacoes_pokecoins.motivo` (via migração) |
