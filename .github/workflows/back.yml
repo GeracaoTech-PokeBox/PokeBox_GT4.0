@@ -1,12 +1,14 @@
 # Testes do back: unitários (sem banco) e integração (com Postgres de verdade).
-# Roda só quando algo do back, do banco ou este arquivo muda.
+# Roda nos PRs para develop/main (antes do merge) e nos pushes nelas (depois do merge),
+# só quando algo do back, do banco ou este arquivo muda.
 name: Back
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
     paths: ['back/**', 'db/**', '.github/workflows/back.yml']
   pull_request:
+    branches: [develop, main]
     paths: ['back/**', 'db/**', '.github/workflows/back.yml']
   workflow_dispatch:
 
