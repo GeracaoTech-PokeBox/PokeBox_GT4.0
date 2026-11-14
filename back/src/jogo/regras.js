@@ -149,8 +149,9 @@ function bemEstarAtual(pokemon, agora = new Date()) {
  * @returns {{ afeto: number, humor: number, energia: number, ganho: number }}
  */
 function aplicarCuidado(atual, tipo, ultimoEm, agora = new Date()) {
+  // hasOwn: senão 'toString', 'constructor'... achariam a propriedade herdada de Object
+  if (!Object.hasOwn(config.CUIDADOS, tipo)) throw new ErroJogo('Cuidado inválido.');
   const cuidado = config.CUIDADOS[tipo];
-  if (!cuidado) throw new ErroJogo('Cuidado inválido.');
   if (ultimoEm && agora.getTime() - ultimoEm.getTime() < cuidado.esperaMs) {
     throw new ErroJogo('Esse cuidado ainda não está disponível. Espere um pouco e tente de novo.');
   }

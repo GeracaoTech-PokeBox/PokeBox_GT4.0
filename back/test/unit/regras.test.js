@@ -190,10 +190,9 @@ test('aplicarCuidado', async (t) => {
     assert.throws(() => regras.aplicarCuidado(atual, 'banho', null, agora), ErroJogo);
   });
 
-  // config.CUIDADOS[tipo] também acha propriedades herdadas (toString, constructor...).
-  // Hoje a rota barra com Object.hasOwn antes de chegar aqui, mas a regra sozinha devolve NaN.
-  await t.test('nome herdado de Object também é recusado', { todo: 'usar Object.hasOwn em aplicarCuidado' }, () => {
+  await t.test('nome herdado de Object também é recusado', () => {
     assert.throws(() => regras.aplicarCuidado(atual, 'toString', null, agora), ErroJogo);
+    assert.throws(() => regras.aplicarCuidado(atual, 'constructor', null, agora), ErroJogo);
   });
 });
 

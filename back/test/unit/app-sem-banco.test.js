@@ -132,8 +132,10 @@ test('validação do cadastro dá 400 antes de ir ao banco', async () => {
   }
 });
 
-test('corpo acima de 10kb é recusado como 413', { todo: 'o tratamento de erros não conhece entity.too.large e responde 500' }, async (t) => {
-  t.mock.method(console, 'error', () => {});
-  const { status } = await chamar('/api/auth/login', postJson(JSON.stringify({ login: 'a', senha: 'x'.repeat(20_000) })));
+test('corpo acima de 10kb é recusado como 413, sem log de erro interno', async (t) => {
+  const log = t.mock.method(console, 'error', () => {});
+  const { status, dados } = await chamar('/api/auth/login', postJson(JSON.stringify({ login: 'a', senha: 'x'.repeat(20_000) })));
   assert.equal(status, 413);
+  assert.ok(dados.erro);
+  assert.equal(log.mock.callCount(), 0);
 });
