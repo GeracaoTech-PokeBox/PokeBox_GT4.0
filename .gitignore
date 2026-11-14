@@ -1,6 +1,8 @@
 node_modules/
 dist/
 
+back/.env
+
 # Artefatos gerados pelo Cypress e Mochawesome
 cypress/reports/
 cypress/screenshots/

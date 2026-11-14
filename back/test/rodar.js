@@ -46,6 +46,6 @@ const env = {
 
 
 const resultado = spawnSync(process.execPath,
-  ['--env-file=.env', '--test', 'test/integracao.test.js'],
+  ['--test', 'test/integracao.test.js'],
   { cwd: path.join(__dirname, '..'), env, stdio: 'inherit' });
 process.exit(resultado.status ?? 1);
