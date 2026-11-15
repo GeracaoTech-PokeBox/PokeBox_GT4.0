@@ -56,6 +56,33 @@ describe('vitrine e presença', { skip: semBanco }, () => {
     assert.equal((await amb.api('GET', '/vitrines/ninguem', { token: ash.token })).status, 400);
   });
 
+  test('vitrine: apresentação de até 160 caracteres e até 6 destaques diferentes', async () => {
+    const ash = await criarTreinador('Ash');
+    const ids = [];
+    for (let i = 0; i < 7; i += 1) ids.push(await criarPokemon(ash));
+    const salvar = (corpo) => amb.api('PUT', '/vitrine', { token: ash.token, corpo: { estilo: 'palco', pokemonIds: [], ...corpo } });
+
+    assert.match((await salvar({ bio: 'x'.repeat(161) })).dados.erro, /160 caracteres/);
+    assert.match((await salvar({ pokemonIds: ids })).dados.erro, /até 6 Pokémon/);
+    assert.match((await salvar({ pokemonIds: [ids[0], ids[0]] })).dados.erro, /até 6 Pokémon/);
+    assert.equal((await salvar({ bio: 'x'.repeat(160), pokemonIds: ids.slice(0, 6) })).status, 204);
+  });
+
+  test('buscar treinadores: pelo começo do login, sem incluir quem busca, com % e _ literais', async () => {
+    const ash = await criarTreinador('Ash');
+    const gary = await criarTreinador('gary');
+    await criarTreinador('ashley');
+    await criarTreinador('a_b');
+    await criarTreinador('axb');
+    const buscar = async (quem, busca) => (await amb.api('GET', `/treinadores?busca=${encodeURIComponent(busca)}`, { token: quem.token })).dados;
+
+    assert.deepEqual(await buscar(gary, 'AS'), ['Ash', 'ashley']);
+    assert.deepEqual(await buscar(ash, 'as'), ['ashley']);
+    assert.deepEqual(await buscar(gary, 'a_'), ['a_b']);
+    assert.deepEqual(await buscar(gary, '%'), []);
+    assert.deepEqual(await buscar(gary, '  '), [], 'busca vazia não lista todo mundo');
+  });
+
   test('treinadores online: time completo, acesso nas últimas 24h e sinal de vida recente', async () => {
     const ash = await criarTreinador('Ash');
     const gary = await criarTreinador('gary');

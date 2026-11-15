@@ -61,6 +61,33 @@ describe('história', { skip: semBanco }, () => {
     assert.equal(alheio.status, 400, 'não batalha no encontro de outro treinador');
   });
 
+  test('sem time completo não batalha', async () => {
+    const red = await criarTreinador('red');
+    await criarTime(red, { especies: [1, 4] });
+    const encontro = (await amb.api('POST', '/historia/explorar', { token: red.token })).dados;
+    const r = await amb.api('POST', `/historia/encontros/${encontro.id}/batalha`, { token: red.token });
+    assert.equal(r.status, 400);
+    assert.match(r.dados.erro, /Monte um time/);
+  });
+
+  test('o selvagem responde a cada jogada do treinador', async () => {
+    // Time no nível 1 contra o selvagem do ponto 1 (nível 5): nenhum lado cai num golpe só
+    const red = await criarTreinador('red');
+    await criarTime(red, { nivel: 1 });
+    const encontro = (await amb.api('POST', '/historia/explorar', { token: red.token })).dados;
+    await amb.api('POST', `/historia/encontros/${encontro.id}/batalha`, { token: red.token });
+
+    const troca = await amb.api('POST', `/historia/encontros/${encontro.id}/jogadas`, {
+      token: red.token, corpo: { tipo: 'trocar', indice: 1 },
+    });
+    assert.equal(troca.status, 200, JSON.stringify(troca.dados));
+    const { log, fim } = troca.dados.batalha;
+    assert.equal(fim, null);
+    assert.deepEqual(log.slice(-2).map((turno) => turno.lado), [0, 1]);
+    assert.equal(log.at(-2).eventos[0].tipo, 'entrou');
+    assert.ok(['dano', 'errou'].includes(log.at(-1).eventos[0].tipo));
+  });
+
   test('vencer dá Pokécoins e XP para o time todo e avança a trilha', async () => {
     const { encontro, fim } = await vencerProximoPonto();
 
@@ -76,6 +103,8 @@ describe('história', { skip: semBanco }, () => {
     assert.equal(await amb.saldo(ash.token), 1010);
 
     assert.equal((await jogada(encontro.id, 'atacar')).status, 400, 'batalha acabada não aceita jogada');
+    const outraBatalha = await amb.api('POST', `/historia/encontros/${encontro.id}/batalha`, { token: ash.token });
+    assert.match(outraBatalha.dados.erro, /Refazer/, 'encontro vencido não começa outra batalha');
     assert.deepEqual((await historia()).proximo, { trilha: 1, ponto: 2, forca: 0.2 });
 
     // Refazer só depois de capturar ou de o Pokémon fugir, e só pontos já vencidos

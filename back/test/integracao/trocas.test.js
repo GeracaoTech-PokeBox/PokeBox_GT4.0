@@ -49,6 +49,24 @@ describe('trocas', { skip: semBanco }, () => {
     assert.match(time.dados.erro, /anunciado/);
   });
 
+  test('anúncio: preço inteiro entre 1 e 100.000 Pokécoins', async () => {
+    for (const preco of [0, -5, 1.5, 100001]) {
+      const r = await anunciar(ash, { pokemonId: a1, preco });
+      assert.equal(r.status, 400, `preço ${preco}`);
+      assert.match(r.dados.erro, /entre 1 e 100000/);
+    }
+    assert.equal((await anunciar(ash, { pokemonId: a1, preco: 100000 })).status, 201);
+  });
+
+  test('anúncio: no máximo 20 ativos por treinador', async () => {
+    const extras = [a1, a2];
+    for (let i = 0; i < 19; i += 1) extras.push(await criarPokemon(ash));
+    for (const id of extras.slice(0, 20)) assert.equal((await anunciar(ash, { pokemonId: id, preco: 10 })).status, 201);
+    const vigesimoPrimeiro = await anunciar(ash, { pokemonId: extras[20], preco: 10 });
+    assert.equal(vigesimoPrimeiro.status, 400);
+    assert.match(vigesimoPrimeiro.dados.erro, /20 anúncios/);
+  });
+
   test('mercado agrupa por espécie e mostra o anúncio com o login de quem vende', async () => {
     const anuncio = (await anunciar(ash, { pokemonId: a1, preco: 50 })).dados;
     const { especieId } = anuncio.pokemon;
@@ -104,6 +122,46 @@ describe('trocas', { skip: semBanco }, () => {
     const deGary = (await anunciar(gary, { pokemonId: g1, aceitaPropostas: true })).dados;
     assert.equal((await propor(ash, deGary.id, { pokemonIds: [a2], pokecoins: 10 })).status, 201);
     assert.equal((await propor(ash, deGary.id, { pokecoins: 5 })).status, 400);
+  });
+
+  test('proposta: Pokécoins entre 0 e 100.000, até 6 Pokémon diferentes e alguma oferta', async () => {
+    const deGary = (await anunciar(gary, { pokemonId: g1, aceitaPropostas: true })).dados;
+    const casos = [
+      [{ pokecoins: -1 }, /entre 0 e 100000/],
+      [{ pokecoins: 100001 }, /entre 0 e 100000/],
+      [{ pokemonIds: [1, 2, 3, 4, 5, 6, 7] }, /até 6 Pokémon/],
+      [{ pokemonIds: [a2, a2] }, /até 6 Pokémon/],
+      [{}, /pelo menos um/],
+    ];
+    for (const [corpo, mensagem] of casos) {
+      const r = await propor(ash, deGary.id, corpo);
+      assert.equal(r.status, 400, JSON.stringify(corpo));
+      assert.match(r.dados.erro, mensagem);
+    }
+    assert.equal((await propor(ash, deGary.id, { pokecoins: 2000 })).status, 400, 'não oferece mais do que tem');
+  });
+
+  test('quem propôs pode cancelar a própria proposta pendente', async () => {
+    const deGary = (await anunciar(gary, { pokemonId: g1, aceitaPropostas: true })).dados;
+    const proposta = (await propor(ash, deGary.id, { pokecoins: 10 })).dados;
+    const cancelar = () => amb.api('DELETE', `/propostas/${proposta.id}`, { token: ash.token });
+
+    assert.equal((await cancelar()).status, 204);
+    assert.equal((await amb.api('GET', '/propostas', { token: ash.token })).dados.enviadas[0].status, 'cancelada');
+    assert.equal((await cancelar()).status, 400, 'já foi encerrada');
+    // Cancelada, libera mandar outra para o mesmo anúncio
+    assert.equal((await propor(ash, deGary.id, { pokecoins: 5 })).status, 201);
+  });
+
+  test('proposta: no máximo 10 pendentes por treinador', async () => {
+    const anuncios = [];
+    for (let i = 0; i < 11; i += 1) {
+      anuncios.push((await anunciar(gary, { pokemonId: await criarPokemon(gary), aceitaPropostas: true })).dados.id);
+    }
+    for (const id of anuncios.slice(0, 10)) assert.equal((await propor(ash, id, { pokecoins: 1 })).status, 201);
+    const decimaPrimeira = await propor(ash, anuncios[10], { pokecoins: 1 });
+    assert.equal(decimaPrimeira.status, 400);
+    assert.match(decimaPrimeira.dados.erro, /10 propostas/);
   });
 
   test('proposta recusada não move nada, e o anúncio pode ser removido', async () => {

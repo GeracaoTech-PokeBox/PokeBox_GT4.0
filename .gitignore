@@ -3,6 +3,9 @@ dist/
 
 back/.env
 
+# Relatório de cobertura gerado por npm run test:cobertura
+back/coverage/
+
 # Artefatos gerados pelo Cypress e Mochawesome
 cypress/reports/
 cypress/screenshots/

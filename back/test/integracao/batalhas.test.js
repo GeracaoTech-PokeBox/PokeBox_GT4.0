@@ -39,12 +39,12 @@ describe('batalhas', { skip: semBanco }, () => {
     return aceita.dados;
   }
 
-  /** Os dois atacam até a batalha acabar. Devolve a batalha vista pelo Ash. */
-  async function jogarAteOFim(id) {
+  /** Ash e o oponente atacam até a batalha acabar. Devolve a batalha vista pelo Ash. */
+  async function jogarAteOFim(id, oponente = gary) {
     for (let i = 0; i < 1000; i += 1) {
       const { batalha } = await abrir(ash, id);
       if (batalha.status === 'finalizada') return batalha;
-      const r = await jogar(batalha.minhaVez ? ash : gary, id, { tipo: 'atacar' });
+      const r = await jogar(batalha.minhaVez ? ash : oponente, id, { tipo: 'atacar' });
       assert.equal(r.status, 200, JSON.stringify(r.dados));
     }
     throw new Error('A batalha não acabou');
@@ -82,6 +82,33 @@ describe('batalhas', { skip: semBanco }, () => {
       assert.equal(doGary.find((d) => d.login === 'Ash').desafioRecebido, true);
 
       assert.equal((await responder(ash, desafio.dados.id, true)).status, 400);
+    });
+
+    test('o desafiado pode recusar, e o recusado não aceita outra resposta', async () => {
+      const desafio = await desafiar(ash, 'gary');
+      const recusa = await responder(gary, desafio.dados.id, false);
+      assert.equal(recusa.status, 200);
+      assert.equal(recusa.dados.status, 'recusada');
+
+      const depois = await responder(gary, desafio.dados.id, true);
+      assert.equal(depois.status, 400);
+      assert.match(depois.dados.erro, /já foi respondido/);
+    });
+
+    test('no máximo 5 desafios esperando resposta ao mesmo tempo', async () => {
+      for (let i = 1; i <= 6; i += 1) await criarTreinador(`rival${i}`);
+      for (let i = 1; i <= 5; i += 1) assert.equal((await desafiar(ash, `rival${i}`)).status, 201);
+      const sexto = await desafiar(ash, 'rival6');
+      assert.equal(sexto.status, 400);
+      assert.match(sexto.dados.erro, /5 desafios/);
+    });
+
+    test('aceitar exige que os dois ainda tenham o time completo', async () => {
+      const desafio = await desafiar(ash, 'gary');
+      await amb.pool.query('UPDATE pokemons SET posicao_time = NULL WHERE dono_id = $1 AND posicao_time = 3', [ash.id]);
+      const r = await responder(gary, desafio.dados.id, true);
+      assert.equal(r.status, 400);
+      assert.match(r.dados.erro, /time com 3/);
     });
 
     test('desafio não respondido em 24h expira e não pode mais ser aceito', async () => {
@@ -175,6 +202,29 @@ describe('batalhas', { skip: semBanco }, () => {
     const quarta = await jogarAteOFim((await criarBatalhaAceita()).id);
     assert.equal(quarta.minhasRecompensas.pokecoins, 0);
     assert.match(quarta.minhasRecompensas.semRecompensa, /mesmo treinador/);
+  });
+
+  test('anti-farm: no máximo 10 batalhas premiadas por dia, contra qualquer treinador', async () => {
+    // 10 recompensas de hoje já registradas para o Ash
+    for (let i = 0; i < 10; i += 1) {
+      const { rows: [batalha] } = await amb.pool.query(
+        `INSERT INTO batalhas (desafiante_id, desafiado_id, status, expira_em)
+         VALUES ($1, $2, 'finalizada', now()) RETURNING id`,
+        [ash.id, gary.id],
+      );
+      await amb.pool.query(
+        "INSERT INTO transacoes_pokecoins (usuario_id, valor, motivo, batalha_id) VALUES ($1, 40, 'recompensa_batalha', $2)",
+        [ash.id, batalha.id],
+      );
+    }
+    const misty = await criarTreinador('misty', { pokecoins: 0 });
+    await criarTime(misty);
+
+    const desafio = await desafiar(misty, 'Ash');
+    await responder(ash, desafio.dados.id, true);
+    const fim = await jogarAteOFim(desafio.dados.id, misty);
+    assert.equal(fim.minhasRecompensas.pokecoins, 0);
+    assert.match(fim.minhasRecompensas.semRecompensa, /Limite de 10 batalhas premiadas/);
   });
 
   test('lista de batalhas traz pendentes e encerradas, com o login do oponente', async () => {

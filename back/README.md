@@ -38,11 +38,21 @@ O `.env` não vai para o Git. Nunca coloque nele a connection string de produç�
 npm run test:unit       # unitários: regras, motor de batalha, tipos, proxy da PokeAPI (sem banco, < 1 s)
 npm run test:int        # integração com Postgres de verdade (precisa do Docker, ~20 s)
 npm test                # os dois
-npm run test:cobertura  # unitários com relatório de cobertura
+npm run test:cobertura  # os dois juntos, com relatório de cobertura e metas mínimas (precisa do Docker)
 
 # Só um arquivo ou só os testes cujo nome bate com o padrão
 npm run test:int -- --test-name-pattern=trocas
 ```
+
+### Cobertura
+
+O `test:cobertura` roda unitários e integração juntos, mostra a cobertura de cada arquivo de `src/` e falha se algum número ficar abaixo das metas de [`test/metas-de-cobertura.js`](test/metas-de-cobertura.js):
+
+- **Total do `src/`:** 97% das linhas, 90% dos ramos e 96% das funções. Hoje os testes cobrem 99,2%, 94,4% e 98,6%.
+- **Qualquer arquivo:** pelo menos 80% das linhas.
+- **Regras puras** (`motor.js`, `regras.js`, `tipos.js`, `aleatorio.js`): 100% das linhas e das funções.
+
+As metas ficam um pouco abaixo da cobertura atual de propósito: o objetivo é barrar código novo que entra sem teste, não exigir 100%. Se o comando falhar depois de uma mudança sua, a tabela mostra qual arquivo caiu. O relatório linha a linha fica em `coverage/lcov.info`, que abre em extensões de editor como a Coverage Gutters; no CI ele fica disponível como artefato da execução.
 
 Os unitários ficam em `test/unit` e não precisam de banco nem de rede. Os sorteios usam `rngSequencia` (`test/helpers/rng.js`), que devolve valores fixos e falha se a regra sortear mais vezes do que o teste previu. A PokeAPI é trocada por `instalarPokeApiFake` (`test/helpers/pokeapi-fake.js`).
 
@@ -64,7 +74,7 @@ Nos unitários, `erros-de-banco.test.js` confere o que o front recebe quando o b
 
 O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda os arquivos um por vez, porque todos usam o mesmo banco. Com `DATABASE_URL_TESTE` definida, ele usa esse banco direto e não precisa de Docker. O nome do banco precisa terminar em `_teste`, porque o teste apaga e recria o schema.
 
-No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.yml) roda os unitários (com cobertura) e a integração (com um Postgres 16 do próprio Actions) em todo PR para `develop` ou `main` e em todo push nessas duas branches, quando a mudança mexe em `back/` ou `db/`.
+No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.yml) roda os unitários e, num segundo job, unitários + integração com cobertura e metas mínimas (com um Postgres 16 do próprio Actions) em todo PR para `develop` ou `main` e em todo push nessas duas branches, quando a mudança mexe em `back/` ou `db/`.
 
 ## Estrutura
 

@@ -34,10 +34,12 @@ jobs:
           cache: npm
           cache-dependency-path: back/package-lock.json
       - run: npm ci
-      - run: npm run test:cobertura
+      - run: npm run test:unit
 
+  # Roda unitários + integração juntos para medir a cobertura de verdade e falha se ficar
+  # abaixo das metas de back/test/metas-de-cobertura.js. A tabela aparece no resumo da execução.
   integracao:
-    name: Integração
+    name: Integração e cobertura
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -65,4 +67,11 @@ jobs:
           cache: npm
           cache-dependency-path: back/package-lock.json
       - run: npm ci
-      - run: npm run test:int
+      - run: npm run test:cobertura
+      # O lcov.info abre em extensões de editor (ex.: Coverage Gutters) e mostra linha a linha o que falta testar
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cobertura-back
+          path: back/coverage/lcov.info
+          if-no-files-found: ignore
