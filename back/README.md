@@ -36,14 +36,23 @@ O `.env` não vai para o Git. Nunca coloque nele a connection string de produç�
 
 ```bash
 npm run test:unit       # unitários: regras, motor de batalha, tipos, proxy da PokeAPI (sem banco, < 1 s)
-npm run test:int        # integração ponta a ponta (precisa do Docker)
+npm run test:int        # integração com Postgres de verdade (precisa do Docker, ~20 s)
 npm test                # os dois
 npm run test:cobertura  # unitários com relatório de cobertura
+
+# Só um arquivo ou só os testes cujo nome bate com o padrão
+npm run test:int -- --test-name-pattern=trocas
 ```
 
 Os unitários ficam em `test/unit` e não precisam de banco nem de rede. Os sorteios usam `rngSequencia` (`test/helpers/rng.js`), que devolve valores fixos e falha se a regra sortear mais vezes do que o teste previu. A PokeAPI é trocada por `instalarPokeApiFake` (`test/helpers/pokeapi-fake.js`).
 
-O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda o teste de integração ponta a ponta. Com `DATABASE_URL_TESTE` definida, ele usa esse banco direto e não precisa de Docker. O nome do banco precisa terminar em `_teste`, porque o teste apaga e recria o schema.
+A integração fica em `test/integracao`, um arquivo por parte do jogo (contas, loja e time, cuidados e evolução, vitrine e presença, batalhas, trocas, história, golpes) e mais `jornada.test.js`, que faz o caminho de um jogador novo do cadastro até a primeira batalha. Cada teste monta o próprio cenário e não depende dos outros:
+
+- `test/helpers/ambiente.js` recria o banco a partir do `db/db.sql`, sobe o app numa porta livre e oferece `api()`, `saldo()` e `limparDados()`, que zera as tabelas antes de cada teste.
+- `test/helpers/fabricas.js` cria treinadores (`criarTreinador`), cards (`criarPokemon`) e times (`criarTime`) direto pelas funções do jogo. A ação que está sendo testada continua passando pela API.
+- `test/helpers/pokeapi-sintetica.js` responde no lugar da PokeAPI, com dados fixos para cada espécie e golpe. Assim a integração não depende de rede. As famílias de Bulbasaur, Charmander e Squirtle usam nomes, status e níveis de evolução reais.
+
+O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda os arquivos um por vez, porque todos usam o mesmo banco. Com `DATABASE_URL_TESTE` definida, ele usa esse banco direto e não precisa de Docker. O nome do banco precisa terminar em `_teste`, porque o teste apaga e recria o schema.
 
 No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.yml) roda os unitários (com cobertura) e a integração (com um Postgres 16 do próprio Actions) em todo PR para `develop` ou `main` e em todo push nessas duas branches, quando a mudança mexe em `back/` ou `db/`.
 

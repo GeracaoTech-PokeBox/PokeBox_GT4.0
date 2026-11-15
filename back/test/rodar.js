@@ -46,7 +46,9 @@ if (url) {
   }
 }
 
+// Um arquivo por vez: todos usam o mesmo banco e cada um o recria do zero ao começar.
+// Argumentos extras vão para o node --test (ex.: npm run test:int -- --test-name-pattern=trocas)
 const resultado = spawnSync(process.execPath,
-  ['--test', 'test/integracao.test.js'],
+  ['--test', '--test-concurrency=1', ...process.argv.slice(2), 'test/integracao/**/*.test.js'],
   { cwd: path.join(__dirname, '..'), env: { ...process.env, DATABASE_URL_TESTE: url }, stdio: 'inherit' });
 process.exit(resultado.status ?? 1);
