@@ -14,7 +14,7 @@ export { default as Tutorial } from './components/Tutorial';
 export { default as VantagensTipo } from './components/VantagensTipo';
 
 // Hooks
-export { useAcao } from './hooks/index_hooks';
+export { useAcao, useCaminho } from './hooks/index_hooks';
 
 // Regras, constantes e contratos de dados
 export { temTimeCompleto } from './models/index_models';

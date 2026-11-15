@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Layout } from '@/shared';
+import { useEffect } from 'react';
+import { Layout, useCaminho } from '@/shared';
 import { Login, Cadastro, RecuperarSenha, useSessao } from '@/features/auth';
 import { Pokemons } from '@/features/pokedex';
 import { MeusPokemons } from '@/features/colecao';
@@ -28,27 +28,60 @@ import { TutorialGeral, TutorialProvider } from '@/features/tutorial';
 // Quem ainda não tem Pokémon cai direto na escolha do inicial
 const telaInicial = (pokemons) => (pokemons.length === 0 ? 'meusPokemons' : 'batalhas');
 
+// [SOLID-O] O caminho (URL) de cada tela. A tela 'batalha' fica em /batalhas/<id>.
+const ROTAS = {
+  login: '/login',
+  cadastro: '/cadastro',
+  recuperarSenha: '/recuperar-senha',
+  pokemons: '/pokedex',
+  meusPokemons: '/meus-pokemons',
+  loja: '/loja',
+  time: '/time',
+  historia: '/historia',
+  vitrine: '/vitrine',
+  trocas: '/trocas',
+  batalhas: '/batalhas',
+  sobre: '/sobre',
+};
+const TELAS_SEM_LOGIN = ['login', 'cadastro', 'recuperarSenha'];
+
+// '/batalhas/12' -> { tela: 'batalha', batalhaId: 12 }; caminho desconhecido -> tela null
+function lerCaminho(caminho) {
+  const batalha = caminho.match(/^\/batalhas\/(\d+)\/?$/);
+  if (batalha) return { tela: 'batalha', batalhaId: Number(batalha[1]) };
+  const semBarraFinal = caminho.length > 1 ? caminho.replace(/\/$/, '') : caminho;
+  const tela = Object.keys(ROTAS).find((t) => ROTAS[t] === semBarraFinal) ?? null;
+  return { tela, batalhaId: null };
+}
+
 // Só decide qual tela mostrar. Usuário e ações de conta ficam no SessaoProvider.
 function App() {
   const {
     usuario, conferindoSessao, restaurarSessao, entrar, cadastrar, sair, verificarUsuario, redefinirSenha, atualizarUsuario,
   } = useSessao();
-  const [tela, setTela] = useState('login');
-  const [batalhaId, setBatalhaId] = useState(null);
+  // A tela atual vem da URL: recarregar a página mantém a pessoa onde ela estava
+  const [caminho, irPara] = useCaminho();
+  const { tela, batalhaId } = lerCaminho(caminho);
+  const setTela = (destino) => irPara(ROTAS[destino]);
 
   // Login salvo de uma visita anterior
   useEffect(() => {
-    restaurarSessao().then((pokemons) => {
-      if (pokemons) setTela(telaInicial(pokemons));
-    });
+    restaurarSessao();
   }, [restaurarSessao]);
 
+  // Logado numa tela de login ou num caminho desconhecido (ex.: '/'): vai para a tela inicial.
+  // Numa tela válida (ex.: recarregou em /loja, ou abriu /loja e precisou logar), fica nela.
+  const precisaRedirecionar = usuario && (tela === null || TELAS_SEM_LOGIN.includes(tela));
+  useEffect(() => {
+    if (precisaRedirecionar) irPara(ROTAS[telaInicial(usuario.pokemons)], { substituir: true });
+  }, [precisaRedirecionar, usuario, irPara]);
+
   const handleLogin = async ({ login, senha }) => {
-    setTela(telaInicial(await entrar(login, senha)));
+    await entrar(login, senha);
   };
 
   const handleCadastrar = async (dados) => {
-    setTela(telaInicial(await cadastrar(dados)));
+    await cadastrar(dados);
   };
 
   const handleRedefinirSenha = async (dados) => {
@@ -67,11 +100,10 @@ function App() {
   };
 
   const handleAbrirBatalha = (id) => {
-    setBatalhaId(id);
-    setTela('batalha');
+    irPara(`${ROTAS.batalhas}/${id}`);
   };
 
-  if (conferindoSessao) return null;
+  if (conferindoSessao || precisaRedirecionar) return null;
 
   if (!usuario) {
     if (tela === 'cadastro') {
