@@ -15,8 +15,8 @@ const motor = require('./motor');
 const {
   sortearAtributos, forcaDoPonto, proximoPonto, nivelSelvagem, statusSelvagem, xpDaHistoria, chanceDeCaptura,
 } = require('./regras');
-const { garantirTaxaCaptura } = require('./especies');
-const { mintarPokemon, buscarCard, darXp } = require('./pokemons');
+const { garantirTaxaCaptura } = require('../features/especies');
+const { mintarPokemon, buscarCard, darXp } = require('../features/pokemons');
 const { carregarTime } = require('./batalhas');
 const { sortearEspecieDaLoja } = require('../features/loja');
 const { ErroJogo } = require('../compartilhado/erros');

@@ -1,7 +1,7 @@
 // Contas: cadastro, login, troca de senha e sessões.
 // Regras de negócio e transações; o SQL fica no model e a criptografia em contas.senhas.
 const { pool, transacao } = require('../../banco/db');
-const { registrarNoExtrato } = require('../../banco/extrato');
+const { registrarNoExtrato } = require('../../banco/carteira');
 const config = require('../../compartilhado/config');
 const { ErroJogo } = require('../../compartilhado/erros');
 const model = require('./contas.model');

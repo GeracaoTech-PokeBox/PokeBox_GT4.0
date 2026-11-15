@@ -1,12 +1,12 @@
 // Loja: Pokémon inicial, compra de Pokémon aleatório por geração e compra de Pokébolas.
 // Regras de negócio e transações; o SQL fica no model.
 const { pool, transacao } = require('../../banco/db');
-const { registrarNoExtrato } = require('../../banco/extrato');
+const carteira = require('../../banco/carteira');
 const config = require('../../compartilhado/config');
 const { ErroJogo } = require('../../compartilhado/erros');
 const { rngSeguro, inteiroEntre } = require('../../compartilhado/aleatorio');
-const { garantirEspecie } = require('../../jogo/especies');
-const { mintarPokemon, buscarCard } = require('../../jogo/pokemons');
+const { garantirEspecie } = require('../especies');
+const { mintarPokemon, buscarCard } = require('../pokemons');
 const model = require('./loja.model');
 
 /** O inicial só pode ser escolhido uma vez, por quem ainda não tem nenhum Pokémon */
@@ -50,16 +50,17 @@ async function comprarPokemonAleatorio(usuarioId, numeroGeracao, rng = rngSeguro
   if (!geracao) throw new ErroJogo('Geração inválida.');
 
   // Confere o saldo antes de gastar tempo com a PokeAPI (o débito de verdade é conferido de novo abaixo)
-  const pokecoins = await model.lerPokecoins(pool, usuarioId);
+  const pokecoins = await carteira.lerSaldo(pool, usuarioId);
   if (pokecoins === undefined || pokecoins < config.PRECO_POKEMON_LOJA) throw new ErroJogo('Pokécoins insuficientes.');
 
   // Sorteia e busca a espécie antes da transação (a PokeAPI pode demorar)
   const especie = await sortearEspecieDaLoja(geracao, rng);
 
   return transacao(async (client) => {
-    const saldo = await model.debitarPokecoins(client, usuarioId, config.PRECO_POKEMON_LOJA);
+    const saldo = await carteira.debitar(client, {
+      usuarioId, valor: config.PRECO_POKEMON_LOJA, motivo: 'compra_loja',
+    });
     if (saldo === undefined) throw new ErroJogo('Pokécoins insuficientes.');
-    await registrarNoExtrato(client, { usuarioId, valor: -config.PRECO_POKEMON_LOJA, motivo: 'compra_loja' });
 
     const posicaoTime = await model.primeiraVagaNoTime(client, usuarioId, config.TAMANHO_TIME);
     const id = await mintarPokemon(client, {
@@ -84,7 +85,7 @@ async function comprarPokebolas(usuarioId, quantidade) {
     // Débito condicional, como na compra de Pokémon: dois cliques não gastam o mesmo saldo
     const usuario = await model.trocarPorPokebolas(client, usuarioId, { custo, quantidade });
     if (!usuario) throw new ErroJogo('Pokécoins insuficientes.');
-    await registrarNoExtrato(client, { usuarioId, valor: -custo, motivo: 'compra_pokebola' });
+    await carteira.registrarNoExtrato(client, { usuarioId, valor: -custo, motivo: 'compra_pokebola' });
     return { saldo: usuario.pokecoins, pokebolas: usuario.pokebolas };
   });
 }

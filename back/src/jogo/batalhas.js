@@ -12,7 +12,7 @@ O prazo é conferido de dois jeitos, e os dois chamam resolverPrazo:
 const { pool, transacao } = require('../banco/db');
 const config = require('../compartilhado/config');
 const motor = require('./motor');
-const { darXp, SELECT_GOLPES } = require('./pokemons');
+const { darXp, SELECT_GOLPES } = require('../features/pokemons');
 const { ErroJogo } = require('../compartilhado/erros');
 
 const depoisDe = (agora, ms) => new Date(agora.getTime() + ms);

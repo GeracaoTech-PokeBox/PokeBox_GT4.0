@@ -1,11 +1,11 @@
 // Endpoints do jogo. Todos respondem JSON; erros de regra voltam como 400 { erro: "mensagem" }.
 const express = require('express');
-const pokemons = require('./jogo/pokemons');
 const batalhas = require('./jogo/batalhas');
 const trocas = require('./jogo/trocas');
 const historia = require('./jogo/historia');
-const golpes = require('./jogo/golpes');
 const contas = require('./features/contas');
+const pokemons = require('./features/pokemons');
+const golpes = require('./features/golpes');
 const loja = require('./features/loja');
 const time = require('./features/time');
 const vitrines = require('./features/vitrines');
@@ -28,44 +28,12 @@ router.use(express.json({ limit: '10kb' }));
 // ---------------------------------------------------------------------------
 
 router.use(contas.rotas); // /auth/...
+router.use(pokemons.rotas); // /eu, /pokemons/:id/evoluir, /cuidar, /cuidados
+router.use(golpes.rotas); // /pokemons/:id/golpes/...
 router.use(loja.rotas); // /eu/inicial, /loja/...
 router.use(time.rotas); // /time
 router.use(vitrines.rotas); // /vitrines, /vitrine
 router.use(treinadores.rotas); // /treinadores, /treinadores/ativos, /presenca
-
-// ---------------------------------------------------------------------------
-// Coleção
-// ---------------------------------------------------------------------------
-
-router.get('/eu', autenticar, async (req, res) => {
-  res.json({ usuario: req.usuario, pokemons: await pokemons.listarColecao(req.usuario.id) });
-});
-
-router.post('/pokemons/:id/evoluir', autenticar, async (req, res) => {
-  res.json(await pokemons.evoluir(
-    req.usuario.id,
-    inteiro(req.params.id, 'Pokémon'),
-    inteiro(req.body.especieId, 'Espécie'),
-  ));
-});
-
-router.post('/pokemons/:id/cuidar', autenticar, async (req, res) => {
-  const { tipo } = req.body;
-  if (!Object.hasOwn(config.CUIDADOS, tipo)) throw new ErroJogo('Cuidado inválido.');
-  res.json(await pokemons.cuidar(req.usuario.id, inteiro(req.params.id, 'Pokémon'), tipo));
-});
-
-router.post('/pokemons/:id/golpes/roletar', autenticar, async (req, res) => {
-  res.json(await golpes.roletarGolpes(req.usuario.id, inteiro(req.params.id, 'Pokémon')));
-});
-
-router.post('/pokemons/:id/golpes/desbloquear', autenticar, async (req, res) => {
-  res.json(await golpes.desbloquearGolpes(req.usuario.id, inteiro(req.params.id, 'Pokémon')));
-});
-
-router.get('/pokemons/:id/cuidados', autenticar, async (req, res) => {
-  res.json(await pokemons.listarCuidados(req.usuario.id, inteiro(req.params.id, 'Pokémon')));
-});
 
 // ---------------------------------------------------------------------------
 // Trocas

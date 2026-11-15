@@ -39,8 +39,8 @@ async function criarTreinador(login, { pokecoins = 1000, pokebolas = 0, senha = 
 async function criarPokemon(dono, {
   especieId = 4, posicaoTime = null, nivel = 1, atributos = {}, origem = 'loja', ...campos
 } = {}) {
-  const { garantirEspecie } = require('../../src/jogo/especies');
-  const { mintarPokemon } = require('../../src/jogo/pokemons');
+  const { garantirEspecie } = require('../../src/features/especies');
+  const { mintarPokemon } = require('../../src/features/pokemons');
   const { pool, transacao } = require('../../src/banco/db');
 
   await garantirEspecie(especieId);

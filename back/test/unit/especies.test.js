@@ -1,7 +1,7 @@
 // mapearCadeia transforma a /evolution-chain da PokeAPI no nível de cada evolução
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { mapearCadeia } = require('../../src/jogo/especies');
+const { mapearCadeia } = require('../../src/features/especies');
 
 const no = (nome, id, niveis, filhos = []) => ({
   species: { name: nome, url: `https://pokeapi.co/api/v2/pokemon-species/${id}/` },

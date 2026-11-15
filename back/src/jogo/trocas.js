@@ -6,7 +6,7 @@
 const { pool, transacao } = require('../banco/db');
 const config = require('../compartilhado/config');
 const { descreverPokemon } = require('./regras');
-const { CAMPOS_CARD, buscarCard } = require('./pokemons');
+const { CAMPOS_CARD, buscarCard } = require('../features/pokemons');
 const { ErroJogo } = require('../compartilhado/erros');
 
 const ORDENS_MERCADO = {

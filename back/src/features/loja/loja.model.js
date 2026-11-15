@@ -11,29 +11,9 @@ async function temAlgumPokemon(db, usuarioId) {
   return rowCount > 0;
 }
 
-/** Saldo atual, ou undefined se o usuário não existe */
-async function lerPokecoins(db, usuarioId) {
-  const { rows: [usuario] } = await db.query('SELECT pokecoins FROM usuarios WHERE id = $1', [usuarioId]);
-  return usuario?.pokecoins;
-}
-
 /**
- * Débito condicional: se o saldo não cobre, nenhuma linha é alterada e devolve undefined.
- * É atômico, então dois cliques rápidos não gastam o mesmo saldo duas vezes.
- * @returns {Promise<number | undefined>} saldo depois do débito
- */
-async function debitarPokecoins(db, usuarioId, valor) {
-  const { rows: [usuario] } = await db.query(
-    `UPDATE usuarios SET pokecoins = pokecoins - $2
-      WHERE id = $1 AND pokecoins >= $2
-      RETURNING pokecoins`,
-    [usuarioId, valor],
-  );
-  return usuario?.pokecoins;
-}
-
-/**
- * Troca Pokécoins por Pokébolas com o mesmo débito condicional de debitarPokecoins.
+ * Troca Pokécoins por Pokébolas com o mesmo débito condicional de carteira.debitar
+ * (num UPDATE só, porque muda as duas colunas).
  * @returns {Promise<{ pokecoins: number, pokebolas: number } | undefined>}
  */
 async function trocarPorPokebolas(db, usuarioId, { custo, quantidade }) {
@@ -60,8 +40,6 @@ async function primeiraVagaNoTime(db, usuarioId, tamanhoTime) {
 module.exports = {
   travarUsuario,
   temAlgumPokemon,
-  lerPokecoins,
-  debitarPokecoins,
   trocarPorPokebolas,
   primeiraVagaNoTime,
 };
