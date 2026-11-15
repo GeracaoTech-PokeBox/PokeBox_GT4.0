@@ -3,20 +3,19 @@ const express = require('express');
 const usuarios = require('./jogo/usuarios');
 const pokemons = require('./jogo/pokemons');
 const batalhas = require('./jogo/batalhas');
-const vitrines = require('./jogo/vitrines');
 const trocas = require('./jogo/trocas');
 const historia = require('./jogo/historia');
 const golpes = require('./jogo/golpes');
+const vitrines = require('./features/vitrines');
 const config = require('./compartilhado/config');
 const { ErroJogo } = require('./compartilhado/erros');
 const {
-  texto, inteiro, opcao, acaoDe,
+  LOGIN_MAXIMO, texto, inteiro, busca, opcao, acaoDe,
 } = require('./compartilhado/validacao');
 const { autenticar, tokenDe } = require('./compartilhado/middlewares/autenticar');
 const { limitarTentativas } = require('./compartilhado/middlewares/limitarTentativas');
 const { tratarErros } = require('./compartilhado/middlewares/tratarErros');
 
-const LOGIN_MAXIMO = 20;
 const SENHA_MINIMA = 8;
 const CELULAR = /^\d{11}$/;
 
@@ -129,8 +128,10 @@ router.get('/pokemons/:id/cuidados', autenticar, async (req, res) => {
 // ---------------------------------------------------------------------------
 
 router.get('/mercado', autenticar, async (req, res) => {
-  const busca = typeof req.query.busca === 'string' ? req.query.busca.trim().slice(0, 40) : '';
-  res.json(await trocas.listarMercado(busca, opcao(req.query.ordem, trocas.ORDENS_MERCADO, 'popularidade')));
+  res.json(await trocas.listarMercado(
+    busca(req.query.busca, 40),
+    opcao(req.query.ordem, trocas.ORDENS_MERCADO, 'popularidade'),
+  ));
 });
 
 router.get('/mercado/:especieId', autenticar, async (req, res) => {
@@ -192,33 +193,14 @@ router.delete('/propostas/:id', autenticar, async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Vitrine
+// Vitrine (já no formato novo: features/vitrines)
 // ---------------------------------------------------------------------------
 
-router.get('/vitrines', autenticar, async (req, res) => {
-  const busca = typeof req.query.busca === 'string' ? req.query.busca.trim().slice(0, LOGIN_MAXIMO) : '';
-  res.json(await vitrines.listarVitrines(req.usuario.id, busca));
-});
-
-router.get('/vitrines/:login', autenticar, async (req, res) => {
-  res.json(await vitrines.obterVitrine(req.usuario.id, texto(req.params.login, 'o treinador').slice(0, LOGIN_MAXIMO)));
-});
-
-router.put('/vitrine', autenticar, async (req, res) => {
-  const { bio = '', estilo, pokemonIds } = req.body;
-  if (typeof bio !== 'string') throw new ErroJogo('Apresentação inválida.');
-  if (!Array.isArray(pokemonIds)) throw new ErroJogo('Envie a lista pokemonIds.');
-  await vitrines.salvarVitrine(req.usuario.id, {
-    bio: bio.trim(),
-    estilo,
-    pokemonIds: pokemonIds.map((id) => inteiro(id, 'Pokémon')),
-  });
-  res.status(204).end();
-});
+router.use(vitrines.rotas);
 
 router.get('/treinadores', autenticar, async (req, res) => {
-  const busca = typeof req.query.busca === 'string' ? req.query.busca.trim().slice(0, LOGIN_MAXIMO) : '';
-  res.json(busca ? await usuarios.buscarTreinadores(req.usuario.id, busca) : []);
+  const termo = busca(req.query.busca, LOGIN_MAXIMO);
+  res.json(termo ? await usuarios.buscarTreinadores(req.usuario.id, termo) : []);
 });
 
 // Sinal de vida do front com o jogo aberto: o autenticar já marca o treinador como online

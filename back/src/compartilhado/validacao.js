@@ -2,6 +2,9 @@
 // Dado inválido vira ErroJogo, que o tratarErros devolve como 400 { erro: "mensagem" }.
 const { ErroJogo } = require('./erros');
 
+// Tamanho máximo do login; também limita as buscas por treinador
+const LOGIN_MAXIMO = 20;
+
 /** Texto obrigatório, já sem espaços nas pontas */
 function texto(valor, nome) {
   if (typeof valor !== 'string' || !valor.trim()) throw new ErroJogo(`Informe ${nome}.`);
@@ -15,6 +18,11 @@ function inteiro(valor, nome) {
   return numero;
 }
 
+/** Termo de busca opcional da query string: texto cortado em `maximo` caracteres, ou '' */
+function busca(valor, maximo) {
+  return typeof valor === 'string' ? valor.trim().slice(0, maximo) : '';
+}
+
 /** Uma das chaves de `opcoes`; qualquer outro valor vira o padrão */
 const opcao = (valor, opcoes, padrao) => (Object.hasOwn(opcoes, valor) ? valor : padrao);
 
@@ -26,4 +34,6 @@ function acaoDe(corpo) {
   throw new ErroJogo('Jogada inválida.');
 }
 
-module.exports = { texto, inteiro, opcao, acaoDe };
+module.exports = {
+  LOGIN_MAXIMO, texto, inteiro, busca, opcao, acaoDe,
+};
