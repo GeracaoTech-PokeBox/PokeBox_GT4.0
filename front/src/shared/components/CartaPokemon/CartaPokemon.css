@@ -2,11 +2,17 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  box-sizing: border-box;
   padding: 14px;
   background: color-mix(in srgb, var(--carta-cor) 14%, #fff);
   border: 3px solid var(--poke-ink, #1d1d1f);
   border-radius: 18px;
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Na grade, todos os cards têm a altura do mais alto: o último item (botão, evolução) fica no fim */
+.carta > :last-child {
+  margin-top: auto;
 }
 
 /* Shiny ganha borda dourada e um brilho que atravessa o card */
@@ -99,8 +105,9 @@
   object-fit: contain;
 }
 
+/* 160px: com a largura da grade de cards (a mesma das outras telas), 110px deixava o card achatado */
 .carta--compacta .carta-imagem img {
-  max-width: 110px;
+  max-width: 160px;
 }
 
 .carta-tipos {

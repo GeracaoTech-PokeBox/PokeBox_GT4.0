@@ -1,5 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Layout } from '@/shared';
+import {
+  useCallback, useEffect, useRef, useState,
+} from 'react';
+import PropTypes from 'prop-types';
+import {
+  Confirmacao, Layout, menuLiberado, semInicial, telaLiberada, useCaminho,
+} from '@/shared';
 import { Login, Cadastro, RecuperarSenha, useSessao } from '@/features/auth';
 import { Pokemons } from '@/features/pokedex';
 import { MeusPokemons } from '@/features/colecao';
@@ -10,7 +15,7 @@ import { Vitrine } from '@/features/vitrine';
 import { Trocas } from '@/features/trocas';
 import { Historia } from '@/features/historia';
 import { Sobre } from '@/features/sobre';
-import { TutorialGeral, TutorialProvider } from '@/features/tutorial';
+import { TutorialGeral, TutorialProvider, useTutorial } from '@/features/tutorial';
 
 /* [SOLID-S] Antes, o App tinha 4 responsabilidades: sessão, navegação, as ações de outras telas
  * (evoluir, comprar, salvar o time...) e montar a interface. Agora só decide qual tela mostrar.
@@ -25,30 +30,108 @@ import { TutorialGeral, TutorialProvider } from '@/features/tutorial';
  */
 
 // [KISS] Uma função para a regra que antes aparecia duas vezes no App (login e sessão salva).
-// Quem ainda não tem Pokémon cai direto na escolha do inicial
-const telaInicial = (pokemons) => (pokemons.length === 0 ? 'meusPokemons' : 'batalhas');
+// Quem ainda não tem Pokémon cai direto na escolha do inicial; com o menu ainda bloqueado, na Loja
+const telaInicial = (pokemons) => {
+  if (pokemons.length === 0) return 'meusPokemons';
+  return menuLiberado(pokemons) ? 'batalhas' : 'loja';
+};
+
+// [SOLID-O] O caminho (URL) de cada tela. A tela 'batalha' fica em /batalhas/<id>.
+const ROTAS = {
+  login: '/login',
+  cadastro: '/cadastro',
+  recuperarSenha: '/recuperar-senha',
+  pokemons: '/pokedex',
+  meusPokemons: '/meus-pokemons',
+  loja: '/loja',
+  time: '/time',
+  historia: '/historia',
+  vitrine: '/vitrine',
+  trocas: '/trocas',
+  batalhas: '/batalhas',
+  sobre: '/sobre',
+};
+const TELAS_SEM_LOGIN = ['login', 'cadastro', 'recuperarSenha'];
+
+// '/batalhas/12' -> { tela: 'batalha', batalhaId: 12 }; caminho desconhecido -> tela null
+function lerCaminho(caminho) {
+  const batalha = caminho.match(/^\/batalhas\/(\d+)\/?$/);
+  if (batalha) return { tela: 'batalha', batalhaId: Number(batalha[1]) };
+  const semBarraFinal = caminho.length > 1 ? caminho.replace(/\/$/, '') : caminho;
+  const tela = Object.keys(ROTAS).find((t) => ROTAS[t] === semBarraFinal) ?? null;
+  return { tela, batalhaId: null };
+}
+
+/* Tela bloqueada aberta pela URL (digitada, recarregada ou pelo voltar do navegador): vai para o
+ * destino (a Loja, ou a escolha do inicial). O tutorial de primeiro acesso pode mostrar as telas
+ * bloqueadas, então ele passa direto, menos quando obrigatorio (sem inicial, nada abre).
+ */
+function TelaPermitida({
+  bloqueada, obrigatorio, irPara, destino, children,
+}) {
+  const { aberto } = useTutorial();
+  const redirecionar = bloqueada && (obrigatorio || !aberto);
+  useEffect(() => {
+    if (redirecionar) irPara(destino, { substituir: true });
+  }, [redirecionar, irPara, destino]);
+  return redirecionar ? null : children;
+}
+
+TelaPermitida.propTypes = {
+  bloqueada: PropTypes.bool.isRequired,
+  obrigatorio: PropTypes.bool.isRequired,
+  irPara: PropTypes.func.isRequired,
+  destino: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+};
 
 // Só decide qual tela mostrar. Usuário e ações de conta ficam no SessaoProvider.
 function App() {
   const {
     usuario, conferindoSessao, restaurarSessao, entrar, cadastrar, sair, verificarUsuario, redefinirSenha, atualizarUsuario,
   } = useSessao();
-  const [tela, setTela] = useState('login');
-  const [batalhaId, setBatalhaId] = useState(null);
+  // O Time avisa se tem alterações não salvas; sair dele com alterações pede confirmação
+  const timeAlterado = useRef(false);
+  const marcarTimeAlterado = useCallback((alterado) => {
+    timeAlterado.current = alterado;
+  }, []);
+  // Saída esperando a confirmação do diálogo (função que troca de tela ou sai da conta)
+  const [saidaPendente, setSaidaPendente] = useState(null);
+
+  // A tela atual vem da URL: recarregar a página mantém a pessoa onde ela estava.
+  // Voltar/avançar do navegador com o time alterado: fica no Time e pergunta antes.
+  const [caminho, irPara] = useCaminho((novo, continuar) => {
+    if (!timeAlterado.current) return false;
+    setSaidaPendente(() => continuar);
+    return true;
+  });
+  const { tela, batalhaId } = lerCaminho(caminho);
+  const setTela = (destino) => irPara(ROTAS[destino]);
+
+  // Faz a ação na hora, ou guarda para depois do "Sair sem salvar" se o time tem alterações
+  const confirmarSaida = (acao) => {
+    if (tela === 'time' && timeAlterado.current) setSaidaPendente(() => acao);
+    else acao();
+  };
 
   // Login salvo de uma visita anterior
   useEffect(() => {
-    restaurarSessao().then((pokemons) => {
-      if (pokemons) setTela(telaInicial(pokemons));
-    });
+    restaurarSessao();
   }, [restaurarSessao]);
 
+  // Logado numa tela de login ou num caminho desconhecido (ex.: '/'): vai para a tela inicial.
+  // Numa tela válida (ex.: recarregou em /loja, ou abriu /loja e precisou logar), fica nela.
+  const precisaRedirecionar = usuario && (tela === null || TELAS_SEM_LOGIN.includes(tela));
+  useEffect(() => {
+    if (precisaRedirecionar) irPara(ROTAS[telaInicial(usuario.pokemons)], { substituir: true });
+  }, [precisaRedirecionar, usuario, irPara]);
+
   const handleLogin = async ({ login, senha }) => {
-    setTela(telaInicial(await entrar(login, senha)));
+    await entrar(login, senha);
   };
 
   const handleCadastrar = async (dados) => {
-    setTela(telaInicial(await cadastrar(dados)));
+    await cadastrar(dados);
   };
 
   const handleRedefinirSenha = async (dados) => {
@@ -56,22 +139,21 @@ function App() {
     setTela('login');
   };
 
-  const handleSair = async () => {
+  const handleSair = () => confirmarSaida(async () => {
     await sair();
     setTela('login');
-  };
+  });
 
-  const handleNavegar = (destino) => {
+  const handleNavegar = (destino) => confirmarSaida(() => {
     setTela(destino);
     atualizarUsuario();
-  };
+  });
 
   const handleAbrirBatalha = (id) => {
-    setBatalhaId(id);
-    setTela('batalha');
+    irPara(`${ROTAS.batalhas}/${id}`);
   };
 
-  if (conferindoSessao) return null;
+  if (conferindoSessao || precisaRedirecionar) return null;
 
   if (!usuario) {
     if (tela === 'cadastro') {
@@ -109,6 +191,7 @@ function App() {
         // key: remonta com a seleção salva quando a coleção muda (ex.: depois de salvar)
         key={usuario.pokemons.map((p) => `${p.id}:${p.posicaoTime}`).join()}
         onIrParaLoja={() => handleNavegar('loja')}
+        onAlterado={marcarTimeAlterado}
       />
     ),
     batalhas: () => <Batalhas onAbrir={handleAbrirBatalha} />,
@@ -116,19 +199,47 @@ function App() {
     sobre: () => <Sobre />,
   };
   const renderTela = telas[tela] ?? telas.batalhas;
+  const telaMenu = tela === 'batalha' ? 'batalhas' : tela;
+  // Sem nenhum Pokémon, só Meus Pokémon fica aberta: é onde se escolhe o inicial, antes de tudo
+  const precisaInicial = semInicial(usuario.pokemons);
+  const escolhendoInicial = tela === 'meusPokemons' && precisaInicial;
+  const bloqueada = !escolhendoInicial && !telaLiberada(telaMenu, usuario.pokemons);
 
   return (
     <Layout
       usuario={usuario}
-      telaAtual={tela === 'batalha' ? 'batalhas' : tela}
+      telaAtual={telaMenu}
       onNavegar={handleNavegar}
       onSair={handleSair}
     >
       {/* O tutorial de primeiro acesso troca de tela pelo mesmo handleNavegar do menu */}
       <TutorialProvider onNavegar={handleNavegar}>
-        {renderTela()}
+        <TelaPermitida
+          bloqueada={bloqueada}
+          obrigatorio={precisaInicial}
+          irPara={irPara}
+          destino={precisaInicial ? ROTAS.meusPokemons : ROTAS.loja}
+        >
+          {renderTela()}
+        </TelaPermitida>
         <TutorialGeral />
       </TutorialProvider>
+
+      {saidaPendente && (
+        <Confirmacao
+          titulo="Sair sem salvar o time?"
+          texto="Você mudou o time e ainda não salvou. Se sair agora, as mudanças serão perdidas."
+          textoCancelar="Continuar no time"
+          textoConfirmar="Sair sem salvar"
+          onCancelar={() => setSaidaPendente(null)}
+          onConfirmar={() => {
+            setSaidaPendente(null);
+            // O Time ainda está aberto: libera a saída antes de trocar de tela
+            timeAlterado.current = false;
+            saidaPendente();
+          }}
+        />
+      )}
     </Layout>
   );
 }
