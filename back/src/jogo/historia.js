@@ -9,8 +9,8 @@
  Pokémon aleatório, pagando custo_refazer_historia.
  Toda mudança num encontro acontece com a linha travada (SELECT ... FOR UPDATE),
  então dois cliques nunca aplicam a mesma jogada ou captura duas vezes.*/
-const { pool, transacao } = require('../db');
-const config = require('./config');
+const { pool, transacao } = require('../banco/db');
+const config = require('../compartilhado/config');
 const motor = require('./motor');
 const {
   sortearAtributos, forcaDoPonto, proximoPonto, nivelSelvagem, statusSelvagem, xpDaHistoria, chanceDeCaptura,
@@ -19,8 +19,8 @@ const { garantirTaxaCaptura } = require('./especies');
 const { mintarPokemon, buscarCard, darXp } = require('./pokemons');
 const { carregarTime } = require('./batalhas');
 const { sortearEspecieDaLoja } = require('./usuarios');
-const { ErroJogo } = require('./erros');
-const { rngSeguro } = require('./aleatorio');
+const { ErroJogo } = require('../compartilhado/erros');
+const { rngSeguro } = require('../compartilhado/aleatorio');
 
 const TREINADOR = 0; // índices dos lados no estado da batalha
 const SELVAGEM = 1;

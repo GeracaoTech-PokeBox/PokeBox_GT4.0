@@ -1,7 +1,7 @@
 // Regras puras (sem banco): mint, status e XP. Por não dependerem de nada externo, são testadas em regras.test.js
-const config = require('./config');
-const { rngSeguro, inteiroEntre, decimalEntre } = require('./aleatorio');
-const { ErroJogo } = require('./erros');
+const config = require('../compartilhado/config');
+const { rngSeguro, inteiroEntre, decimalEntre } = require('../compartilhado/aleatorio');
+const { ErroJogo } = require('../compartilhado/erros');
 
 /**
  * @typedef {object} Especie

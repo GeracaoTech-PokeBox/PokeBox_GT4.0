@@ -66,7 +66,7 @@ test('integração', { skip: pular, timeout: 10 * 60 * 1000 }, async (s) => {
 
   process.env.DATABASE_URL = URL_TESTE;
   const app = require('../src/app');
-  ({ pool } = require('../src/db'));
+  ({ pool } = require('../src/banco/db'));
   agendador = require('../src/jogo/agendador');
   servidor = app.listen(0);
   base = `http://localhost:${servidor.address().port}`;

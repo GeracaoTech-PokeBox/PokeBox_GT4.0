@@ -1,12 +1,12 @@
 // Contas (cadastro, login, senha), escolha do inicial, loja e montagem do time
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
-const { pool, transacao } = require('../db');
-const config = require('./config');
+const { pool, transacao } = require('../banco/db');
+const config = require('../compartilhado/config');
 const { garantirEspecie } = require('./especies');
 const { mintarPokemon, buscarCard } = require('./pokemons');
-const { ErroJogo } = require('./erros');
-const { rngSeguro, inteiroEntre } = require('./aleatorio');
+const { ErroJogo } = require('../compartilhado/erros');
+const { rngSeguro, inteiroEntre } = require('../compartilhado/aleatorio');
 
 const scrypt = promisify(crypto.scrypt);
 const SESSAO_DURACAO_MS = 30 * 24 * 60 * 60 * 1000;

@@ -1,12 +1,12 @@
 // Golpes especiais: cache local dos golpes da PokeAPI e a roleta que dá golpes a um Pokémon com afeto máximo.
 // Como a Pokédex (especies.js), cada golpe e cada lista de golpes de uma espécie é buscada uma vez só,
 // assim as batalhas não dependem da PokeAPI.
-const { pool, transacao } = require('../db');
-const config = require('./config');
+const { pool, transacao } = require('../banco/db');
+const config = require('../compartilhado/config');
 const { buscarCard } = require('./pokemons');
 const { afetoMaximo } = require('./regras');
-const { ErroJogo } = require('./erros');
-const { rngSeguro } = require('./aleatorio');
+const { ErroJogo } = require('../compartilhado/erros');
+const { rngSeguro } = require('../compartilhado/aleatorio');
 
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 

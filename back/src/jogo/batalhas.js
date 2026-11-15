@@ -9,11 +9,11 @@ O prazo é conferido de dois jeitos, e os dois chamam resolverPrazo:
       mesmo se o agendador estiver parado ou atrasado.
  Toda mudança numa batalha acontece com a linha travada (SELECT ... FOR UPDATE),
  então uma jogada e o timeout nunca são aplicados ao mesmo tempo.*/
-const { pool, transacao } = require('../db');
-const config = require('./config');
+const { pool, transacao } = require('../banco/db');
+const config = require('../compartilhado/config');
 const motor = require('./motor');
 const { darXp, SELECT_GOLPES } = require('./pokemons');
-const { ErroJogo } = require('./erros');
+const { ErroJogo } = require('../compartilhado/erros');
 
 const depoisDe = (agora, ms) => new Date(agora.getTime() + ms);
 

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pool } = require('./db');
 
-const PASTA = process.env.MIGRACOES_DIR ?? path.join(__dirname, '../../db/migracoes');
+const PASTA = process.env.MIGRACOES_DIR ?? path.join(__dirname, '../../../db/migracoes');
 // Número qualquer, fixo: impede dois backs subindo juntos de aplicar a mesma migração
 const TRAVA = 4815162342;
 

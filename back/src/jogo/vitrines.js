@@ -1,8 +1,8 @@
 // Vitrine: o perfil público de cada treinador, com os Pokémon em destaque e o álbum de espécies
-const { pool, transacao } = require('../db');
-const config = require('./config');
+const { pool, transacao } = require('../banco/db');
+const config = require('../compartilhado/config');
 const { coracoes } = require('./regras');
-const { ErroJogo } = require('./erros');
+const { ErroJogo } = require('../compartilhado/erros');
 
 const ESTILOS = ['palco', 'album'];
 

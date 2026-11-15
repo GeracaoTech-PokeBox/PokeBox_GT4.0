@@ -3,11 +3,11 @@
 // Nada fica reservado enquanto um anúncio ou proposta está aberto: na hora de comprar ou aceitar,
 // tudo é travado e conferido de novo (dono, fora do time, saldo). Os usuários são sempre travados
 // primeiro e em ordem de id, depois o anúncio, para duas operações cruzadas não se travarem.
-const { pool, transacao } = require('../db');
-const config = require('./config');
+const { pool, transacao } = require('../banco/db');
+const config = require('../compartilhado/config');
 const { descreverPokemon } = require('./regras');
 const { CAMPOS_CARD, buscarCard } = require('./pokemons');
-const { ErroJogo } = require('./erros');
+const { ErroJogo } = require('../compartilhado/erros');
 
 const ORDENS_MERCADO = {
   popularidade: 'anuncios DESC, e.nome',

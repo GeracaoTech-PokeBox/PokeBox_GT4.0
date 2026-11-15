@@ -1,6 +1,6 @@
 // Cache local da Pokédex: cada espécie é buscada na PokeAPI uma única vez e salva na tabela especies
-const { pool } = require('../db');
-const config = require('./config');
+const { pool } = require('../banco/db');
+const config = require('../compartilhado/config');
 
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 

@@ -1,10 +1,10 @@
 // Motor de batalha puro: recebe o estado e uma ação, devolve o novo estado e o que aconteceu.
 // Não sabe nada de banco, relógio ou prazo; quem cuida disso é batalhas.js.
-const config = require('./config');
+const config = require('../compartilhado/config');
 const { calcularStatus, afetoMaximo } = require('./regras');
-const { rngSeguro, decimalEntre } = require('./aleatorio');
+const { rngSeguro, decimalEntre } = require('../compartilhado/aleatorio');
 const { efetividade } = require('./tipos');
-const { ErroJogo } = require('./erros');
+const { ErroJogo } = require('../compartilhado/erros');
 
 /**
  * Status congelados no início da batalha

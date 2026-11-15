@@ -7,39 +7,26 @@ const vitrines = require('./jogo/vitrines');
 const trocas = require('./jogo/trocas');
 const historia = require('./jogo/historia');
 const golpes = require('./jogo/golpes');
-const config = require('./jogo/config');
-const { ErroJogo } = require('./jogo/erros');
+const config = require('./compartilhado/config');
+const { ErroJogo } = require('./compartilhado/erros');
+const {
+  texto, inteiro, opcao, acaoDe,
+} = require('./compartilhado/validacao');
+const { autenticar, tokenDe } = require('./compartilhado/middlewares/autenticar');
+const { limitarTentativas } = require('./compartilhado/middlewares/limitarTentativas');
+const { tratarErros } = require('./compartilhado/middlewares/tratarErros');
 
 const LOGIN_MAXIMO = 20;
 const SENHA_MINIMA = 8;
 const CELULAR = /^\d{11}$/;
-
-// Códigos de erro do Node/PostgreSQL que significam "não deu para usar o banco"
-const ERROS_BANCO = new Set([
-  'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', // servidor não responde
-  '28P01', '28000', // usuário/senha recusados
-  '3D000', // banco não existe
-  '42P01', // tabela não existe (db.sql não foi rodado)
-]);
 
 const router = express.Router();
 // Aqui dentro (e não no app) para o erro de JSON inválido cair no tratamento de erros deste router
 router.use(express.json({ limit: '10kb' }));
 
 // ---------------------------------------------------------------------------
-// Validação e autenticação
+// Validação dos dados de conta
 // ---------------------------------------------------------------------------
-
-function texto(valor, nome) {
-  if (typeof valor !== 'string' || !valor.trim()) throw new ErroJogo(`Informe ${nome}.`);
-  return valor.trim();
-}
-
-function inteiro(valor, nome) {
-  const numero = Number(valor);
-  if (!Number.isSafeInteger(numero) || numero <= 0) throw new ErroJogo(`${nome} inválido.`);
-  return numero;
-}
 
 function dadosConta(corpo, { comSenha = true } = {}) {
   const login = texto(corpo.login, 'o usuário');
@@ -51,43 +38,6 @@ function dadosConta(corpo, { comSenha = true } = {}) {
     throw new ErroJogo(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
   }
   return { login, celular, senha: corpo.senha };
-}
-
-/**
- * Limite simples por IP para as rotas de conta: dificulta testar senhas
- * ou celulares em massa. Fica em memória (zera quando o back reinicia).
- */
-function limitarTentativas({ maximo, janelaMs }) {
-  const tentativas = new Map();
-  return (req, res, next) => {
-    const agora = Date.now();
-    const chave = `${req.ip}:${req.path}`;
-    const registro = tentativas.get(chave);
-    if (!registro || registro.inicio + janelaMs < agora) {
-      tentativas.set(chave, { inicio: agora, total: 1 });
-      next();
-      return;
-    }
-    registro.total += 1;
-    if (registro.total > maximo) {
-      res.status(429).json({ erro: 'Muitas tentativas. Espere alguns minutos e tente de novo.' });
-      return;
-    }
-    next();
-  };
-}
-
-const tokenDe = (req) => req.get('authorization')?.match(/^Bearer (\w+)$/)?.[1] ?? null;
-
-async function autenticar(req, res, next) {
-  const token = tokenDe(req);
-  const usuario = token && (await usuarios.usuarioDaSessao(token));
-  if (!usuario) {
-    res.status(401).json({ erro: 'Faça login para continuar.' });
-    return;
-  }
-  req.usuario = usuario;
-  next();
 }
 
 // ---------------------------------------------------------------------------
@@ -177,8 +127,6 @@ router.get('/pokemons/:id/cuidados', autenticar, async (req, res) => {
 // ---------------------------------------------------------------------------
 // Trocas
 // ---------------------------------------------------------------------------
-
-const opcao = (valor, opcoes, padrao) => (Object.hasOwn(opcoes, valor) ? valor : padrao);
 
 router.get('/mercado', autenticar, async (req, res) => {
   const busca = typeof req.query.busca === 'string' ? req.query.busca.trim().slice(0, 40) : '';
@@ -287,14 +235,6 @@ router.get('/treinadores/ativos', autenticar, async (req, res) => {
 // História
 // ---------------------------------------------------------------------------
 
-/** Jogada de batalha vinda do corpo da requisição (mesmo formato nas batalhas e na história) */
-function acaoDe(corpo) {
-  const { tipo } = corpo;
-  if (tipo === 'atacar' || tipo === 'desistir') return { tipo };
-  if (tipo === 'trocar' || tipo === 'golpe') return { tipo, indice: Number(corpo.indice) };
-  throw new ErroJogo('Jogada inválida.');
-}
-
 router.get('/historia', autenticar, async (req, res) => {
   res.json(await historia.obterHistoria(req.usuario.id));
 });
@@ -354,30 +294,7 @@ router.post('/batalhas/:id/jogadas', autenticar, async (req, res) => {
   res.json(await batalhas.jogar(req.usuario.id, inteiro(req.params.id, 'Batalha'), acaoDe(req.body)));
 });
 
-// ---------------------------------------------------------------------------
-// Erros (Express 5 já encaminha para cá os erros lançados nas funções async)
-// ---------------------------------------------------------------------------
-
-// eslint-disable-next-line no-unused-vars
-router.use((erro, req, res, next) => {
-  if (erro instanceof ErroJogo) {
-    res.status(400).json({ erro: erro.message });
-    return;
-  }
-  if (erro.type === 'entity.parse.failed') {
-    res.status(400).json({ erro: 'JSON inválido.' });
-    return;
-  }
-  // Banco fora do ar, DATABASE_URL faltando/errada ou db.sql não aplicado
-  if (ERROS_BANCO.has(erro.code)) {
-    // ECONNREFUSED chega como AggregateError, com a mensagem vazia
-    console.error(`Banco de dados indisponível (${erro.code}${erro.message ? `: ${erro.message}` : ''}). `
-      + 'Confira o DATABASE_URL em back/.env e se o banco está rodando (docker compose up -d db).');
-    res.status(503).json({ erro: 'O banco de dados está fora do ar. Tente de novo em instantes.' });
-    return;
-  }
-  console.error(erro);
-  res.status(500).json({ erro: 'Erro interno. Tente novamente.' });
-});
+// Sempre por último: erros lançados em qualquer rota acima caem aqui
+router.use(tratarErros);
 
 module.exports = router;

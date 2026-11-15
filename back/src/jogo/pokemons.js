@@ -1,13 +1,13 @@
 // Cards no banco: mint, coleção, XP pós-batalha, evolução e cuidados (afeto)
-const { pool, transacao } = require('../db');
+const { pool, transacao } = require('../banco/db');
 const {
   sortearAtributos, aplicarXp, evolucoesDisponiveis, descreverPokemon, aplicarCuidado, bemEstarAtual,
   sortearBonusEvolucao, coracoes,
 } = require('./regras');
-const config = require('./config');
+const config = require('../compartilhado/config');
 const { garantirEspecie } = require('./especies');
-const { ErroJogo } = require('./erros');
-const { rngSeguro } = require('./aleatorio');
+const { ErroJogo } = require('../compartilhado/erros');
+const { rngSeguro } = require('../compartilhado/aleatorio');
 
 // Golpes especiais de um card (p), como JSON, na ordem do array pokemons.golpes
 const SELECT_GOLPES = `(SELECT coalesce(jsonb_agg(to_jsonb(g) ORDER BY array_position(p.golpes, g.id)), '[]'::jsonb)
