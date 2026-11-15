@@ -5,6 +5,7 @@
 export { default as Avatar } from './components/Avatar';
 export { default as BarraProgresso } from './components/BarraProgresso';
 export { default as CartaPokemon } from './components/CartaPokemon';
+export { default as Confirmacao } from './components/Confirmacao';
 export { default as Coracoes } from './components/Coracoes';
 export { BotoesGolpes, ListaGolpes } from './components/Golpes';
 export { default as Layout } from './components/Layout';

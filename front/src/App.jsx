@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import {
+  useCallback, useEffect, useRef, useState,
+} from 'react';
 import PropTypes from 'prop-types';
 import {
-  Layout, menuLiberado, telaLiberada, useCaminho,
+  Confirmacao, Layout, menuLiberado, telaLiberada, useCaminho,
 } from '@/shared';
 import { Login, Cadastro, RecuperarSenha, useSessao } from '@/features/auth';
 import { Pokemons } from '@/features/pokedex';
@@ -86,10 +88,29 @@ function App() {
   const {
     usuario, conferindoSessao, restaurarSessao, entrar, cadastrar, sair, verificarUsuario, redefinirSenha, atualizarUsuario,
   } = useSessao();
-  // A tela atual vem da URL: recarregar a página mantém a pessoa onde ela estava
-  const [caminho, irPara] = useCaminho();
+  // O Time avisa se tem alterações não salvas; sair dele com alterações pede confirmação
+  const timeAlterado = useRef(false);
+  const marcarTimeAlterado = useCallback((alterado) => {
+    timeAlterado.current = alterado;
+  }, []);
+  // Saída esperando a confirmação do diálogo (função que troca de tela ou sai da conta)
+  const [saidaPendente, setSaidaPendente] = useState(null);
+
+  // A tela atual vem da URL: recarregar a página mantém a pessoa onde ela estava.
+  // Voltar/avançar do navegador com o time alterado: fica no Time e pergunta antes.
+  const [caminho, irPara] = useCaminho((novo, continuar) => {
+    if (!timeAlterado.current) return false;
+    setSaidaPendente(() => continuar);
+    return true;
+  });
   const { tela, batalhaId } = lerCaminho(caminho);
   const setTela = (destino) => irPara(ROTAS[destino]);
+
+  // Faz a ação na hora, ou guarda para depois do "Sair sem salvar" se o time tem alterações
+  const confirmarSaida = (acao) => {
+    if (tela === 'time' && timeAlterado.current) setSaidaPendente(() => acao);
+    else acao();
+  };
 
   // Login salvo de uma visita anterior
   useEffect(() => {
@@ -116,15 +137,15 @@ function App() {
     setTela('login');
   };
 
-  const handleSair = async () => {
+  const handleSair = () => confirmarSaida(async () => {
     await sair();
     setTela('login');
-  };
+  });
 
-  const handleNavegar = (destino) => {
+  const handleNavegar = (destino) => confirmarSaida(() => {
     setTela(destino);
     atualizarUsuario();
-  };
+  });
 
   const handleAbrirBatalha = (id) => {
     irPara(`${ROTAS.batalhas}/${id}`);
@@ -168,6 +189,7 @@ function App() {
         // key: remonta com a seleção salva quando a coleção muda (ex.: depois de salvar)
         key={usuario.pokemons.map((p) => `${p.id}:${p.posicaoTime}`).join()}
         onIrParaLoja={() => handleNavegar('loja')}
+        onAlterado={marcarTimeAlterado}
       />
     ),
     batalhas: () => <Batalhas onAbrir={handleAbrirBatalha} />,
@@ -194,6 +216,22 @@ function App() {
         </TelaPermitida>
         <TutorialGeral />
       </TutorialProvider>
+
+      {saidaPendente && (
+        <Confirmacao
+          titulo="Sair sem salvar o time?"
+          texto="Você mudou o time e ainda não salvou. Se sair agora, as mudanças serão perdidas."
+          textoCancelar="Continuar no time"
+          textoConfirmar="Sair sem salvar"
+          onCancelar={() => setSaidaPendente(null)}
+          onConfirmar={() => {
+            setSaidaPendente(null);
+            // O Time ainda está aberto: libera a saída antes de trocar de tela
+            timeAlterado.current = false;
+            saidaPendente();
+          }}
+        />
+      )}
     </Layout>
   );
 }

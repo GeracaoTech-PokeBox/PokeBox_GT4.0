@@ -3,6 +3,7 @@ import {
   CartaPokemon, TabelaTipos, resumoEvolucao, formatarNome, formatarNumero, urlArtwork,
 } from '@/shared';
 import { FiltrosColecao } from '@/features/colecao';
+import { useArrastarVagas } from '../../hooks/index_hooks';
 import { TAMANHO_TIME, useTimeViewModel } from './index_viewmodels';
 import './Time.css';
 
@@ -10,9 +11,10 @@ import './Time.css';
  * [SOLID-D] Não recebe mais `usuario` e onSalvar. onIrParaLoja continua por props: é navegação.
  */
 
-function Time({ onIrParaLoja }) {
-  const vm = useTimeViewModel();
+function Time({ onIrParaLoja, onAlterado }) {
+  const vm = useTimeViewModel(onAlterado);
   const { selecionados } = vm;
+  const { propsDaVaga } = useArrastarVagas(vm.trocar);
 
   if (vm.colecaoPequena) {
     return (
@@ -33,6 +35,7 @@ function Time({ onIrParaLoja }) {
       <h1 className="jogo-titulo">Time</h1>
       <p className="jogo-texto">
         {`Escolha ${TAMANHO_TIME} Pokémon da coleção. O primeiro abre a batalha, e quando um é nocauteado o próximo da fila entra.`}
+        {' Arraste os cards do time para trocar a ordem.'}
       </p>
       <div className="time-tabela-tipos">
         <TabelaTipos />
@@ -42,11 +45,12 @@ function Time({ onIrParaLoja }) {
         {vm.vagas.map((pokemon, i) => {
           const evolucao = pokemon && resumoEvolucao(pokemon);
           return (
-            <li key={i} className="time-slot" data-vazio={!pokemon}>
+            <li key={i} className="time-slot" data-vazio={!pokemon} {...propsDaVaga(i, Boolean(pokemon))}>
               <span className="time-slot-numero">{i + 1}</span>
               {pokemon ? (
                 <>
-                  <img src={urlArtwork(pokemon.especieId, pokemon.shiny)} alt="" />
+                  {/* draggable={false}: senão o navegador arrasta só a imagem, por cima do nosso arrasto */}
+                  <img src={urlArtwork(pokemon.especieId, pokemon.shiny)} alt="" draggable={false} />
                   <span className="time-slot-nome">{formatarNome(pokemon.nome)}</span>
                   <span className="time-slot-nivel">{`Nv. ${pokemon.nivel}`}</span>
                   <span className="time-slot-evolucao" data-pronto={evolucao?.pronto ?? false}>
@@ -71,6 +75,7 @@ function Time({ onIrParaLoja }) {
           {vm.salvando ? 'Salvando...' : 'Salvar time'}
         </button>
         {vm.faltam > 0 && <span>{`Faltam ${vm.faltam}.`}</span>}
+        {vm.alterado && <span className="time-nao-salvo">Alterações não salvas</span>}
       </div>
 
       {vm.erro && <p className="jogo-erro" role="alert">{vm.erro}</p>}
@@ -111,6 +116,7 @@ function Time({ onIrParaLoja }) {
 
 Time.propTypes = {
   onIrParaLoja: PropTypes.func.isRequired,
+  onAlterado: PropTypes.func.isRequired,
 };
 
 export default Time;
