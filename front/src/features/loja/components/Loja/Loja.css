@@ -45,6 +45,8 @@
   display: grid;
   justify-items: center;
   gap: 4px;
+  min-width: 0;
+  padding-inline: 10px;
   text-align: center;
 }
 
@@ -52,8 +54,17 @@
   margin-bottom: 8px;
 }
 
+/* Ocupa a largura do card e com menos respiro lateral: "Sorteando..." não cabia nos cards estreitos */
 .loja-geracao .jogo-botao {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   margin-top: 8px;
+  padding-inline: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loja-geracao-numero {
