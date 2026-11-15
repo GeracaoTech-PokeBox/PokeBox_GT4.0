@@ -19,7 +19,7 @@ export { useAcao, useCaminho } from './hooks/index_hooks';
 
 // Regras, constantes e contratos de dados
 export {
-  menuLiberado, telaLiberada, temTimeCompleto,
+  menuLiberado, semInicial, telaLiberada, temTimeCompleto,
 } from './models/index_models';
 export {
   GERACOES, IV_TOTAL_MAXIMO, TAMANHO_TIME, TIPOS,

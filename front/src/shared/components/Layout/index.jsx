@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { flexionar } from '../../utils/index_utils';
-import { telaLiberada } from '../../models/index_models';
+import { semInicial, telaLiberada } from '../../models/index_models';
 import { TAMANHO_TIME } from '../../constants/index_constants';
 import './Layout.css';
 
@@ -49,8 +49,12 @@ function Layout({
           {/* data-tutorial: os passos do tutorial apontam a seta para estes elementos */}
           <nav ref={menuRef} className="layout-menu" aria-label="Menu" data-tutorial="menu">
             {MENU.map(({ tela, nome }) => {
-              // Começo do jogo: só Pokédex, Loja e Sobre nós até ter Pokémon para montar o time
+              // Começo do jogo: nada abre antes do inicial; depois, só Pokédex, Loja e Sobre nós até
+              // ter Pokémon para montar o time
               const bloqueada = !telaLiberada(tela, usuario.pokemons);
+              const motivo = semInicial(usuario.pokemons)
+                ? 'Escolha seu Pokémon inicial primeiro'
+                : `Libera quando você tiver ${TAMANHO_TIME} Pokémon (o inicial + 2 da Loja)`;
               return (
                 <button
                   key={tela}
@@ -59,7 +63,7 @@ function Layout({
                   data-tutorial={tela}
                   aria-current={telaAtual === tela ? 'page' : undefined}
                   disabled={bloqueada}
-                  title={bloqueada ? `Libera quando você tiver ${TAMANHO_TIME} Pokémon (o inicial + 2 da Loja)` : undefined}
+                  title={bloqueada ? motivo : undefined}
                   onClick={() => onNavegar(tela)}
                 >
                   {bloqueada && <span aria-hidden="true">🔒 </span>}

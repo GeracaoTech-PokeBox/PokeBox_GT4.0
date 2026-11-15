@@ -3,7 +3,7 @@ import {
 } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Confirmacao, Layout, menuLiberado, telaLiberada, useCaminho,
+  Confirmacao, Layout, menuLiberado, semInicial, telaLiberada, useCaminho,
 } from '@/shared';
 import { Login, Cadastro, RecuperarSenha, useSessao } from '@/features/auth';
 import { Pokemons } from '@/features/pokedex';
@@ -62,14 +62,15 @@ function lerCaminho(caminho) {
   return { tela, batalhaId: null };
 }
 
-/* Tela bloqueada aberta pela URL (digitada, recarregada ou pelo voltar do navegador): vai para a
- * Loja. O tutorial de primeiro acesso pode mostrar as telas bloqueadas, então ele passa direto.
+/* Tela bloqueada aberta pela URL (digitada, recarregada ou pelo voltar do navegador): vai para o
+ * destino (a Loja, ou a escolha do inicial). O tutorial de primeiro acesso pode mostrar as telas
+ * bloqueadas, então ele passa direto, menos quando obrigatorio (sem inicial, nada abre).
  */
 function TelaPermitida({
-  bloqueada, irPara, destino, children,
+  bloqueada, obrigatorio, irPara, destino, children,
 }) {
   const { aberto } = useTutorial();
-  const redirecionar = bloqueada && !aberto;
+  const redirecionar = bloqueada && (obrigatorio || !aberto);
   useEffect(() => {
     if (redirecionar) irPara(destino, { substituir: true });
   }, [redirecionar, irPara, destino]);
@@ -78,6 +79,7 @@ function TelaPermitida({
 
 TelaPermitida.propTypes = {
   bloqueada: PropTypes.bool.isRequired,
+  obrigatorio: PropTypes.bool.isRequired,
   irPara: PropTypes.func.isRequired,
   destino: PropTypes.string.isRequired,
   children: PropTypes.node.isRequired,
@@ -198,8 +200,9 @@ function App() {
   };
   const renderTela = telas[tela] ?? telas.batalhas;
   const telaMenu = tela === 'batalha' ? 'batalhas' : tela;
-  // Sem nenhum Pokémon, Meus Pokémon fica aberta: é onde se escolhe o inicial
-  const escolhendoInicial = tela === 'meusPokemons' && usuario.pokemons.length === 0;
+  // Sem nenhum Pokémon, só Meus Pokémon fica aberta: é onde se escolhe o inicial, antes de tudo
+  const precisaInicial = semInicial(usuario.pokemons);
+  const escolhendoInicial = tela === 'meusPokemons' && precisaInicial;
   const bloqueada = !escolhendoInicial && !telaLiberada(telaMenu, usuario.pokemons);
 
   return (
@@ -211,7 +214,12 @@ function App() {
     >
       {/* O tutorial de primeiro acesso troca de tela pelo mesmo handleNavegar do menu */}
       <TutorialProvider onNavegar={handleNavegar}>
-        <TelaPermitida bloqueada={bloqueada} irPara={irPara} destino={ROTAS.loja}>
+        <TelaPermitida
+          bloqueada={bloqueada}
+          obrigatorio={precisaInicial}
+          irPara={irPara}
+          destino={precisaInicial ? ROTAS.meusPokemons : ROTAS.loja}
+        >
           {renderTela()}
         </TelaPermitida>
         <TutorialGeral />
