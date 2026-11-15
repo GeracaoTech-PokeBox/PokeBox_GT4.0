@@ -105,8 +105,9 @@
   object-fit: contain;
 }
 
+/* 160px: com a largura da grade de cards (a mesma das outras telas), 110px deixava o card achatado */
 .carta--compacta .carta-imagem img {
-  max-width: 110px;
+  max-width: 160px;
 }
 
 .carta-tipos {
