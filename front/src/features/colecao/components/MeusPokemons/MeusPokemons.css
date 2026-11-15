@@ -127,17 +127,6 @@
   box-shadow: 0 1px 0 var(--poke-ink);
 }
 
-/* Grade com os Pokémon do usuário */
-.meus-pokemons-grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 24px;
-  align-items: start;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 
 @media (max-width: 480px) {
   .meus-pokemons-opcoes {

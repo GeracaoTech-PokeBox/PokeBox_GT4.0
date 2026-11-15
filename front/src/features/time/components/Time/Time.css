@@ -148,15 +148,6 @@
   color: var(--poke-navy);
 }
 
-.time-grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 /* Card que já está no time ganha contorno azul */
 .time-opcao[data-no-time='true'] .carta {
   box-shadow: 0 0 0 4px var(--poke-blue), 4px 4px 0 rgba(0, 0, 0, 0.2);

@@ -90,7 +90,7 @@ function Time({ onIrParaLoja, onAlterado }) {
         total={vm.totalNaColecao}
       />
       {vm.visiveis.length === 0 && <p className="jogo-texto">Nenhum Pokémon combina com esses filtros.</p>}
-      <ul className="time-grade">
+      <ul className="time-grade jogo-grade-cartas">
         {vm.visiveis.map((pokemon) => {
           const posicao = selecionados.indexOf(pokemon.id);
           return (

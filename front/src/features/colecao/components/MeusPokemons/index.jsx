@@ -89,7 +89,7 @@ function MeusPokemons() {
         <p className="meus-pokemons-texto">Nenhum Pokémon combina com esses filtros.</p>
       )}
 
-      <ul className="meus-pokemons-grade">
+      <ul className="meus-pokemons-grade jogo-grade-cartas">
         {vm.visiveis.map((pokemon) => (
           <li key={pokemon.id}>
             <CartaPokemon

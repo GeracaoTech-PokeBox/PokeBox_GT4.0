@@ -152,7 +152,7 @@ function Loja({ onIrParaTime }) {
       {comprados.length > 0 && (
         <>
           <h2 className="loja-subtitulo">Compras desta visita</h2>
-          <ul className="loja-grade">
+          <ul className="loja-grade jogo-grade-cartas">
             {comprados.map((pokemon) => (
               <li key={pokemon.id}><CartaPokemon pokemon={pokemon} compacto /></li>
             ))}
