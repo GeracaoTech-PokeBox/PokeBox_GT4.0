@@ -58,6 +58,10 @@ Três arquivos cobrem o que não aparece num fluxo normal:
 - `autorizacao.test.js` faz um treinador tentar agir sobre Pokémon, anúncios, propostas, batalhas e encontros de outro, rota por rota. Cada tentativa precisa dar 400 e deixar o banco igual, conferido com `fotografar()`, que lê todas as linhas de todas as tabelas.
 - `atomicidade.test.js` força uma falha no meio de compras, trocas, recompensas e revanches com um trigger temporário do Postgres (`test/helpers/falhas.js`) e confere que a transação desfez tudo.
 
+`migracoes.test.js` repete o que acontece num banco novo: o `db.sql` cria tudo e o back aplica as migrações por cima ao subir. O schema final (colunas, constraints, índices, sequências e triggers) precisa ser igual ao do `db.sql` puro, e rodar as migrações de novo, ou em duas instâncias ao mesmo tempo, não pode mudar nada. **Ao mudar o banco, altere o `db.sql` e crie a migração juntos**: se só um dos dois mudar, esse teste falha.
+
+Nos unitários, `erros-de-banco.test.js` confere o que o front recebe quando o banco falha: 503 com mensagem para o jogador quando ele está fora do ar ou mal configurado, e 500 genérico, sem detalhes internos, para qualquer outro erro.
+
 O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda os arquivos um por vez, porque todos usam o mesmo banco. Com `DATABASE_URL_TESTE` definida, ele usa esse banco direto e não precisa de Docker. O nome do banco precisa terminar em `_teste`, porque o teste apaga e recria o schema.
 
 No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.yml) roda os unitários (com cobertura) e a integração (com um Postgres 16 do próprio Actions) em todo PR para `develop` ou `main` e em todo push nessas duas branches, quando a mudança mexe em `back/` ou `db/`.

@@ -110,4 +110,4 @@ async function prepararAmbiente() {
   };
 }
 
-module.exports = { prepararAmbiente, semBanco };
+module.exports = { prepararAmbiente, recriarBanco, semBanco };
