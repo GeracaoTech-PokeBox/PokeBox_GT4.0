@@ -1,7 +1,8 @@
 import { Suspense, lazy, useState } from 'react';
 import CreditosPokeApi from '../CreditosPokeApi';
 import GeracaoTech from '../GeracaoTech';
-import { ABAS } from '../../constants/index_constants';
+import { useSessao } from '@/features/auth';
+import { ABAS, LOGIN_ADMIN } from '../../constants/index_constants';
 import './Sobre.css';
 
 /* [MVVM] View: só desenha. A sub-aba aberta é estado só visual, então fica aqui mesmo
@@ -19,8 +20,14 @@ const CONTEUDO = {
 
 // Sobre nós: o curso, os créditos à PokeAPI e os critérios de avaliação do projeto
 function Sobre() {
+  const { usuario } = useSessao();
   const [aba, setAba] = useState('geracaoTech');
-  const Conteudo = CONTEUDO[aba];
+  // Comparação exata: 'Admin' ou ' admin' não veem a aba de critérios
+  const ehAdmin = usuario?.login === LOGIN_ADMIN;
+  const abas = ABAS.filter(({ somenteAdmin }) => !somenteAdmin || ehAdmin);
+  // Se a aba aberta deixou de ser visível (ex.: troca de usuário), volta para a primeira
+  const abaVisivel = abas.some(({ valor }) => valor === aba) ? aba : abas[0].valor;
+  const Conteudo = CONTEUDO[abaVisivel];
 
   return (
     <section className="sobre">
@@ -30,12 +37,12 @@ function Sobre() {
           <p className="sobre-dica">O projeto, quem o tornou possível e como ele foi construído.</p>
         </div>
         <div className="sobre-abas" role="tablist" aria-label="Sobre nós">
-          {ABAS.map(({ valor, nome }) => (
+          {abas.map(({ valor, nome }) => (
             <button
               key={valor}
               type="button"
               role="tab"
-              aria-selected={aba === valor}
+              aria-selected={abaVisivel === valor}
               className="sobre-aba"
               onClick={() => setAba(valor)}
             >
