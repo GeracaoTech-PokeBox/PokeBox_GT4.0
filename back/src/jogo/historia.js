@@ -18,7 +18,7 @@ const {
 const { garantirTaxaCaptura } = require('./especies');
 const { mintarPokemon, buscarCard, darXp } = require('./pokemons');
 const { carregarTime } = require('./batalhas');
-const { sortearEspecieDaLoja } = require('./usuarios');
+const { sortearEspecieDaLoja } = require('../features/loja');
 const { ErroJogo } = require('../compartilhado/erros');
 const { rngSeguro } = require('../compartilhado/aleatorio');
 

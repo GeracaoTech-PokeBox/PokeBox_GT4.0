@@ -2,7 +2,7 @@
 // O autenticar vai em cada rota (e não num router.use) porque este roteador recebe também as
 // requisições das outras features que passam por ele.
 const express = require('express');
-const { autenticar } = require('../../compartilhado/middlewares/autenticar');
+const { autenticar } = require('../contas');
 const controller = require('./vitrines.controller');
 
 const rotas = express.Router();

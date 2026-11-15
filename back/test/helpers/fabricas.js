@@ -17,7 +17,7 @@ let proximoCelular = 11900000000;
  * @returns {Promise<{ id: number, login: string, token: string, senha: string, celular: string }>}
  */
 async function criarTreinador(login, { pokecoins = 1000, pokebolas = 0, senha = 'senha12345', celular } = {}) {
-  const { cadastrarUsuario } = require('../../src/jogo/usuarios');
+  const { cadastrarUsuario } = require('../../src/features/contas');
   const { pool } = require('../../src/banco/db');
   proximoCelular += 1;
   const cel = celular ?? String(proximoCelular);

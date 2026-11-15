@@ -1,5 +1,6 @@
 // Vitrines: acesso ao banco. Só SQL, sem regra de jogo.
 // Toda função recebe `db` primeiro: o pool (leitura avulsa) ou o client de uma transação.
+const { comecaCom } = require('../../banco/busca');
 
 /** @typedef {import('pg').Pool | import('pg').PoolClient} Db */
 
@@ -137,8 +138,7 @@ async function listarVitrines(db, usuarioId, busca) {
         AND EXISTS (SELECT 1 FROM pokemons WHERE dono_id = u.id)
       ORDER BY coalesce(v.visitas, 0) DESC, u.ultimo_acesso_em DESC
       LIMIT 30`,
-    // Escapa % e _ para a busca ser literal
-    [usuarioId, `${busca.replace(/[\\%_]/g, '\\$&')}%`],
+    [usuarioId, comecaCom(busca)],
   );
   return rows;
 }
