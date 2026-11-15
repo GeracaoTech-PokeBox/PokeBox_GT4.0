@@ -40,8 +40,13 @@ async function recriarBanco() {
  *   Promise<{ status: number, dados: any }>} api   chama /api<caminho> no app de teste
  * @property {(token: string) => Promise<number>} saldo  Pokécoins do dono do token
  * @property {() => Promise<void>} limparDados
+ * @property {() => Promise<Record<string, string[]>>} fotografar  todas as linhas de todas as tabelas do jogo,
+ *   para conferir com deepEqual que uma chamada não mudou nada
  * @property {() => Promise<void>} encerrar
  */
+
+// Mudam a cada requisição autenticada (presença), então ficam fora da foto do banco
+const COLUNAS_VOLATEIS = { usuarios: ['ultimo_acesso_em', 'online_em'] };
 
 /** @returns {Promise<Ambiente>} */
 async function prepararAmbiente() {
@@ -74,11 +79,27 @@ async function prepararAmbiente() {
     "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND NOT (tablename = ANY($1))",
     [TABELAS_MANTIDAS],
   );
-  const tabelas = rows.map((r) => `"${r.tablename}"`).join(', ');
+  const nomes = rows.map((r) => r.tablename).sort();
+  const tabelas = nomes.map((nome) => `"${nome}"`).join(', ');
+
+  async function fotografar() {
+    const foto = {};
+    for (const nome of nomes) {
+      const { rows: linhas } = await pool.query(`SELECT to_jsonb(t) AS linha FROM "${nome}" t`);
+      foto[nome] = linhas
+        .map(({ linha }) => {
+          for (const coluna of COLUNAS_VOLATEIS[nome] ?? []) delete linha[coluna];
+          return JSON.stringify(linha);
+        })
+        .sort();
+    }
+    return foto;
+  }
 
   return {
     pool,
     api,
+    fotografar,
     saldo: async (token) => (await api('GET', '/eu', { token })).dados.usuario.pokecoins,
     limparDados: () => pool.query(`TRUNCATE ${tabelas} RESTART IDENTITY CASCADE`),
     encerrar: async () => {
