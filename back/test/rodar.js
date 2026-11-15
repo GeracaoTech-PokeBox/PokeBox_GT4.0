@@ -1,51 +1,77 @@
+// Roda o teste de integração. Dois jeitos:
+//  - DATABASE_URL_TESTE definida (CI, ou um Postgres seu): usa esse banco direto, sem Docker.
+//  - Sem ela: usa o Postgres do docker-compose.yml (sobe se precisar) e cria o banco pokebox_teste.
+// O banco precisa terminar em _teste: o teste apaga e recria o schema public inteiro.
 const { execFileSync, spawnSync } = require('node:child_process');
+const fs = require('node:fs');
 const path = require('node:path');
+const { conferirCobertura } = require('./conferir-cobertura');
 
-const raiz = path.join(__dirname, '../..'); // onde fica o docker-compose.yml na minha maquina (Lucas)
+const raiz = path.join(__dirname, '../..'); // onde fica o docker-compose.yml
 const BANCO = 'pokebox_teste';
 
 function docker(...args) {
   return execFileSync('docker', args, { cwd: raiz, encoding: 'utf8' }).trim();
 }
 
+/** Garante um Postgres do compose com o banco de teste e devolve a URL dele */
+function prepararBancoNoDocker() {
+  // Procura um Postgres já rodando
+  let container = docker('ps', '--filter', 'publish=5432', '--format', '{{.Names}}').split('\n')[0];
+  if (!container) {
+    console.log('Subindo o Postgres...');
+    docker('compose', 'up', '-d', '--wait', 'db');
+    container = docker('compose', 'ps', '-q', 'db');
+  }
+  console.log(`Usando o Postgres do container ${container}`);
 
-// Procura um Postgres já rodando
-
-
-let container = docker('ps', '--filter', 'publish=5432', '--format', '{{.Names}}').split('\n')[0];
-if (!container) {
-  console.log('Subindo o Postgres...');
-  docker('compose', 'up', '-d', '--wait', 'db');
-  container = docker('compose', 'ps', '-q', 'db');
-}
-console.log(`Usando o Postgres do container ${container}`);
-
-
-// Garante que o banco pokebox_teste existe
-
-
-
-const existe = docker('exec', container, 'psql', '-U', 'pokebox', '-d', 'postgres', '-tAc',
-  `SELECT 1 FROM pg_database WHERE datname = '${BANCO}'`) === '1';
-if (!existe) {
-  console.log(`Criando o banco ${BANCO}...`);
-  docker('exec', container, 'createdb', '-U', 'pokebox', BANCO);
+  const existe = docker('exec', container, 'psql', '-U', 'pokebox', '-d', 'postgres', '-tAc',
+    `SELECT 1 FROM pg_database WHERE datname = '${BANCO}'`) === '1';
+  if (!existe) {
+    console.log(`Criando o banco ${BANCO}...`);
+    docker('exec', container, 'createdb', '-U', 'pokebox', BANCO);
+  }
+  return `postgres://pokebox:pokebox@localhost:5432/${BANCO}`;
 }
 
+let url = process.env.DATABASE_URL_TESTE;
+if (url) {
+  console.log('Usando o banco de DATABASE_URL_TESTE (sem Docker).');
+} else {
+  try {
+    url = prepararBancoNoDocker();
+  } catch (erro) {
+    console.error('Não deu para preparar o Postgres pelo Docker. Abra o Docker Desktop, '
+      + 'ou defina DATABASE_URL_TESTE apontando para um banco terminado em _teste.');
+    console.error(erro.message);
+    process.exit(1);
+  }
+}
 
-// Define a variável DATABASE_URL_TESTE
+// --cobertura: roda unitários + integração juntos, gera coverage/lcov.info e confere as metas
+// (test/metas-de-cobertura.js). Sem ele, só a integração.
+const cobertura = process.argv.includes('--cobertura');
+// Argumentos extras vão para o node --test (ex.: npm run test:int -- --test-name-pattern=trocas)
+const extras = process.argv.slice(2).filter((arg) => arg !== '--cobertura');
+const back = path.join(__dirname, '..');
+const LCOV = path.join(back, 'coverage', 'lcov.info');
 
+const opcoesCobertura = [
+  '--experimental-test-coverage',
+  '--test-coverage-include=src/**',
+  '--test-reporter=spec', '--test-reporter-destination=stdout',
+  '--test-reporter=lcov', `--test-reporter-destination=${LCOV}`,
+];
+if (cobertura) fs.mkdirSync(path.dirname(LCOV), { recursive: true });
 
-const env = {
-  ...process.env,
-  DATABASE_URL_TESTE: process.env.DATABASE_URL_TESTE || `postgres://pokebox:pokebox@localhost:5432/${BANCO}`,
-};
+// Um arquivo por vez: todos usam o mesmo banco e cada um o recria do zero ao começar
+const resultado = spawnSync(process.execPath, [
+  '--test', '--test-concurrency=1',
+  ...(cobertura ? opcoesCobertura : []),
+  ...extras,
+  ...(cobertura ? ['test/unit/**/*.test.js'] : []),
+  'test/integracao/**/*.test.js',
+], { cwd: back, env: { ...process.env, DATABASE_URL_TESTE: url }, stdio: 'inherit' });
 
-
-// Roda os testes
-
-
-const resultado = spawnSync(process.execPath,
-  ['--env-file=.env', '--test', 'test/integracao.test.js'],
-  { cwd: path.join(__dirname, '..'), env, stdio: 'inherit' });
-process.exit(resultado.status ?? 1);
+if (resultado.status !== 0 || !cobertura) process.exit(resultado.status ?? 1);
+process.exit(conferirCobertura(LCOV) ? 0 : 1);
