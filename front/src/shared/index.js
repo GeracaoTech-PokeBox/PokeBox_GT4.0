@@ -5,6 +5,7 @@
 export { default as Avatar } from './components/Avatar';
 export { default as BarraProgresso } from './components/BarraProgresso';
 export { default as CartaPokemon } from './components/CartaPokemon';
+export { default as Confirmacao } from './components/Confirmacao';
 export { default as Coracoes } from './components/Coracoes';
 export { BotoesGolpes, ListaGolpes } from './components/Golpes';
 export { default as Layout } from './components/Layout';
@@ -14,10 +15,12 @@ export { default as Tutorial } from './components/Tutorial';
 export { default as VantagensTipo } from './components/VantagensTipo';
 
 // Hooks
-export { useAcao } from './hooks/index_hooks';
+export { useAcao, useCaminho } from './hooks/index_hooks';
 
 // Regras, constantes e contratos de dados
-export { temTimeCompleto } from './models/index_models';
+export {
+  menuLiberado, semInicial, telaLiberada, temTimeCompleto,
+} from './models/index_models';
 export {
   GERACOES, IV_TOTAL_MAXIMO, TAMANHO_TIME, TIPOS,
 } from './constants/index_constants';

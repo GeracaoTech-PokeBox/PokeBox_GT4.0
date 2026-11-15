@@ -20,6 +20,10 @@ function tratarErros(erro, req, res, next) {
     res.status(400).json({ erro: 'JSON inválido.' });
     return;
   }
+  if (erro.type === 'entity.too.large') {
+    res.status(413).json({ erro: 'Dados grandes demais.' });
+    return;
+  }
   // Banco fora do ar, DATABASE_URL faltando/errada ou db.sql não aplicado
   if (ERROS_BANCO.has(erro.code)) {
     // ECONNREFUSED chega como AggregateError, com a mensagem vazia

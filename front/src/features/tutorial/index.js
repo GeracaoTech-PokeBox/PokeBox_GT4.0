@@ -2,3 +2,4 @@
 export { default as TutorialProvider } from './context/index_provider';
 export { default as TutorialGeral } from './components/TutorialGeral';
 export { useTutorialCuidados } from './hooks/index_hooks';
+export { useTutorial } from './context/index_context';

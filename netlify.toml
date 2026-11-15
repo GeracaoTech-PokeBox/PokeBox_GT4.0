@@ -9,3 +9,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# O front usa rotas na URL (/loja, /batalhas/12...): qualquer caminho que não seja um arquivo
+# devolve o index.html, senão recarregar a página numa tela dá 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

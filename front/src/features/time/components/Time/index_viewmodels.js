@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { filtrarEOrdenar, tiposDaColecao, useFiltrosColecao } from '@/features/colecao';
 import * as api from '../../services/index_services';
 import { useSessao } from '@/features/auth';
@@ -20,8 +20,12 @@ const timeAtual = (pokemons) => pokemons
   .sort((a, b) => a.posicaoTime - b.posicaoTime)
   .map((p) => p.id);
 
-/** Montagem do time: escolher, reordenar e salvar os 3 Pokémon que batalham */
-export function useTimeViewModel() {
+/**
+ * Montagem do time: escolher, reordenar e salvar os 3 Pokémon que batalham
+ * @param {(alterado: boolean) => void} onAlterado avisa o App se há mudanças não salvas,
+ *   para ele perguntar antes de trocar de tela
+ */
+export function useTimeViewModel(onAlterado) {
   const { usuario, executarEAtualizar } = useSessao();
   const { pokemons } = usuario;
   // Ids na ordem escolhida (o primeiro abre a batalha)
@@ -30,6 +34,21 @@ export function useTimeViewModel() {
   const [erro, setErro] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [filtros, mudarFiltros] = useFiltrosColecao(CHAVE_FILTROS);
+
+  // Escolha ou ordem diferente da salva
+  const alterado = selecionados.join() !== timeAtual(pokemons).join();
+
+  useEffect(() => {
+    onAlterado(alterado);
+    if (!alterado) return undefined;
+    // Recarregar ou fechar a aba: o navegador mostra o aviso dele ("Sair do site?")
+    const avisar = (e) => e.preventDefault();
+    window.addEventListener('beforeunload', avisar);
+    return () => {
+      window.removeEventListener('beforeunload', avisar);
+      onAlterado(false);
+    };
+  }, [alterado, onAlterado]);
 
   const porId = new Map(pokemons.map((p) => [p.id, p]));
   // "Só do time" olha o time sendo montado na tela, mesmo antes de salvar
@@ -47,15 +66,19 @@ export function useTimeViewModel() {
     });
   };
 
-  const mover = (indice, direcao) => {
+  // Troca duas vagas de lugar. Soltar numa vaga vazia leva o Pokémon para a última ocupada.
+  const trocar = (origem, destino) => {
     setAviso(null);
     setSelecionados((atual) => {
       const novo = [...atual];
-      const destino = indice + direcao;
-      [novo[indice], novo[destino]] = [novo[destino], novo[indice]];
+      const alvo = Math.min(destino, novo.length - 1);
+      [novo[origem], novo[alvo]] = [novo[alvo], novo[origem]];
       return novo;
     });
   };
+
+  // [DRY] Os botões ◀ ▶ são a mesma troca, com a vaga ao lado
+  const mover = (indice, direcao) => trocar(indice, indice + direcao);
 
   const salvar = async () => {
     setSalvando(true);
@@ -78,7 +101,8 @@ export function useTimeViewModel() {
     selecionados,
     faltam: TAMANHO_TIME - selecionados.length,
     cheio: selecionados.length >= TAMANHO_TIME,
-    podeSalvar: selecionados.length === TAMANHO_TIME && selecionados.join() !== timeAtual(pokemons).join() && !salvando,
+    podeSalvar: selecionados.length === TAMANHO_TIME && alterado && !salvando,
+    alterado,
     salvando,
     erro,
     aviso,
@@ -88,6 +112,7 @@ export function useTimeViewModel() {
     visiveis: filtrarEOrdenar(comPosicaoAtual, filtros),
     alternar,
     mover,
+    trocar,
     salvar,
   };
 }

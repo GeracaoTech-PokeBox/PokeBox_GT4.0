@@ -5,6 +5,7 @@
   --pokemon-card-blue: #3d7dca;
   --pokemon-card-yellow: #ffcb05;
 
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -238,6 +239,28 @@
 
 .pokemon-card-detalhes[open] summary {
   background: #ffe27a;
+}
+
+/* Aberto, cobre o card inteiro e rola por dentro: o card não cresce, e a grade (todas as linhas com a
+ * altura do card mais alto) não estica junto. Clicar no botão de novo fecha. */
+.pokemon-card-detalhes[open] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  overflow-y: auto;
+  background: #fff;
+}
+
+.pokemon-card-detalhes[open] summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-top: 12px;
+}
+
+.pokemon-card-detalhes[open] summary::before {
+  content: '✕ ';
 }
 
 .pokemon-card-detalhes .pokemon-card-extras {
