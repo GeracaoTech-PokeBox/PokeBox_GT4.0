@@ -17,7 +17,9 @@ export { default as VantagensTipo } from './components/VantagensTipo';
 export { useAcao, useCaminho } from './hooks/index_hooks';
 
 // Regras, constantes e contratos de dados
-export { temTimeCompleto } from './models/index_models';
+export {
+  menuLiberado, telaLiberada, temTimeCompleto,
+} from './models/index_models';
 export {
   GERACOES, IV_TOTAL_MAXIMO, TAMANHO_TIME, TIPOS,
 } from './constants/index_constants';

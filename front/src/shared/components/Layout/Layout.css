@@ -94,6 +94,25 @@
   box-shadow: 0 1px 0 var(--poke-ink);
 }
 
+/* Bloqueado: cores sólidas, não opacity. Com transparência, o vermelho da barra vazava no botão
+ * e o destaque do tutorial (fundo amarelo) virava um laranja desbotado. */
+.layout-menu-item:disabled {
+  color: #6b6b7b;
+  background: #d4d4dc;
+  cursor: not-allowed;
+}
+
+/* O tutorial abre telas bloqueadas para apresentá-las: o item da tela atual fica com a cor normal */
+.layout-menu-item:disabled[aria-current='page'] {
+  color: var(--poke-navy);
+  background: var(--poke-yellow);
+}
+
+.layout-menu-item:disabled:active {
+  transform: none;
+  box-shadow: 0 3px 0 var(--poke-ink);
+}
+
 .layout-menu-item:focus-visible,
 .layout-sair:focus-visible {
   outline: 3px solid #fff;
