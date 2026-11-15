@@ -52,6 +52,12 @@ A integração fica em `test/integracao`, um arquivo por parte do jogo (contas, 
 - `test/helpers/fabricas.js` cria treinadores (`criarTreinador`), cards (`criarPokemon`) e times (`criarTime`) direto pelas funções do jogo. A ação que está sendo testada continua passando pela API.
 - `test/helpers/pokeapi-sintetica.js` responde no lugar da PokeAPI, com dados fixos para cada espécie e golpe. Assim a integração não depende de rede. As famílias de Bulbasaur, Charmander e Squirtle usam nomes, status e níveis de evolução reais.
 
+Três arquivos cobrem o que não aparece num fluxo normal:
+
+- `concorrencia.test.js` dispara pedidos ao mesmo tempo (cliques duplos, dois compradores no mesmo anúncio, agendador e jogada juntos) e confere que só um passa, que nada é pago duas vezes e que o total de Pokécoins não muda.
+- `autorizacao.test.js` faz um treinador tentar agir sobre Pokémon, anúncios, propostas, batalhas e encontros de outro, rota por rota. Cada tentativa precisa dar 400 e deixar o banco igual, conferido com `fotografar()`, que lê todas as linhas de todas as tabelas.
+- `atomicidade.test.js` força uma falha no meio de compras, trocas, recompensas e revanches com um trigger temporário do Postgres (`test/helpers/falhas.js`) e confere que a transação desfez tudo.
+
 O `test:int` sobe o Postgres do compose (se ele não estiver rodando), cria o banco `pokebox_teste` e roda os arquivos um por vez, porque todos usam o mesmo banco. Com `DATABASE_URL_TESTE` definida, ele usa esse banco direto e não precisa de Docker. O nome do banco precisa terminar em `_teste`, porque o teste apaga e recria o schema.
 
 No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.yml) roda os unitários (com cobertura) e a integração (com um Postgres 16 do próprio Actions) em todo PR para `develop` ou `main` e em todo push nessas duas branches, quando a mudança mexe em `back/` ou `db/`.
