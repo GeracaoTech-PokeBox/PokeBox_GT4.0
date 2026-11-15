@@ -9,12 +9,11 @@ function GeracaoTech() {
         Também o que já tinhamos conhecimento prévio para desenvolver esse projeto:  front-end com React, back-end com Node, banco de dados.  
       </p>
       <p>
-        Agradecimentos especiais ao professor Abelardo por sua paciência e pelas revisões, e aos colegas de
-        turma pelas trocas de ideias ao longo do caminho. Cada critério da aba
-        {' '}
-        <strong>Critérios de avaliação</strong>
-        {' '}
-        é algo que aprendemos durante o curso e aplicamos neste projeto e agora, tivemos o prazer de compartilhar com vocês.
+        Deixamos um agradecimento especial ao professor Abelardo pela paciência e 
+        pelas revisões, bem como aos colegas de turma pelas valiosas trocas de 
+        ideias ao longo dessa jornada. O resultado reflete os conhecimentos adquiridos 
+        durante o curso, que aplicamos neste projeto e agora temos o prazer de 
+        compartilhar com vocês.
       </p>
     </section>
   );

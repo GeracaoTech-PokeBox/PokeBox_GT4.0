@@ -11,10 +11,10 @@ function LojaPokebolas() {
   } = useLojaPokebolas();
 
   return (
-    <div className="loja-pokebolas jogo-painel">
+    // Fica dentro do card "Pokébolas" aberto da Loja, que já tem a moldura e o título
+    <div className="loja-pokebolas">
       <div className="loja-pokebola" aria-hidden="true" data-girando={comprando !== null} />
       <div className="loja-pokebolas-info">
-        <h2 className="loja-nome">Pokébolas</h2>
         <p className="loja-intervalo">
           {`${PRECO_POKEBOLA} Pokécoins cada. Use na História para tentar capturar os Pokémon que você derrotar (15% de chance). `}
           <strong>{`Você tem ${pokebolas}.`}</strong>

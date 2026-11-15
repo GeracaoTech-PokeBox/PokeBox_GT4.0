@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { flexionar } from '../../utils/index_utils';
+import { semInicial, telaLiberada } from '../../models/index_models';
+import { TAMANHO_TIME } from '../../constants/index_constants';
 import './Layout.css';
 
 // [SOLID-O] O menu é montado a partir desta lista: um item novo não muda o JSX do Layout.
@@ -46,18 +48,29 @@ function Layout({
 
           {/* data-tutorial: os passos do tutorial apontam a seta para estes elementos */}
           <nav ref={menuRef} className="layout-menu" aria-label="Menu" data-tutorial="menu">
-            {MENU.map(({ tela, nome }) => (
-              <button
-                key={tela}
-                type="button"
-                className="layout-menu-item"
-                data-tutorial={tela}
-                aria-current={telaAtual === tela ? 'page' : undefined}
-                onClick={() => onNavegar(tela)}
-              >
-                {nome}
-              </button>
-            ))}
+            {MENU.map(({ tela, nome }) => {
+              // Começo do jogo: nada abre antes do inicial; depois, só Pokédex, Loja e Sobre nós até
+              // ter Pokémon para montar o time
+              const bloqueada = !telaLiberada(tela, usuario.pokemons);
+              const motivo = semInicial(usuario.pokemons)
+                ? 'Escolha seu Pokémon inicial primeiro'
+                : `Libera quando você tiver ${TAMANHO_TIME} Pokémon (o inicial + 2 da Loja)`;
+              return (
+                <button
+                  key={tela}
+                  type="button"
+                  className="layout-menu-item"
+                  data-tutorial={tela}
+                  aria-current={telaAtual === tela ? 'page' : undefined}
+                  disabled={bloqueada}
+                  title={bloqueada ? motivo : undefined}
+                  onClick={() => onNavegar(tela)}
+                >
+                  {bloqueada && <span aria-hidden="true">🔒 </span>}
+                  {nome}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="layout-usuario" data-tutorial="saldo">
@@ -94,6 +107,7 @@ Layout.propTypes = {
     login: PropTypes.string.isRequired,
     pokecoins: PropTypes.number.isRequired,
     pokebolas: PropTypes.number,
+    pokemons: PropTypes.arrayOf(PropTypes.object).isRequired,
   }).isRequired,
   telaAtual: PropTypes.string.isRequired,
   onNavegar: PropTypes.func.isRequired,

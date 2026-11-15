@@ -23,8 +23,8 @@ export const PASSOS_TUTORIAL = [
     alvo: 'menu',
     titulo: 'A interface',
     texto:
-      'Este é o menu: daqui você chega em todas as áreas do jogo. '
-      + 'Agora que você já escolheu seu parceiro, siga para a loja.',
+      'Este é o menu: daqui você chega em todas as áreas do jogo. As que têm 🔒 liberam quando você '
+      + 'tiver 3 Pokémon. Agora que você já escolheu seu parceiro, siga para a loja.',
   },
   {
     tela: 'meusPokemons',
@@ -95,9 +95,12 @@ export const PASSOS_TUTORIAL = [
     texto: 'Compre, venda e troque Pokémon com outros treinadores.',
   },
   {
-    tela: 'meusPokemons',
+    // Termina na Loja: até ter 3 Pokémon, o menu só libera Pokédex, Loja e Sobre nós
+    tela: 'loja',
     titulo: 'Tudo pronto!',
-    texto: 'Agora é com você: compre seus Pokémon, monte seu time e comece a jornada. Bom jogo!',
+    texto:
+      'Agora é com você: compre 2 Pokémon aqui na Loja para completar 3 e liberar o resto do menu. '
+      + 'Depois, monte seu time e comece a jornada. Bom jogo!',
     botao: 'Começar a jogar',
   },
 ];

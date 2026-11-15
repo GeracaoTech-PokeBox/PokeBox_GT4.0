@@ -99,7 +99,7 @@ function Pokemons() {
       />
 
       {vm.totalFiltrados > 0 ? (
-        <ul className="pokemons-grade">
+        <ul className="pokemons-grade jogo-grade-cartas">
           {vm.visiveis.map(({ id, name, detalhes }) => (
             <li key={id}>
               {detalhes ? (

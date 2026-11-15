@@ -94,6 +94,25 @@
   box-shadow: 0 1px 0 var(--poke-ink);
 }
 
+/* Bloqueado: cores sólidas, não opacity. Com transparência, o vermelho da barra vazava no botão
+ * e o destaque do tutorial (fundo amarelo) virava um laranja desbotado. */
+.layout-menu-item:disabled {
+  color: #6b6b7b;
+  background: #d4d4dc;
+  cursor: not-allowed;
+}
+
+/* O tutorial abre telas bloqueadas para apresentá-las: o item da tela atual fica com a cor normal */
+.layout-menu-item:disabled[aria-current='page'] {
+  color: var(--poke-navy);
+  background: var(--poke-yellow);
+}
+
+.layout-menu-item:disabled:active {
+  transform: none;
+  box-shadow: 0 3px 0 var(--poke-ink);
+}
+
 .layout-menu-item:focus-visible,
 .layout-sair:focus-visible {
   outline: 3px solid #fff;
@@ -227,6 +246,29 @@
   background: #fff6c8;
   border: 2px solid #c99a00;
   border-radius: 12px;
+}
+
+/* Grade de cards de Pokémon, a mesma em todas as telas (Pokédex, Meus Pokémon, Time, Loja):
+ * mesma largura de coluna, e todas as linhas com a altura do card mais alto da grade.
+ * O card estica até o fim da célula; cada card empurra o rodapé (botões) para baixo. */
+.jogo-grade-cartas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  grid-auto-rows: 1fr;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.jogo-grade-cartas > li {
+  display: flex;
+  min-width: 0;
+}
+
+.jogo-grade-cartas > li > * {
+  flex: 1;
+  min-width: 0;
 }
 
 .jogo-painel {

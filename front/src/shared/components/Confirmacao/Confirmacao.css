@@ -1,0 +1,34 @@
+.confirmacao {
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 24px));
+  padding: 20px;
+  background: #fafafa;
+  border: 3px solid var(--poke-ink);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+.confirmacao::backdrop {
+  background: rgba(0, 20, 50, 0.6);
+}
+
+.confirmacao-titulo {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--poke-navy);
+}
+
+.confirmacao-texto {
+  margin: 0;
+  color: #444;
+  line-height: 1.45;
+}
+
+.confirmacao-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
