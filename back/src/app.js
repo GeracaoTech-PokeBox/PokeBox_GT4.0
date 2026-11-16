@@ -14,6 +14,16 @@ const app = express();
 // (apontado pelo OWASP ZAP em testes_de_seguranca/)
 app.disable('x-powered-by');
 
+// Cabeçalhos de segurança em todas as respostas (também apontados pelo ZAP):
+// - nosniff: o navegador não tenta "adivinhar" o tipo do conteúdo (um JSON nunca vira script)
+// - Cross-Origin-Resource-Policy: outro site não embute as respostas da API como imagem/script.
+//   Não afeta o front chamando a API: fetch com CORS não passa por essa regra.
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Cross-Origin-Resource-Policy', 'same-origin');
+  next();
+});
+
 // No Render as requisições chegam pelo proxy dele, então sem isto req.ip seria o IP do
 // proxy para todo mundo, e o limite de tentativas de login/cadastro (rotas.js) valeria
 // para a turma inteira junta. Com isto o Express usa o IP real do X-Forwarded-For.

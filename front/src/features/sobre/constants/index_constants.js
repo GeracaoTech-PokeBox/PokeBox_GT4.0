@@ -219,7 +219,7 @@ export const ESTRUTURAS = [
         ],
       },
       {
-        titulo: 'Resultado do primeiro scan (15/11/2026)',
+        titulo: 'Resultado do primeiro scan (15/11/2026, 20:29)',
         itens: [
           { caminho: 'Risco alto', descricao: 'Nenhum alerta' },
           { caminho: 'A03 Injeção', descricao: 'Sem falhas: SQL injection, XSS, injeção de comandos e de templates foram testados na API' },
@@ -229,10 +229,20 @@ export const ESTRUTURAS = [
         ],
       },
       {
-        titulo: 'Resultado do segundo scan (16/11/2026)',
+        titulo: 'Resultado do segundo scan (16/11/2026, 08:24)',
         itens: [
           { caminho: 'A01 Controle de acesso', descricao: 'Corrigido: o CORS só libera o endereço do front (variável CORS_ORIGENS) e o cabeçalho X-Powered-By não é mais enviado. O ZAP passou a aprovar os dois testes' },
           { caminho: 'A04 / A05 Configuração', descricao: 'Continua: faltam cabeçalhos de segurança (X-Content-Type-Options, Cross-Origin-Resource-Policy)' },
+          { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
+        ],
+      },
+      {
+        titulo: 'Resultado do terceiro scan (16/11/2026, 09:58)',
+        itens: [
+          { caminho: 'Risco alto', descricao: 'Nenhum alerta' },
+          { caminho: 'A01 Controle de acesso', descricao: 'Sem alertas: as correções de CORS e do X-Powered-By continuam valendo' },
+          { caminho: 'A05 Configuração', descricao: 'Corrigido: X-Content-Type-Options e Cross-Origin-Resource-Policy agora são enviados pela API e pelo front. O ZAP passou a aprovar os dois testes' },
+          { caminho: 'A04 / A05 Configuração', descricao: 'Continua no front: faltam CSP, anti-clickjacking, Permissions-Policy, Cross-Origin-Opener-Policy e Cross-Origin-Embedder-Policy' },
           { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
         ],
       },

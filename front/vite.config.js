@@ -28,6 +28,11 @@ export default defineConfig(({ command, mode }) => {
     server: {
       // Escuta na rede local para abrir pelo celular (http://<ip-do-pc>:5173)
       host: true,
+      // Cabeçalhos de segurança apontados pelo OWASP ZAP (os mesmos do vercel.json e do netlify.toml)
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'Cross-Origin-Resource-Policy': 'same-origin',
+      },
       // O front chama /api no próprio Vite, que repassa para o back. Assim o
       // celular não tenta acessar "localhost:8080", que seria ele mesmo.
       proxy: {

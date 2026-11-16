@@ -16,3 +16,10 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Cabeçalhos de segurança apontados pelo OWASP ZAP (os mesmos do front/vercel.json e do Vite)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Cross-Origin-Resource-Policy = "same-origin"
