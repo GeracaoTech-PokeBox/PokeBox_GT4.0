@@ -3,6 +3,7 @@
 API REST do PokeBox em **Node.js + Express 5 + PostgreSQL** (SQL escrito à mão, sem ORM). Os dados de espécies e golpes vêm da [PokeAPI](https://pokeapi.co) e ficam guardados no banco como cache.
 
 > Arquitetura, regras do jogo e todos os endpoints: [docs/BACKEND.md](docs/BACKEND.md).
+> Documentação interativa das rotas (Swagger UI): `/api/docs` no back rodando, por exemplo http://localhost:8080/api/docs. A especificação fica em [docs/openapi.yaml](docs/openapi.yaml).
 
 ## Rodando
 
@@ -82,8 +83,9 @@ MVC com uma pasta por feature. Detalhes e regras de importação em [docs/BACKEN
 
 ```
 server.js            # Entrada: .env, migrações, HTTP e agendador de batalhas
-src/app.js           # CORS, /api/saude, proxy da PokeAPI, monta /api
+src/app.js           # CORS, /api/saude, proxy da PokeAPI, /api/docs, monta /api
 src/rotas.js         # Monta as rotas de cada feature e o tratamento de erros
+src/documentacao.js  # Swagger UI em /api/docs, a partir de docs/openapi.yaml
 src/features/<nome>/ # Uma pasta por parte do jogo: rotas, controller, service, model, view
 src/nucleo/          # Regras puras usadas por várias features: motor de batalha, tipos, status/XP/afeto
 src/banco/           # Pool do Postgres + transacao(), migrações, carteira de Pokécoins
@@ -93,7 +95,7 @@ src/compartilhado/   # config.js (balanceamento), erros, validação, sorteio, P
 ## Onde mexer
 
 - **Preço, prazo, chance ou recompensa:** `src/compartilhado/config.js`
-- **Novo endpoint:** na feature, em `src/features/<nome>/`: a rota em `<nome>.rotas.js`, a validação no controller e a regra no service (SQL novo vai no model)
+- **Novo endpoint:** na feature, em `src/features/<nome>/`: a rota em `<nome>.rotas.js`, a validação no controller e a regra no service (SQL novo vai no model). Documente a rota em `docs/openapi.yaml`: o `test/unit/documentacao.test.js` falha se ela ficar de fora
 - **Nova feature:** copie a estrutura de uma pequena (ex.: `features/time`) e monte as rotas dela em `src/rotas.js`
 - **Banco:** nova migração idempotente em `db/migracoes/` **e** atualização de `db/db.sql`
 

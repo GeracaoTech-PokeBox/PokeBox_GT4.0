@@ -25,9 +25,11 @@ back/
 ├── server.js                  # Ponto de entrada: lê o .env, aplica as migrações, sobe o HTTP e o agendador
 ├── .env.example               # Modelo das variáveis de ambiente (copie para .env; o .env não vai para o Git)
 ├── Dockerfile
+├── docs/                      # Este arquivo e o openapi.yaml (especificação das rotas, servida em /api/docs)
 ├── src/
-│   ├── app.js                 # App Express: CORS, /api/saude, proxy da PokeAPI e montagem de /api
+│   ├── app.js                 # App Express: CORS, /api/saude, proxy da PokeAPI, /api/docs e montagem de /api
 │   ├── rotas.js               # Monta as rotas de cada feature, o express.json e o tratamento de erros
+│   ├── documentacao.js        # Swagger UI em /api/docs, a partir de docs/openapi.yaml
 │   ├── features/              # Uma pasta por parte do jogo (ver "Uma feature por dentro")
 │   │   ├── contas/            # Cadastro, login, senha, sessão e o middleware autenticar
 │   │   ├── pokemons/          # Cards: mint, coleção (/eu), XP, evolução, cuidados; o card do front (view)
@@ -58,7 +60,7 @@ back/
 │       └── middlewares/       # limitarTentativas (rate limit) e tratarErros
 └── test/
     ├── rodar.js               # Sobe o Postgres no Docker, cria o banco pokebox_teste e roda os testes
-    ├── unit/                  # Regras puras, motor, tipos, proxy e erros de banco (sem banco real)
+    ├── unit/                  # Regras puras, motor, tipos, proxy, documentação e erros de banco (sem banco real)
     ├── integracao/            # Um arquivo por parte do jogo, via HTTP com Postgres de verdade
     └── helpers/               # Ambiente de teste, fábricas, PokeAPI falsa, RNG fixo
 ```
@@ -123,6 +125,7 @@ Mais dois pontos:
 - **CORS** aceita qualquer origem (`*`). Isso é seguro porque a autenticação vai no cabeçalho `Authorization`, e não em cookie. `OPTIONS` responde 204.
 - **`GET /api/saude`**: `{ ok: true }` sem tocar no banco. Serve de health check do Render e para "acordar" o back no plano gratuito.
 - **`GET /api/pokeapi/<recurso>[/<id>]`**: proxy para a PokeAPI (`features/especies/especies.proxy.js`). Aceita só caminhos `^/[a-z0-9-]+(/[a-z0-9-]+)?/?$` (sem diferenciar maiúsculas) e repassa só os parâmetros `limit`/`offset`. Caminho fora do padrão recebe 400, outro método recebe 405 e PokeAPI inacessível recebe 502. Fica montado direto no app, fora do roteador de `/api`: não passa pelo `express.json` nem pelo tratamento de erros do jogo.
+- **`GET /api/docs`**: documentação interativa das rotas (Swagger UI, `src/documentacao.js`), gerada a partir de `docs/openapi.yaml`. A especificação crua fica em `/api/docs/openapi.json`, para importar no Postman ou no Insomnia. Não precisa de login nem de banco. O YAML é lido uma vez, ao subir: se estiver quebrado, o back não sobe.
 - **`/api/*`**: router do jogo (`rotas.js`).
 
 ### `rotas.js` e padrões das rotas
@@ -322,7 +325,7 @@ capturado/fugiu/ignorado ─► refazer (25 Pokécoins) ─► revanche contra u
 
 ## 8. Referência rápida de endpoints
 
-Todos ficam sob `/api`. 🔒 = exige `Authorization: Bearer <token>`.
+Todos ficam sob `/api`. 🔒 = exige `Authorization: Bearer <token>`. Corpo, parâmetros e formato da resposta de cada rota estão em `/api/docs` (Swagger UI, a partir de `docs/openapi.yaml`); o `test/unit/documentacao.test.js` confere que toda rota do `rotas.js` está documentada lá, com o cadeado certo.
 
 | Método | Rota | Área |
 |---|---|---|
@@ -407,7 +410,7 @@ npm run test:cobertura  # os dois juntos, com as metas de cobertura de test/meta
 | Mudar dano, crítico ou turnos da batalha | `src/nucleo/motor.js` |
 | Mudar a tabela de tipos | `src/nucleo/tipos.js` |
 | Mudar o que o card mostra no front | `src/features/pokemons/pokemons.view.js` |
-| Criar um endpoint numa feature | Em `src/features/<nome>/`: a rota em `<nome>.rotas.js`, a validação no controller, a regra no service e o SQL novo no model |
+| Criar um endpoint numa feature | Em `src/features/<nome>/`: a rota em `<nome>.rotas.js`, a validação no controller, a regra no service e o SQL novo no model. Documente a rota em `docs/openapi.yaml` |
 | Criar uma feature nova | Copiar a estrutura de uma pequena (ex.: `features/time`), expor o que for preciso no `index.js` e montar as rotas em `src/rotas.js` |
 | Usar algo de outra feature | Importar pelo `index.js` dela (e exportar lá, se ainda não estiver) |
 | Mexer em Pokécoins | `src/banco/carteira.js` (`creditar`, `debitar`): saldo e extrato andam juntos |

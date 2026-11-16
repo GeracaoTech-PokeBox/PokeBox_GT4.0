@@ -2,6 +2,7 @@
 const express = require('express');
 const rotas = require('./rotas');
 const { proxyPokeApi } = require('./features/especies');
+const { documentacao } = require('./documentacao');
 
 const app = express();
 
@@ -32,6 +33,9 @@ app.get('/api/saude', (req, res) => {
 
 // Repassa GET /api/pokeapi/<caminho> para https://pokeapi.co/api/v2/<caminho> (features/especies)
 app.use('/api/pokeapi', proxyPokeApi);
+
+// Documentação das rotas (Swagger UI), a partir de docs/openapi.yaml
+app.use('/api/docs', documentacao);
 
 // Endpoints do jogo (precisam do banco)
 app.use('/api', rotas);
