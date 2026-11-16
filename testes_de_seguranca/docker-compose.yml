@@ -1,0 +1,65 @@
+# Ambiente isolado para os testes de segurança com o OWASP ZAP.
+# Sobe uma cópia do jogo (banco, back e front) só para ser atacada: o scan ativo do ZAP manda
+# milhares de requisições maliciosas e criaria lixo no banco de desenvolvimento. Aqui o banco é
+# descartável (tmpfs: some quando o container para) e nenhuma porta é aberta na sua máquina, então
+# dá para rodar com o docker-compose principal no ar.
+# Não suba à mão: use "npm run seguranca" (rodar.js), que também cria o usuário de teste e o token.
+name: pokebox_seguranca
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: pokebox
+      POSTGRES_PASSWORD: pokebox
+      POSTGRES_DB: pokebox
+    volumes:
+      - ../db/db.sql:/docker-entrypoint-initdb.d/01-db.sql:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U pokebox -d pokebox"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  back:
+    build: ../back
+    environment:
+      DATABASE_URL: postgres://pokebox:pokebox@db:5432/pokebox
+      PORT: 8080
+    volumes:
+      - ../db/migracoes:/db/migracoes:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      # Qualquer resposta abaixo de 500 (ex.: 401 sem token) quer dizer que o back está de pé
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/eu').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  front:
+    build: ../front
+    environment:
+      BACK_URL: http://back:8080
+      # O Vite só atende o próprio host; o ZAP acessa pelo nome "front" da rede do Docker
+      __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: front
+    depends_on:
+      back:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5174/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  # Só roda sob demanda (docker compose run), pelo rodar.js
+  zap:
+    image: zaproxy/zap-stable
+    profiles: [zap]
+    depends_on:
+      front:
+        condition: service_healthy
