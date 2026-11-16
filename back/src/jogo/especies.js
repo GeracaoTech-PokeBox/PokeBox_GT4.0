@@ -1,12 +1,19 @@
 // Cache local da Pokédex: cada espécie é buscada na PokeAPI uma única vez e salva na tabela especies
 const { pool } = require('../db');
 const config = require('./config');
+const { ErroPokeApi } = require('./erros');
 
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 
 async function buscarJson(url) {
-  const resposta = await fetch(url);
-  if (!resposta.ok) throw new Error(`PokeAPI respondeu ${resposta.status} para ${url}`);
+  let resposta;
+  try {
+    resposta = await fetch(url);
+  } catch (erro) {
+    // Sem rede, DNS ou certificado recusado (ex.: SELF_SIGNED_CERT_IN_CHAIN de antivírus/proxy)
+    throw new ErroPokeApi(`Sem resposta da PokeAPI para ${url} (${erro.cause?.code ?? erro.message})`, { cause: erro });
+  }
+  if (!resposta.ok) throw new ErroPokeApi(`PokeAPI respondeu ${resposta.status} para ${url}`);
   return resposta.json();
 }
 
@@ -110,4 +117,23 @@ async function garantirTaxaCaptura(id) {
   return especie.capture_rate;
 }
 
-module.exports = { garantirEspecie, garantirTaxaCaptura, mapearCadeia };
+/**
+ * Espécie aleatória entre as já salvas no banco, com id entre primeira e ultima (null se não há
+ * nenhuma). Plano B do sorteio quando a PokeAPI não responde: não precisa ir à internet.
+ */
+async function especieSalvaEntre(primeira, ultima, rng) {
+  const { rows: [{ total }] } = await pool.query(
+    'SELECT count(*)::int AS total FROM especies WHERE id BETWEEN $1 AND $2',
+    [primeira, ultima],
+  );
+  if (total === 0) return null;
+  const { rows } = await pool.query(
+    'SELECT * FROM especies WHERE id BETWEEN $1 AND $2 ORDER BY id OFFSET $3 LIMIT 1',
+    [primeira, ultima, Math.floor(rng() * total)],
+  );
+  return rows[0] ?? null;
+}
+
+module.exports = {
+  garantirEspecie, garantirTaxaCaptura, mapearCadeia, especieSalvaEntre,
+};

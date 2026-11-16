@@ -91,3 +91,47 @@ export function descreverEventos(eventos, estado) {
     }
   });
 }
+
+/**
+ * Quem começou a batalha: o primeiro Pokémon de cada time mais rápido ataca primeiro; empate de
+ * velocidade é no sorteio. Batalhas antigas não guardam estado.inicio: vale a regra da velocidade,
+ * e no empate não dá para saber quem ganhou o sorteio.
+ * @returns {{ lado: 0 | 1 | null, frase: string }}
+ */
+export function inicioDaBatalha(estado) {
+  const [a, b] = estado.lados.map((lado) => lado.pokemons[0]);
+  const nome = (pokemon) => formatarNome(pokemon.nome);
+  if (a.velocidade === b.velocidade) {
+    const lado = estado.inicio?.lado ?? null;
+    const quem = lado === null ? '' : ` ${nome(estado.lados[lado].pokemons[0])} começa.`;
+    return { lado, frase: `${nome(a)} e ${nome(b)} têm a mesma velocidade (${a.velocidade}): a vez foi sorteada.${quem}` };
+  }
+  const lado = a.velocidade > b.velocidade ? 0 : 1;
+  const [rapido, lento] = lado === 0 ? [a, b] : [b, a];
+  return {
+    lado,
+    frase: `${nome(rapido)} é mais rápido (Vel. ${rapido.velocidade} contra ${lento.velocidade}) e ataca primeiro!`,
+  };
+}
+
+/**
+ * Itens do mini-histórico dentro do campo, do mais antigo para o mais novo: quem começou (pela
+ * velocidade) e depois uma linha por jogada.
+ * @param {object} estado
+ * @param {{ lado: 0 | 1, eventos: object[] }[]} jogadas  na ordem em que aconteceram
+ * @param {0 | 1} meuLado
+ */
+export function itensDoFeed(estado, jogadas, meuLado) {
+  const inicio = inicioDaBatalha(estado);
+  return [
+    {
+      chave: 'inicio', inicio: true, meu: inicio.lado === meuLado, frases: [inicio.frase],
+    },
+    ...jogadas.map((jogada, i) => ({
+      chave: `jogada-${i}`,
+      inicio: false,
+      meu: jogada.lado === meuLado,
+      frases: descreverEventos(jogada.eventos, estado).filter(Boolean),
+    })),
+  ];
+}

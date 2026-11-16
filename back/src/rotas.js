@@ -8,7 +8,7 @@ const trocas = require('./jogo/trocas');
 const historia = require('./jogo/historia');
 const golpes = require('./jogo/golpes');
 const config = require('./jogo/config');
-const { ErroJogo } = require('./jogo/erros');
+const { ErroJogo, ErroPokeApi } = require('./jogo/erros');
 
 const LOGIN_MAXIMO = 20;
 const SENHA_MINIMA = 8;
@@ -362,6 +362,12 @@ router.post('/batalhas/:id/jogadas', autenticar, async (req, res) => {
 router.use((erro, req, res, next) => {
   if (erro instanceof ErroJogo) {
     res.status(400).json({ erro: erro.message });
+    return;
+  }
+  // PokeAPI fora do ar ou conexão recusada: passageiro, vale tentar de novo
+  if (erro instanceof ErroPokeApi) {
+    console.error(erro.message);
+    res.status(503).json({ erro: 'Não foi possível falar com a PokeAPI agora. Tente de novo em instantes.' });
     return;
   }
   if (erro.type === 'entity.parse.failed') {

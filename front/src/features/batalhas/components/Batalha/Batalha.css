@@ -14,6 +14,8 @@
 /* Campo: oponente em cima, você embaixo, num fundo de grama */
 .batalha-campo {
   display: grid;
+  /* Oponente em cima (as duas colunas); embaixo, seu Pokémon e, ao lado, o painel de ações */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   padding: 16px;
   background:
@@ -25,11 +27,16 @@
 
 .batalha-lado {
   display: grid;
+  grid-column: 2;
+  grid-row: 1;
   gap: 10px;
   justify-items: end;
 }
 
 .batalha-lado--meu {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
   justify-items: start;
 }
 
@@ -173,6 +180,144 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
+}
+
+/* Mini-histórico (FeedBatalha): no céu, à esquerda do oponente. As últimas 4 ações, a mais nova
+ * embaixo; a nova entra deslizando e a mais antiga encolhe até sumir. */
+.batalha-feed {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  gap: 6px;
+  width: min(100%, 440px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.batalha-feed-item {
+  padding: 6px 10px 6px 12px;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--poke-ink);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--poke-ink);
+  border-left: 6px solid var(--dex-red);
+  border-radius: 10px;
+  animation: batalha-feed-entrar 0.35s ease-out;
+}
+
+/* Suas ações em azul, as do oponente em vermelho; o início em amarelo */
+.batalha-feed-item[data-meu='true'] {
+  border-left-color: var(--poke-blue);
+}
+
+.batalha-feed-item[data-inicio='true'] {
+  background: #fff8d6;
+  border-left-color: var(--poke-yellow);
+}
+
+.batalha-feed-rotulo {
+  margin-right: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--poke-navy);
+  background: var(--poke-yellow);
+  border-radius: 999px;
+}
+
+/* A mais antiga, empurrada para fora: encolhe e some (fica no fim da animação) */
+.batalha-feed-item[data-saindo='true'] {
+  /* Ponto de partida para encolher a altura até 0 */
+  max-height: 80px;
+  animation: batalha-feed-sair 0.4s ease-in forwards;
+}
+
+@keyframes batalha-feed-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+
+@keyframes batalha-feed-sair {
+  to {
+    max-height: 0;
+    margin-bottom: -6px;
+    padding-block: 0;
+    border-width: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .batalha-feed-item {
+    animation: none;
+  }
+
+  .batalha-feed-item[data-saindo='true'] {
+    display: none;
+  }
+}
+
+/* Dentro do campo: no gramado, à direita do seu Pokémon */
+.batalha-campo > .batalha-acoes {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  justify-self: end;
+  justify-content: flex-end;
+  width: min(100%, 460px);
+  box-sizing: border-box;
+  margin-top: 0;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+/* Celular: tudo numa coluna, com as ações embaixo do seu Pokémon, ainda dentro do campo */
+@media (max-width: 720px) {
+  .batalha-campo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Ordem no celular: oponente, seu Pokémon, mini-histórico, ações */
+  .batalha-lado,
+  .batalha-lado--meu,
+  .batalha-feed,
+  .batalha-campo > .batalha-acoes {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .batalha-lado {
+    order: 1;
+  }
+
+  .batalha-lado--meu {
+    order: 2;
+  }
+
+  .batalha-feed {
+    order: 3;
+    width: 100%;
+  }
+
+  .batalha-campo > .batalha-acoes {
+    order: 4;
+  }
+
+  .batalha-campo > .batalha-acoes {
+    justify-self: stretch;
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .batalha-trocas {
