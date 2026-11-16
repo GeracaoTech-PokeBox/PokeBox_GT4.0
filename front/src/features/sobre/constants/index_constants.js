@@ -205,7 +205,7 @@ export const ESTRUTURAS = [
       {
         titulo: 'Os dois scans',
         itens: [
-          { caminho: 'Front (baseline)', descricao: 'Passivo: analisa as respostas sem atacar (cabeçalhos de segurança, cookies, vazamento de informação)' },
+          { caminho: 'Front (baseline)', descricao: 'Passivo, no build de produção: analisa as respostas sem atacar (cabeçalhos de segurança, cookies, vazamento de informação)' },
           { caminho: 'API (ativo)', descricao: 'Autenticado com um usuário de teste: tenta SQL injection, XSS, injeção de comandos e mais em cada rota' },
         ],
       },
@@ -243,6 +243,15 @@ export const ESTRUTURAS = [
           { caminho: 'A01 Controle de acesso', descricao: 'Sem alertas: as correções de CORS e do X-Powered-By continuam valendo' },
           { caminho: 'A05 Configuração', descricao: 'Corrigido: X-Content-Type-Options e Cross-Origin-Resource-Policy agora são enviados pela API e pelo front. O ZAP passou a aprovar os dois testes' },
           { caminho: 'A04 / A05 Configuração', descricao: 'Continua no front: faltam CSP, anti-clickjacking, Permissions-Policy, Cross-Origin-Opener-Policy e Cross-Origin-Embedder-Policy' },
+          { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
+        ],
+      },
+      {
+        titulo: 'Resultado do quarto scan (16/11/2026, 10:48)',
+        itens: [
+          { caminho: 'Risco alto e médio', descricao: 'Nenhum alerta' },
+          { caminho: 'OWASP Top 10', descricao: 'Nenhuma das 10 categorias com alerta' },
+          { caminho: 'A04 / A05 Configuração', descricao: 'Corrigido: CSP, anti-clickjacking (X-Frame-Options e frame-ancestors), Permissions-Policy, Cross-Origin-Opener-Policy e Cross-Origin-Embedder-Policy no front e na API. O ZAP passou a aprovar todos' },
           { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
         ],
       },

@@ -18,9 +18,16 @@ app.disable('x-powered-by');
 // - nosniff: o navegador não tenta "adivinhar" o tipo do conteúdo (um JSON nunca vira script)
 // - Cross-Origin-Resource-Policy: outro site não embute as respostas da API como imagem/script.
 //   Não afeta o front chamando a API: fetch com CORS não passa por essa regra.
+// - CSP e X-Frame-Options: a API só devolve JSON, então nada pode ser carregado a partir de uma
+//   resposta dela e nenhum site pode exibi-la num iframe (anti-clickjacking)
+// - COOP/COEP: isola a resposta de outras janelas e origens
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Cross-Origin-Resource-Policy', 'same-origin');
+  res.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Cross-Origin-Opener-Policy', 'same-origin');
+  res.set('Cross-Origin-Embedder-Policy', 'require-corp');
   next();
 });
 

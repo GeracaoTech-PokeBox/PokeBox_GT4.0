@@ -43,6 +43,9 @@ services:
 
   front:
     build: ../front
+    # Build de produção servido pelo vite preview, com os mesmos cabeçalhos de segurança da Vercel:
+    # o ZAP avalia o site como ele é publicado, não o servidor de desenvolvimento
+    command: ["sh", "-c", "npm run build && npx vite preview --port 5174"]
     environment:
       BACK_URL: http://back:8080
       # O Vite só atende o próprio host; o ZAP acessa pelo nome "front" da rede do Docker
@@ -54,7 +57,7 @@ services:
       test: ["CMD", "node", "-e", "fetch('http://localhost:5174/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 3s
       timeout: 5s
-      retries: 40
+      retries: 60
 
   # Só roda sob demanda (docker compose run), pelo rodar.js
   zap:

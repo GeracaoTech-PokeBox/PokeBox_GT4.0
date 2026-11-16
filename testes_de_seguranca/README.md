@@ -54,8 +54,8 @@ relatório JSON do ZAP passar a trazer a marcação `OWASP_2021_Axx`, ela tem pr
   Isso pede testes próprios de API, não um scanner.
 - **Rotas de conta** (`/auth/...`): têm limite de 20 tentativas a cada 15 min, então boa parte dos
   ataques recebe 429. Isso é a proteção funcionando, mas também reduz o que o scan consegue testar ali.
-- **Front em modo dev:** o front local roda no servidor de desenvolvimento do Vite. Cabeçalhos de
-  segurança apontados no front refletem esse servidor; em produção quem responde é a Vercel.
+- **Front em produção:** o scan ataca o build de produção (`vite preview`), com os mesmos
+  cabeçalhos de segurança do `front/vercel.json` e do `netlify.toml`. Se mudar um, mude os outros.
 - **Rota nova no back:** ela precisa entrar em `zap/openapi.yaml`, senão o scan ativo não a ataca.
 - `POST /auth/sair` fica de fora de propósito: o ZAP derrubaria a própria sessão no meio do scan.
 
