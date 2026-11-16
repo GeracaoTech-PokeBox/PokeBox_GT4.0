@@ -1,4 +1,4 @@
-// Regras da história. Espelham back/src/jogo/regras.js: se uma mudar lá, mude aqui também.
+// Regras da história. Espelham back/src/features/historia/historia.regras.js: se uma mudar lá, mude aqui também.
 
 // História (regras.forcaDoPonto): trilha 1 vai de 0,1x a 1,0x, trilha 2 de 1,1x a 2,0x...
 export const forcaDoPonto = (trilha, ponto, pontosPorTrilha) => ((trilha - 1) * pontosPorTrilha + ponto) / 10;

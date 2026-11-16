@@ -105,7 +105,7 @@ export const PASSOS_TUTORIAL = [
   },
 ];
 
-// Tutorial de cuidados da tela "Meus Pokémon". Mesmos valores de back/src/jogo/config.js
+// Tutorial de cuidados da tela "Meus Pokémon". Mesmos valores de back/src/compartilhado/config.js
 // (CUIDADOS, DESGASTE_POR_HORA, BONUS_STATUS_POR_CORACAO, RECOMPENSA_POR_CORACAO, CHANCE_RESISTIR_AFETO_MAXIMO).
 // Os alvos ficam no primeiro card da coleção (CartaPokemon).
 export const PASSOS_CUIDADOS = [

@@ -18,50 +18,87 @@ Este documento explica a arquitetura do back, os fluxos principais do jogo e ond
 
 ### Estrutura de pastas
 
+O back segue o padrão **MVC com uma pasta por feature**: tudo de uma parte do jogo (rotas, validação, regra, SQL e formato da resposta) fica junto em `src/features/<nome>/`.
+
 ```
 back/
-├── server.js              # Ponto de entrada: lê o .env, aplica as migrações, sobe o HTTP e o agendador
-├── .env.example           # Modelo das variáveis de ambiente (copie para .env; o .env não vai para o Git)
+├── server.js                  # Ponto de entrada: lê o .env, aplica as migrações, sobe o HTTP e o agendador
+├── .env.example               # Modelo das variáveis de ambiente (copie para .env; o .env não vai para o Git)
 ├── Dockerfile
 ├── src/
-│   ├── app.js             # App Express: CORS, /api/saude, proxy da PokeAPI e montagem das rotas
-│   ├── rotas.js           # Todos os endpoints /api/*: validação de entrada, autenticação e tratamento de erros
-│   ├── db.js              # Pool do Postgres + helper transacao()
-│   ├── migracoes.js       # Aplica db/migracoes/*.sql que ainda não rodaram
-│   └── jogo/              # Regras de negócio (uma área do jogo por arquivo)
-│       ├── config.js      # TODAS as constantes de balanceamento (preços, prazos, chances...)
-│       ├── regras.js      # Funções puras: mint, status, afeto, XP, evolução, história
-│       ├── motor.js       # Motor de batalha puro (estado + ação -> novo estado + eventos)
-│       ├── tipos.js       # Tabela de efetividade de tipos
-│       ├── aleatorio.js   # RNG criptográfico (crypto) e helpers de sorteio
-│       ├── erros.js       # ErroJogo (erro de regra -> HTTP 400)
-│       ├── especies.js    # Cache de espécies da PokeAPI
-│       ├── golpes.js      # Cache de golpes + roleta/desbloqueio de golpes especiais
-│       ├── usuarios.js    # Conta, sessão, inicial, loja, time, presença online
-│       ├── pokemons.js    # Cards: mint, coleção, XP, evolução, cuidados
-│       ├── batalhas.js    # Batalhas PvP assíncronas (desafio, jogadas, prazos, recompensas)
-│       ├── agendador.js   # "Cron" interno de 10 em 10 s para os prazos das batalhas
-│       ├── historia.js    # Modo história (PvE): trilhas, selvagens, captura
-│       ├── trocas.js      # Mercado: anúncios, compra direta, propostas
-│       └── vitrines.js    # Perfil público do treinador
+│   ├── app.js                 # App Express: CORS, /api/saude, proxy da PokeAPI e montagem de /api
+│   ├── rotas.js               # Monta as rotas de cada feature, o express.json e o tratamento de erros
+│   ├── features/              # Uma pasta por parte do jogo (ver "Uma feature por dentro")
+│   │   ├── contas/            # Cadastro, login, senha, sessão e o middleware autenticar
+│   │   ├── pokemons/          # Cards: mint, coleção (/eu), XP, evolução, cuidados; o card do front (view)
+│   │   ├── golpes/            # Cache de golpes da PokeAPI + roleta/desbloqueio de golpes especiais
+│   │   ├── especies/          # Cache de espécies da PokeAPI + o proxy /api/pokeapi
+│   │   ├── loja/              # Pokémon inicial, compra por geração, Pokébolas
+│   │   ├── time/              # Time de batalha
+│   │   ├── vitrines/          # Perfil público do treinador
+│   │   ├── treinadores/       # Busca por login, treinadores online, presença
+│   │   ├── trocas/            # Mercado: anúncios, compra direta, propostas
+│   │   ├── historia/          # Modo história (PvE): trilhas, selvagens, captura
+│   │   └── batalhas/          # Batalhas PvP assíncronas + o agendador de prazos
+│   ├── nucleo/                # Regras puras usadas por várias features (sem banco, rede nem relógio)
+│   │   ├── motor.js           # Motor de batalha (estado + ação -> novo estado + eventos)
+│   │   ├── regras.js          # Mint, status, afeto, cuidados, XP e evolução
+│   │   └── tipos.js           # Tabela de efetividade de tipos
+│   ├── banco/                 # Acesso ao Postgres que não é de uma feature só
+│   │   ├── db.js              # Pool do Postgres + helper transacao()
+│   │   ├── migracoes.js       # Aplica db/migracoes/*.sql que ainda não rodaram
+│   │   ├── carteira.js        # Saldo de Pokécoins + extrato (lerSaldo, creditar, debitar, registrarNoExtrato)
+│   │   └── busca.js           # Padrões de ILIKE com escape (comecaCom, contem)
+│   └── compartilhado/         # Utilitários sem regra de feature
+│       ├── config.js          # TODAS as constantes de balanceamento (preços, prazos, chances...)
+│       ├── erros.js           # ErroJogo (erro de regra -> HTTP 400)
+│       ├── validacao.js       # texto(), inteiro(), busca(), opcao(), acaoDe(), LOGIN_MAXIMO
+│       ├── aleatorio.js       # RNG criptográfico (crypto) e helpers de sorteio
+│       ├── pokeapi.js         # URL da PokeAPI, buscarJson(), extrairId()
+│       └── middlewares/       # limitarTentativas (rate limit) e tratarErros
 └── test/
-    ├── rodar.js           # Sobe o Postgres no Docker, cria o banco pokebox_teste e roda os testes
-    └── integracao.test.js # Teste ponta a ponta via HTTP (node:test)
+    ├── rodar.js               # Sobe o Postgres no Docker, cria o banco pokebox_teste e roda os testes
+    ├── unit/                  # Regras puras, motor, tipos, proxy e erros de banco (sem banco real)
+    ├── integracao/            # Um arquivo por parte do jogo, via HTTP com Postgres de verdade
+    └── helpers/               # Ambiente de teste, fábricas, PokeAPI falsa, RNG fixo
 ```
+
+### Uma feature por dentro
+
+Cada pasta de `src/features/` tem os mesmos papéis. O nome do arquivo diz o papel: `<feature>.<papel>.js`.
+
+| Arquivo | Papel (MVC) | Faz | Não faz |
+|---|---|---|---|
+| `<feature>.rotas.js` | rotas | Caminho + `autenticar` + qual função do controller atende | Ler o corpo, regra |
+| `<feature>.controller.js` | **Controller** | Lê e valida `req` (`inteiro()`, `texto()`...), chama o service, escolhe o status HTTP | SQL, regra de jogo |
+| `<feature>.service.js` | regra (serviço) | Regra de negócio, `transacao()`, travas, chamadas a outras features | Conhecer `req`/`res` |
+| `<feature>.model.js` | **Model** | Só SQL. Toda função recebe `db` primeiro: o `pool` ou o `client` da transação | Decidir se algo é permitido |
+| `<feature>.view.js` | **View** | Monta o JSON do front a partir das linhas do banco | Consultar o banco |
+| `index.js` | API pública | O que outras partes do back podem usar dessa feature | |
+
+A **View** só existe onde há formatação a fazer (`pokemons`, `vitrines`, `trocas`, `historia`, `batalhas`); nas outras features o SQL já devolve o formato final. Algumas features têm arquivos a mais com um papel só: `contas.senhas.js` (hash de senha e token), `contas.autenticar.js` (o middleware), `especies.pokeapi.js` e `golpes.pokeapi.js` (busca e conversão da PokeAPI), `especies.proxy.js`, `historia.regras.js` (fórmulas puras da história), `historia.batalha.js` (batalha contra o selvagem, sem banco) e `batalhas.agendador.js`.
 
 ### Camadas
 
 ```
-HTTP ──► app.js ──► rotas.js ──► jogo/<área>.js ──► db.js ──► PostgreSQL
-                       │                │
-                       │                ├─► regras.js / motor.js  (lógica pura, sem I/O)
-                       │                └─► especies.js / golpes.js ──► PokeAPI (só no cache miss)
-                       └─► validação, autenticação e mapeamento de erro → status HTTP
+HTTP ──► app.js ──► rotas.js ──► <feature>.rotas ──► controller ──► service ──► model ──► banco/db.js ──► PostgreSQL
+                                                                      │   │
+                                                                      │   ├─► nucleo/ e *.regras.js (lógica pura, sem I/O)
+                                                                      │   ├─► outras features (pelo index.js delas)
+                                                                      │   └─► *.pokeapi.js ──► PokeAPI (só no cache miss)
+                                                                      └─► view ──► JSON do front
 ```
 
-- **`rotas.js`** só valida o formato da entrada (`texto()`, `inteiro()`, `dadosConta()`, `acaoDe()`), autentica e chama o módulo de jogo. Não contém regra de negócio.
-- **`jogo/*.js` com banco** (usuarios, pokemons, batalhas, historia, trocas, vitrines, golpes) orquestram transações e consultas.
-- **`regras.js` e `motor.js`** são puros: recebem dados e um `rng` e devolvem resultados. Não tocam em banco, relógio ou rede, o que facilita testar com sorteios fixos.
+**Regras de importação** (o que mantém as features independentes e sem `require` circular):
+
+1. Uma feature importa outra **só pelo `index.js`** dela (`require('../pokemons')`), nunca os arquivos internos.
+2. `nucleo/`, `compartilhado/` e `banco/` **não importam nada de `features/`**.
+3. As dependências entre features seguem uma ordem: `contas` → `especies` → `pokemons` → `golpes`, `loja`, `time`, `vitrines`, `trocas` → `batalhas` → `historia`. Uma feature não importa uma que vem depois dela.
+4. O único SQL que uma feature entrega a outra são os trechos do card (`CAMPOS_CARD`, `SELECT_GOLPES`, exportados por `pokemons`), usados pelas consultas de trocas e batalhas.
+
+Mais dois pontos:
+
+- **`autenticar`** fica em cada rota (`rotas.get('/x', autenticar, ...)`), e não num `router.use(autenticar)` dentro da feature: os roteadores das features são montados sem prefixo, então um `use` ali valeria para as requisições de todas as features montadas depois.
 - **`config.js`** concentra o balanceamento. Para mudar preço, prazo ou chance, mexa só aqui.
 
 ---
@@ -73,7 +110,7 @@ HTTP ──► app.js ──► rotas.js ──► jogo/<área>.js ──► db.
 3. **Com `DATABASE_URL`**:
    1. `aplicarMigracoes()` roda os `.sql` de `db/migracoes` (ou de `MIGRACOES_DIR`) que ainda não constam na tabela `migracoes`. Usa `pg_advisory_lock` para que duas instâncias não apliquem a mesma migração ao mesmo tempo. Se alguma migração falhar, o processo encerra com código 1.
    2. Sobe o HTTP na porta `PORT` (padrão 8080).
-   3. Inicia o **agendador** (`jogo/agendador.js`).
+   3. Inicia o **agendador** (`features/batalhas/batalhas.agendador.js`).
 
 > O esquema base (`db/db.sql`) é aplicado pelo próprio container do Postgres na primeira subida (`docker-entrypoint-initdb.d`). As migrações são idempotentes (`IF NOT EXISTS` etc.), então um banco novo e um antigo terminam iguais.
 
@@ -85,19 +122,21 @@ HTTP ──► app.js ──► rotas.js ──► jogo/<área>.js ──► db.
 - **`trust proxy`** é ativado quando `RENDER` está definido, para que `req.ip` seja o IP real do cliente. O limitador de tentativas depende disso.
 - **CORS** aceita qualquer origem (`*`). Isso é seguro porque a autenticação vai no cabeçalho `Authorization`, e não em cookie. `OPTIONS` responde 204.
 - **`GET /api/saude`**: `{ ok: true }` sem tocar no banco. Serve de health check do Render e para "acordar" o back no plano gratuito.
-- **`GET /api/pokeapi/<recurso>[/<id>]`**: proxy para a PokeAPI. Aceita só caminhos `^/[a-z0-9-]+(/[a-z0-9-]+)?/?$` (sem diferenciar maiúsculas) e repassa só os parâmetros `limit`/`offset`. Caminho fora do padrão recebe 400, outro método recebe 405 e PokeAPI inacessível recebe 502.
+- **`GET /api/pokeapi/<recurso>[/<id>]`**: proxy para a PokeAPI (`features/especies/especies.proxy.js`). Aceita só caminhos `^/[a-z0-9-]+(/[a-z0-9-]+)?/?$` (sem diferenciar maiúsculas) e repassa só os parâmetros `limit`/`offset`. Caminho fora do padrão recebe 400, outro método recebe 405 e PokeAPI inacessível recebe 502. Fica montado direto no app, fora do roteador de `/api`: não passa pelo `express.json` nem pelo tratamento de erros do jogo.
 - **`/api/*`**: router do jogo (`rotas.js`).
 
-### `rotas.js` — padrões
+### `rotas.js` e padrões das rotas
+- `rotas.js` liga o `express.json`, monta o roteador de cada feature (sem prefixo; cada feature declara os caminhos completos) e, por último, o `tratarErros`.
 - Body JSON limitado a **10 kb**.
-- **Autenticação** (middleware `autenticar`): extrai o token do Bearer e chama `usuarios.usuarioDaSessao(token)`. Se der certo, preenche `req.usuario = { id, login, pokecoins, pokebolas }`; se não, responde 401. Esse mesmo middleware atualiza `ultimo_acesso_em`/`online_em`, no máximo uma vez a cada 15 s.
+- **Autenticação** (middleware `autenticar`, em `features/contas/contas.autenticar.js`): extrai o token do Bearer e busca a sessão. Se der certo, preenche `req.usuario = { id, login, pokecoins, pokebolas }`; se não, responde 401. Esse mesmo middleware atualiza `ultimo_acesso_em`/`online_em`, no máximo uma vez a cada 15 s.
 - **Rate limit** em memória para tudo sob `/api/auth` (inclusive `/auth/sair`): 20 requisições por IP+rota a cada 15 minutos (429). O contador zera quando o processo reinicia e não é compartilhado entre instâncias.
-- **Tratamento de erros** (último middleware):
+- **Tratamento de erros** (`compartilhado/middlewares/tratarErros.js`, último middleware):
 
 | Origem | Resposta |
 |---|---|
 | `ErroJogo` (regra de negócio violada) | `400 { erro: mensagem }` |
 | JSON malformado | `400 { erro: 'JSON inválido.' }` |
+| Corpo acima de 10 kb | `413 { erro: 'Dados grandes demais.' }` |
 | Banco fora do ar, credencial errada, tabela inexistente | `503` |
 | Qualquer outro erro | `500 { erro: 'Erro interno...' }` (o detalhe vai só para o log) |
 
@@ -123,7 +162,7 @@ Esquema em [`db/db.sql`](../../db/db.sql) e evoluções em [`db/migracoes/`](../
 | `transacoes_pokecoins` | **Extrato**: toda entrada e saída de Pokécoins, com motivo. Também serve de base para o anti-farm |
 | `migracoes` | Controle das migrações aplicadas |
 
-**Conversão de tipos** (`db.js`): `BIGINT` e `NUMERIC` chegam como `Number` (por padrão o `pg` os devolve como string).
+**Conversão de tipos** (`banco/db.js`): `BIGINT` e `NUMERIC` chegam como `Number` (por padrão o `pg` os devolve como string).
 
 ---
 
@@ -132,18 +171,18 @@ Esquema em [`db/db.sql`](../../db/db.sql) e evoluções em [`db/migracoes/`](../
 Estes padrões se repetem em todo o código e explicam a maior parte das decisões:
 
 1. **`transacao(fn)`**: tudo que altera mais de uma linha roda dentro de `BEGIN/COMMIT`; qualquer erro faz `ROLLBACK`.
-2. **Débito condicional e atômico**: `UPDATE usuarios SET pokecoins = pokecoins - X WHERE id = $1 AND pokecoins >= X RETURNING ...`. Se nenhuma linha voltar, o saldo não era suficiente. Assim, dois cliques rápidos não gastam o mesmo saldo.
+2. **Débito condicional e atômico** (`carteira.debitar`): `UPDATE usuarios SET pokecoins = pokecoins - X WHERE id = $1 AND pokecoins >= X RETURNING ...`. Se nenhuma linha voltar, o saldo não era suficiente. Assim, dois cliques rápidos não gastam o mesmo saldo.
 3. **Travas de linha (`SELECT ... FOR UPDATE`)** antes de conferir e alterar: no usuário (escolha do inicial, definição de time, desafio, explorar), na batalha, no encontro, no anúncio e na proposta.
 4. **Ordem fixa de travas no mercado**: primeiro os usuários (em ordem de id), depois o anúncio, depois os cards. Isso evita deadlock entre operações cruzadas.
 5. **Nunca chamar a PokeAPI com transação aberta**: `garantirEspecie`, `garantirGolpe` etc. rodam antes do `transacao()`, para não segurar locks enquanto a rede responde. Dentro da transação os dados são conferidos de novo.
-6. **Extrato sempre**: todo movimento de Pokécoins grava uma linha em `transacoes_pokecoins`.
+6. **Extrato sempre**: todo movimento de Pokécoins passa por `banco/carteira.js` (`creditar`, `debitar`), que grava a linha em `transacoes_pokecoins` na mesma transação.
 7. **RNG seguro**: `crypto.randomInt` em vez de `Math.random`, porque shiny e IVs têm valor no jogo. As funções recebem `rng` por parâmetro para os testes poderem fixar o sorteio.
 
 ---
 
 ## 6. Fluxos principais
 
-### 6.1 Conta e sessão — `usuarios.js`
+### 6.1 Conta e sessão — `features/contas`
 
 | Endpoint | O que faz |
 |---|---|
@@ -155,13 +194,13 @@ Estes padrões se repetem em todo o código e explicam a maior parte das decisõ
 
 O token tem 32 bytes aleatórios em hex e só o SHA-256 dele fica no banco. A sessão vale 30 dias.
 
-### 6.2 Coleção, loja e time — `usuarios.js` + `pokemons.js`
+### 6.2 Coleção, loja e time — `features/pokemons`, `features/loja` e `features/time`
 
 ```
 Cadastro ─► GET /eu (coleção vazia) ─► POST /eu/inicial ─► POST /loja/comprar ... ─► PUT /time
 ```
 
-- **`GET /api/eu`** devolve o usuário e a coleção (time primeiro, na ordem; depois os demais do mais novo ao mais antigo). Cada card passa por `regras.descreverPokemon`, que calcula status, medidas, afeto, disponibilidade de cuidados e evoluções.
+- **`GET /api/eu`** devolve o usuário e a coleção (time primeiro, na ordem; depois os demais do mais novo ao mais antigo). Cada card passa por `descreverPokemon` (`pokemons.view.js`), que calcula status, medidas, afeto, disponibilidade de cuidados e evoluções.
 - **`POST /api/eu/inicial` `{especieId}`**: só um dos 27 iniciais e só para quem ainda não tem nenhum Pokémon. Trava o usuário para impedir dois iniciais. O card já entra no time na posição 1.
 - **`POST /api/loja/comprar` `{geracao}`** (100 Pokécoins):
   1. Confere o saldo previamente, para não ir à PokeAPI à toa.
@@ -171,16 +210,16 @@ Cadastro ─► GET /eu (coleção vazia) ─► POST /eu/inicial ─► POST /l
 - **`PUT /api/time` `{pokemonIds: [a,b,c]}`**: exatamente 3 cards diferentes, todos do usuário e nenhum anunciado no mercado. Limpa as posições e regrava, para respeitar o `UNIQUE (dono_id, posicao_time)`.
 
 #### Mint (criação de um card)
-`regras.sortearAtributos`: **1% de shiny**. Shiny tem IVs de 20 a 31; os demais, de 0 a 31. Altura e peso recebem multiplicadores de 0,8 a 1,2. O `mint_numero` vem de uma sequence global, então todo card do jogo tem um número único.
+`sortearAtributos` (`nucleo/regras.js`): **1% de shiny**. Shiny tem IVs de 20 a 31; os demais, de 0 a 31. Altura e peso recebem multiplicadores de 0,8 a 1,2. O `mint_numero` vem de uma sequence global, então todo card do jogo tem um número único.
 
-#### Fórmula de status (`regras.calcularStatus`)
+#### Fórmula de status (`calcularStatus`, em `nucleo/regras.js`)
 ```
 HP     = floor((2*base + IV) * nível / 100) + nível + 10
 Outros = floor((2*base + IV) * nível / 100) + 5
 × (1 + 2% por coração de afeto)  + bônus fixos de evolução
 ```
 
-### 6.3 Progressão do card — `pokemons.js` + `golpes.js`
+### 6.3 Progressão do card — `features/pokemons` + `features/golpes`
 
 - **XP** (`darXp`): cada nível exige `nível × 100` de XP, e uma vitória pode subir vários níveis. O nível máximo é 100.
 - **Evolução** — `POST /api/pokemons/:id/evoluir` `{especieId}`: o nível mínimo vem da PokeAPI (`min_level`). Evoluções por pedra, troca ou amizade usam *nível de entrada + 20*. Mint, shiny, IVs e nível continuam iguais; a base de status passa a ser a da nova espécie. Cada status tem **30% de chance de ganhar +1 a +5** permanentes.
@@ -198,7 +237,7 @@ Outros = floor((2*base + IV) * nível / 100) + 5
   - A roleta sorteia 2 golpes **que causam dano** entre os que a espécie aprende. A primeira é grátis; as seguintes custam 100.
   - O sorteio acontece fora da transação. Dentro dela, o código confere se o card não mudou (espécie ou golpes) enquanto a roleta girava.
 
-### 6.4 Batalhas PvP assíncronas — `batalhas.js` + `motor.js` + `agendador.js`
+### 6.4 Batalhas PvP assíncronas — `features/batalhas` + `nucleo/motor.js`
 
 ```
 desafiar ──► [aguardando] ──recusar──► [recusada]
@@ -212,7 +251,7 @@ desafiar ──► [aguardando] ──recusar──► [recusada]
 2. **`POST /api/batalhas/:id/responder` `{aceitar}`**: ao aceitar, **os dois times são congelados** no `estado` JSONB (`motor.montarLado`), com status calculados, golpes e PP. Começa quem tiver o primeiro Pokémon mais rápido (empate vai para sorteio). O prazo de **1 minuto por jogada** começa a contar.
 3. **`POST /api/batalhas/:id/jogadas` `{tipo, indice?}`**:
    - `atacar`: ataque básico com poder 50 e sem tipo.
-   - `golpe` (`indice`): golpe especial. Gasta PP, pode errar conforme a precisão e aplica **STAB ×1,5** e a efetividade de tipo (`tipos.js`).
+   - `golpe` (`indice`): golpe especial. Gasta PP, pode errar conforme a precisão e aplica **STAB ×1,5** e a efetividade de tipo (`nucleo/tipos.js`).
    - `trocar` (`indice`): troca o Pokémon em campo e gasta o turno.
    - `desistir`: pode ser feito a qualquer momento, mesmo fora da vez.
 4. **Motor** (`motor.aplicarAcao`) é puro: recebe o estado, devolve `{ estado, eventos, fim }` e nunca altera o objeto de entrada.
@@ -220,7 +259,7 @@ desafiar ──► [aguardando] ──recusar──► [recusada]
    - Um card com afeto máximo tem 30% de chance de **aguentar com 1 PS** um golpe que o nocautearia, uma vez por batalha.
    - Quando um Pokémon é nocauteado, o próximo vivo entra automaticamente.
 5. **Prazos**: há dois mecanismos, e os dois chamam `resolverPrazo`:
-   - o **agendador** (a cada 10 s) processa as batalhas vencidas com `FOR UPDATE SKIP LOCKED` e expira os desafios;
+   - o **agendador** (`batalhas.agendador.js`, a cada 10 s) processa as batalhas vencidas com `FOR UPDATE SKIP LOCKED` e expira os desafios;
    - **toda leitura ou jogada** (`atualizarPrazos`) confere o prazo antes de agir. Assim o jogo continua correto mesmo com o agendador parado.
 
    Um timeout passa a vez; **2 timeouts seguidos do mesmo jogador dão W.O.**
@@ -234,9 +273,9 @@ desafiar ──► [aguardando] ──recusar──► [recusada]
 
    **Anti-farm**: não há recompensa se a batalha teve menos de 6 jogadas manuais no total, se o jogador já recebeu 10 batalhas premiadas nas últimas 24 h ou se já recebeu 3 contra o mesmo oponente nesse período.
 
-Endpoints auxiliares: `GET /api/batalhas` (pendentes e em andamento, mais as 20 últimas encerradas), `GET /api/batalhas/:id` (com o log de ações), `GET /api/treinadores/ativos` (online no último minuto, ativos nas últimas 24 h e com time completo), `POST /api/presenca` (sinal de vida que o front envia a cada ~20 s), `GET /api/treinadores?busca=`.
+Endpoints auxiliares: `GET /api/batalhas` (pendentes e em andamento, mais as 20 últimas encerradas), `GET /api/batalhas/:id` (com o log de ações) e, em `features/treinadores`, `GET /api/treinadores/ativos` (online no último minuto, ativos nas últimas 24 h e com time completo), `POST /api/presenca` (sinal de vida que o front envia a cada ~20 s) e `GET /api/treinadores?busca=`.
 
-### 6.5 Modo história (PvE) — `historia.js`
+### 6.5 Modo história (PvE) — `features/historia`
 
 São 5 trilhas de 10 pontos, percorridas em ordem. Cada ponto tem uma **força** de 0,1× a 5,0×, que aumenta 0,1 por ponto.
 
@@ -248,12 +287,12 @@ capturado/fugiu/ignorado ─► refazer (25 Pokécoins) ─► revanche contra u
 ```
 
 - **`POST /api/historia/explorar`** sorteia um selvagem de **qualquer geração**, com o mesmo peso de raridade da loja, e o fixa no próximo ponto. Se o jogador perder, o mesmo selvagem continua esperando. Só existe um encontro aberto por vez (índice único parcial no banco).
-- **Batalha** (`/encontros/:id/batalha` e `/jogadas`) usa o mesmo `motor.js`. O selvagem é o lado 1, tem um só Pokémon, só usa ataque básico e **responde na mesma requisição**, logo depois da jogada do treinador. Não há prazo. Os status do selvagem são *os status da espécie no nível 50 × força*.
+- **Batalha** (`/encontros/:id/batalha` e `/jogadas`) usa o mesmo `nucleo/motor.js` (o lado do selvagem é montado em `historia.batalha.js`). O selvagem é o lado 1, tem um só Pokémon, só usa ataque básico e **responde na mesma requisição**, logo depois da jogada do treinador. Não há prazo. Os status do selvagem são *os status da espécie no nível 50 × força*.
 - **Vitória**: 10 Pokécoins e XP progressivo para os 3 do time: `5000·força + 1500·força²`. Por exemplo, 0,1× dá 515 XP e 5,0× dá 62.500 XP. Uma revanche paga 50% do XP.
 - **Captura** (`/capturar`): gasta 1 Pokébola. A chance é interpolada a partir do `capture_rate` da PokeAPI: 3 → 10%, 45 → 20%, 255 → 50%. O card capturado mantém os IVs, o shiny e o nível do selvagem.
 - **Refazer** (`/trilhas/:t/pontos/:p/refazer`): custa 25 Pokécoins, sorteia um novo selvagem na mesma força e **não faz a trilha avançar**. Se o jogador perder uma revanche, o selvagem foge.
 
-### 6.6 Mercado de trocas — `trocas.js`
+### 6.6 Mercado de trocas — `features/trocas`
 
 - **Anunciar** — `POST /api/anuncios` `{pokemonId, preco?, aceitaPropostas}`: o anúncio precisa ter preço (de 1 a 100.000 Pokécoins), aceitar propostas ou as duas coisas. O card precisa estar fora do time. Cada jogador pode ter até 20 anúncios ativos, e cada card só pode ter um anúncio ativo.
 - **Navegar**: `GET /api/mercado?busca=&ordem=` lista as espécies com anúncios; `GET /api/mercado/:especieId?ordem=` lista os anúncios de uma espécie; `GET /api/anuncios/meus` lista os do próprio jogador. Os cards aparecem sem o bônus de afeto (`cardPublico`), porque o afeto zera na troca.
@@ -264,7 +303,7 @@ capturado/fugiu/ignorado ─► refazer (25 Pokécoins) ─► revanche contra u
 
 **Ao transferir um card** (`transferirCards`): o card sai do time e da vitrine, o **afeto zera**, o histórico de cuidados é apagado, os outros anúncios do card são cancelados e as propostas pendentes que o envolviam são encerradas.
 
-### 6.7 Vitrine — `vitrines.js`
+### 6.7 Vitrine — `features/vitrines`
 
 - **`GET /api/vitrines/:login`** devolve o perfil público: bio, estilo, visitas, estatísticas (Pokémon, espécies, shinies, vitórias, média de corações do time), até 6 destaques (ou o time, se o jogador não escolheu destaques) e o álbum de espécies. A visita de outro treinador incrementa o contador. Os destaques **não mostram IVs**.
 - **`PUT /api/vitrine`** `{bio, estilo, pokemonIds}`: bio de até 160 caracteres, estilo `palco` ou `album`, até 6 destaques.
@@ -272,12 +311,12 @@ capturado/fugiu/ignorado ─► refazer (25 Pokécoins) ─► revanche contra u
 
 ---
 
-## 7. Cache da PokeAPI — `especies.js` e `golpes.js`
+## 7. Cache da PokeAPI — `features/especies` e `features/golpes`
 
 - `garantirEspecie(id)`: se a espécie não estiver na tabela `especies`, busca `/pokemon/{id}`, `/pokemon-species/{id}` e a cadeia evolutiva, calcula o nível de cada evolução (`mapearCadeia`) e grava com `ON CONFLICT DO NOTHING`, para o caso de duas requisições concorrentes.
 - `garantirTaxaCaptura(id)`: completa sob demanda a coluna `taxa_captura` das espécies salvas antes de ela existir.
 - `garantirMovimentos` / `garantirGolpe`: mesma ideia para a lista de golpes de uma espécie e para cada golpe (os golpes sem dano também são guardados, para não serem buscados de novo).
-- Consequência: depois que uma espécie ou golpe entra no cache, **as batalhas não dependem da PokeAPI estar no ar**. A tabela de tipos também fica no código (`tipos.js`) pelo mesmo motivo.
+- Consequência: depois que uma espécie ou golpe entra no cache, **as batalhas não dependem da PokeAPI estar no ar**. A tabela de tipos também fica no código (`nucleo/tipos.js`) pelo mesmo motivo.
 
 ---
 
@@ -342,12 +381,13 @@ npm start
 
 O `back/.env` está no `.gitignore` e **não deve ser versionado**. Use o `back/.env.example` como modelo e nunca coloque nele a connection string de produção (Neon), que fica só no painel do Render.
 
-**Testes de integração**:
+**Testes**:
 ```bash
 cd back
-npm test
+npm test                # unitários (test/unit) + integração (test/integracao)
+npm run test:cobertura  # os dois juntos, com as metas de cobertura de test/metas-de-cobertura.js
 ```
-`test/rodar.js` encontra (ou sobe) o Postgres do compose, cria o banco `pokebox_teste` e roda `test/integracao.test.js`. O teste recria o esquema, sobe o app numa porta aleatória e percorre via HTTP cadastro, inicial, loja, time, cuidados, vitrine, desafio, batalha completa, W.O., expiração, evolução, anti-farm, trocas, história e golpes. Para pular a parte do Docker, defina `DATABASE_URL_TESTE` manualmente. Os testes não dependem do `back/.env`.
+`test/rodar.js` encontra (ou sobe) o Postgres do compose, cria o banco `pokebox_teste` e roda os arquivos de `test/integracao/` um por vez. Cada arquivo recria o esquema, sobe o app numa porta aleatória e testa uma parte do jogo via HTTP. Para pular a parte do Docker, defina `DATABASE_URL_TESTE` manualmente. Os testes não dependem do `back/.env`. Os detalhes (helpers, PokeAPI falsa, concorrência, atomicidade) estão no [README do back](../README.md#testes).
 
 **Produção**, uma de duas opções:
 - **Render + Neon** (`render.yaml`): Web Service Node 22 no Render (`rootDir: back`, health check em `/api/saude`) com o banco no Neon (`DATABASE_URL` configurado no painel).
@@ -361,10 +401,15 @@ npm test
 
 | Quero... | Arquivo |
 |---|---|
-| Mudar preço, prazo, chance ou recompensa | `src/jogo/config.js` |
-| Mudar a fórmula de status, XP, afeto ou captura | `src/jogo/regras.js` |
-| Mudar dano, crítico ou turnos da batalha | `src/jogo/motor.js` |
-| Mudar a tabela de tipos | `src/jogo/tipos.js` |
-| Criar um endpoint | `src/rotas.js` (validação) + o módulo em `src/jogo/` (regra) |
-| Alterar o banco | Criar um `db/migracoes/NNN_nome.sql` idempotente **e** atualizar `db/db.sql`. Use o próximo número livre: as migrações rodam em ordem alfabética, e já existem duas com `012` |
+| Mudar preço, prazo, chance ou recompensa | `src/compartilhado/config.js` |
+| Mudar a fórmula de status, XP, afeto ou cuidado | `src/nucleo/regras.js` |
+| Mudar a força dos pontos, o selvagem, a captura ou o XP da história | `src/features/historia/historia.regras.js` |
+| Mudar dano, crítico ou turnos da batalha | `src/nucleo/motor.js` |
+| Mudar a tabela de tipos | `src/nucleo/tipos.js` |
+| Mudar o que o card mostra no front | `src/features/pokemons/pokemons.view.js` |
+| Criar um endpoint numa feature | Em `src/features/<nome>/`: a rota em `<nome>.rotas.js`, a validação no controller, a regra no service e o SQL novo no model |
+| Criar uma feature nova | Copiar a estrutura de uma pequena (ex.: `features/time`), expor o que for preciso no `index.js` e montar as rotas em `src/rotas.js` |
+| Usar algo de outra feature | Importar pelo `index.js` dela (e exportar lá, se ainda não estiver) |
+| Mexer em Pokécoins | `src/banco/carteira.js` (`creditar`, `debitar`): saldo e extrato andam juntos |
+| Alterar o banco | Criar um `db/migracoes/NNN_nome.sql` idempotente **e** atualizar `db/db.sql`. Use o próximo número livre: as migrações rodam em ordem alfabética |
 | Adicionar um motivo de extrato | Acrescentá-lo ao `CHECK` de `transacoes_pokecoins.motivo` (via migração) |

@@ -48,9 +48,9 @@ npm run test:int -- --test-name-pattern=trocas
 
 O `test:cobertura` roda unitários e integração juntos, mostra a cobertura de cada arquivo de `src/` e falha se algum número ficar abaixo das metas de [`test/metas-de-cobertura.js`](test/metas-de-cobertura.js):
 
-- **Total do `src/`:** 97% das linhas, 90% dos ramos e 96% das funções. Hoje os testes cobrem 99,2%, 94,4% e 98,6%.
+- **Total do `src/`:** 97% das linhas, 90% dos ramos e 96% das funções. Hoje os testes cobrem 99,3%, 95,9% e 98,3%.
 - **Qualquer arquivo:** pelo menos 80% das linhas.
-- **Regras puras** (`motor.js`, `regras.js`, `tipos.js`, `aleatorio.js`): 100% das linhas e das funções.
+- **Regras puras** (`nucleo/motor.js`, `nucleo/regras.js`, `nucleo/tipos.js`, `features/historia/historia.regras.js`, `compartilhado/aleatorio.js`): 100% das linhas e das funções.
 
 As metas ficam um pouco abaixo da cobertura atual de propósito: o objetivo é barrar código novo que entra sem teste, não exigir 100%. Se o comando falhar depois de uma mudança sua, a tabela mostra qual arquivo caiu. O relatório linha a linha fica em `coverage/lcov.info`, que abre em extensões de editor como a Coverage Gutters; no CI ele fica disponível como artefato da execução.
 
@@ -78,19 +78,23 @@ No GitHub, o workflow [`.github/workflows/back.yml`](../.github/workflows/back.y
 
 ## Estrutura
 
+MVC com uma pasta por feature. Detalhes e regras de importação em [docs/BACKEND.md](docs/BACKEND.md#estrutura-de-pastas).
+
 ```
-server.js        # Entrada: .env, migrações, HTTP e agendador de batalhas
-src/app.js       # CORS, /api/saude, proxy da PokeAPI
-src/rotas.js     # Endpoints /api/*: validação, autenticação, erros → HTTP
-src/db.js        # Pool do Postgres + transacao()
-src/jogo/        # Regras de negócio, um arquivo por área
-  config.js      #   todas as constantes de balanceamento (preços, prazos, chances)
+server.js            # Entrada: .env, migrações, HTTP e agendador de batalhas
+src/app.js           # CORS, /api/saude, proxy da PokeAPI, monta /api
+src/rotas.js         # Monta as rotas de cada feature e o tratamento de erros
+src/features/<nome>/ # Uma pasta por parte do jogo: rotas, controller, service, model, view
+src/nucleo/          # Regras puras usadas por várias features: motor de batalha, tipos, status/XP/afeto
+src/banco/           # Pool do Postgres + transacao(), migrações, carteira de Pokécoins
+src/compartilhado/   # config.js (balanceamento), erros, validação, sorteio, PokeAPI, middlewares
 ```
 
 ## Onde mexer
 
-- **Preço, prazo, chance ou recompensa:** `src/jogo/config.js`
-- **Novo endpoint:** `src/rotas.js` (validação) + o módulo em `src/jogo/` (regra)
+- **Preço, prazo, chance ou recompensa:** `src/compartilhado/config.js`
+- **Novo endpoint:** na feature, em `src/features/<nome>/`: a rota em `<nome>.rotas.js`, a validação no controller e a regra no service (SQL novo vai no model)
+- **Nova feature:** copie a estrutura de uma pequena (ex.: `features/time`) e monte as rotas dela em `src/rotas.js`
 - **Banco:** nova migração idempotente em `db/migracoes/` **e** atualização de `db/db.sql`
 
 ## Deploy
