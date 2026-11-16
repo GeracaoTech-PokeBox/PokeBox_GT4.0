@@ -8,7 +8,7 @@ const { rngSeguro } = require('../../compartilhado/aleatorio');
 const {
   sortearAtributos, aplicarXp, evolucoesDisponiveis, aplicarCuidado, bemEstarAtual,
   sortearBonusEvolucao, coracoes,
-} = require('../../jogo/regras');
+} = require('../../nucleo/regras');
 const { garantirEspecie } = require('../especies');
 const model = require('./pokemons.model');
 const view = require('./pokemons.view');
@@ -18,7 +18,7 @@ const view = require('./pokemons.view');
  * A captura da história manda os atributos e o nível do Pokémon selvagem; os outros sorteiam na hora.
  * @param {import('pg').PoolClient} client  transação aberta por quem chamou
  * @param {{ donoId: number, especieId: number, origem: 'inicial' | 'loja' | 'captura', posicaoTime?: number | null,
- *   atributos?: import('../../jogo/regras').AtributosSorteados, nivel?: number,
+ *   atributos?: import('../../nucleo/regras').AtributosSorteados, nivel?: number,
  *   rng?: import('../../compartilhado/aleatorio').Rng }} dados
  * @returns {Promise<number>} id do card
  */

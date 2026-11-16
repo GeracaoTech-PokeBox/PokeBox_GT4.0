@@ -28,7 +28,7 @@ if (process.env.DATABASE_URL) {
     .then(() => {
       iniciar();
       // Jogadas automáticas das batalhas com prazo vencido
-      require('./src/jogo/agendador').iniciarAgendador();
+      require('./src/features/batalhas').iniciarAgendador();
     })
     .catch((erro) => {
       console.error('Migrações: falhou, o back não vai subir.', erro);

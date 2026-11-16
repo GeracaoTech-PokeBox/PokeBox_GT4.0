@@ -1,6 +1,6 @@
 // Vitrines: formato do JSON que vai para o front
 const config = require('../../compartilhado/config');
-const { coracoes } = require('../../jogo/regras');
+const { coracoes } = require('../../nucleo/regras');
 
 /** Só o que outro treinador pode ver de um card (sem IVs, que entregariam os status de batalha) */
 function destaque(linha) {

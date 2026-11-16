@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const motor = require('../../src/jogo/motor');
+const motor = require('../../src/nucleo/motor');
 const { ErroJogo } = require('../../src/compartilhado/erros');
 const { rngSequencia, QUASE_UM } = require('../helpers/rng');
 

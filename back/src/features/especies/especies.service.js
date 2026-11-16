@@ -22,7 +22,7 @@ async function garantirTaxaCaptura(id) {
  * Chame ANTES de abrir uma transação: esperar a PokeAPI com uma transação
  * aberta seguraria locks de outros jogadores.
  * @param {number} id
- * @returns {Promise<import('../../jogo/regras').Especie>}
+ * @returns {Promise<import('../../nucleo/regras').Especie>}
  */
 async function garantirEspecie(id) {
   const salva = await model.buscarPorId(pool, id);

@@ -13,9 +13,10 @@ module.exports = {
 
   // Regras puras, sem banco nem rede: testar todo caminho é barato e cada erro aqui vira bug no jogo
   arquivos: {
-    'src/jogo/motor.js': { linhas: 100, ramos: 100, funcoes: 100 },
-    'src/jogo/regras.js': { linhas: 100, ramos: 95, funcoes: 100 },
-    'src/jogo/tipos.js': { linhas: 100, ramos: 100, funcoes: 100 },
+    'src/nucleo/motor.js': { linhas: 100, ramos: 100, funcoes: 100 },
+    'src/nucleo/regras.js': { linhas: 100, ramos: 95, funcoes: 100 },
+    'src/nucleo/tipos.js': { linhas: 100, ramos: 100, funcoes: 100 },
+    'src/features/historia/historia.regras.js': { linhas: 100, ramos: 95, funcoes: 100 },
     'src/compartilhado/aleatorio.js': { linhas: 100, ramos: 100, funcoes: 100 },
   },
 };

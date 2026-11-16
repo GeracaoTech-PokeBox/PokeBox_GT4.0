@@ -4,80 +4,38 @@
 /* Batalhas assíncronas: desafio, jogadas, prazo de 1 min por jogada e recompensas.
 
 O prazo é conferido de dois jeitos, e os dois chamam resolverPrazo:
-   1. agendador.js roda a cada 10s e processa as batalhas vencidas;
+   1. batalhas.agendador.js roda a cada 10s e processa as batalhas vencidas;
    2. toda leitura/jogada confere o prazo antes, então o jogo continua certo
       mesmo se o agendador estiver parado ou atrasado.
  Toda mudança numa batalha acontece com a linha travada (SELECT ... FOR UPDATE),
- então uma jogada e o timeout nunca são aplicados ao mesmo tempo.*/
-const { pool, transacao } = require('../banco/db');
-const config = require('../compartilhado/config');
-const motor = require('./motor');
-const { darXp, SELECT_GOLPES } = require('../features/pokemons');
-const { ErroJogo } = require('../compartilhado/erros');
+ então uma jogada e o timeout nunca são aplicados ao mesmo tempo.
+
+ Regras de negócio e transações; o SQL fica no model e o formato da resposta na view.*/
+const { pool, transacao } = require('../../banco/db');
+const carteira = require('../../banco/carteira');
+const config = require('../../compartilhado/config');
+const { ErroJogo } = require('../../compartilhado/erros');
+const motor = require('../../nucleo/motor');
+const { darXp } = require('../pokemons');
+const model = require('./batalhas.model');
+const view = require('./batalhas.view');
 
 const depoisDe = (agora, ms) => new Date(agora.getTime() + ms);
-
-/** Time de batalha do usuário, na ordem das posições, com os dados da espécie e os golpes especiais */
-async function carregarTime(client, usuarioId) {
-  const { rows } = await client.query(
-    `SELECT to_jsonb(p) AS pokemon, to_jsonb(e) AS especie, ${SELECT_GOLPES} AS golpes
-       FROM pokemons p JOIN especies e ON e.id = p.especie_id
-      WHERE p.dono_id = $1 AND p.posicao_time IS NOT NULL
-      ORDER BY p.posicao_time`,
-    [usuarioId],
-  );
-  return rows;
-}
-
-async function travarBatalha(client, batalhaId) {
-  const { rows } = await client.query('SELECT * FROM batalhas WHERE id = $1 FOR UPDATE', [batalhaId]);
-  if (!rows[0]) throw new ErroJogo('Batalha não encontrada.');
-  return rows[0];
-}
 
 const participa = (batalha, usuarioId) => batalha.desafiante_id === usuarioId || batalha.desafiado_id === usuarioId;
 const indiceDo = (estado, usuarioId) => estado.lados.findIndex((lado) => lado.usuarioId === usuarioId);
 
-// Consulta usada para devolver batalhas ao front, já com o login dos dois lados
-const SELECT_BATALHA = `
-  SELECT b.*, u1.login AS desafiante_login, u2.login AS desafiado_login,
-         u1.online_em AS desafiante_online_em, u2.online_em AS desafiado_online_em
-    FROM batalhas b
-    JOIN usuarios u1 ON u1.id = b.desafiante_id
-    JOIN usuarios u2 ON u2.id = b.desafiado_id`;
+/** Time de batalha do usuário (a história usa o mesmo) */
+const carregarTime = (db, usuarioId) => model.carregarTime(db, usuarioId);
 
-const estaOnline = (onlineEm) => Boolean(onlineEm) && Date.now() - onlineEm.getTime() < config.JANELA_ONLINE_MS;
-
-/** Batalha no formato do front, do ponto de vista de quem pediu */
-function descreverBatalha(linha, usuarioId) {
-  const souDesafiante = linha.desafiante_id === usuarioId;
-  const desafiante = { id: linha.desafiante_id, login: linha.desafiante_login, online: estaOnline(linha.desafiante_online_em) };
-  const desafiado = { id: linha.desafiado_id, login: linha.desafiado_login, online: estaOnline(linha.desafiado_online_em) };
-  return {
-    id: linha.id,
-    status: linha.status,
-    desafiante,
-    desafiado,
-    oponente: souDesafiante ? desafiado.login : desafiante.login,
-    oponenteOnline: souDesafiante ? desafiado.online : desafiante.online,
-    souDesafiante,
-    minhaVez: linha.status === 'em_andamento' && linha.vez_de === usuarioId,
-    turno: linha.turno,
-    prazoEm: linha.prazo_em,
-    expiraEm: linha.expira_em,
-    vencedorId: linha.vencedor_id,
-    venci: linha.vencedor_id === usuarioId,
-    motivoFim: linha.motivo_fim,
-    estado: linha.estado,
-    minhasRecompensas: linha.recompensas?.[usuarioId] ?? null,
-    criadaEm: linha.criada_em,
-    finalizadaEm: linha.finalizada_em,
-  };
+async function travarBatalha(client, batalhaId) {
+  const batalha = await model.travarBatalha(client, batalhaId);
+  if (!batalha) throw new ErroJogo('Batalha não encontrada.');
+  return batalha;
 }
 
-async function buscarBatalha(client, batalhaId, usuarioId) {
-  const { rows } = await client.query(`${SELECT_BATALHA} WHERE b.id = $1`, [batalhaId]);
-  return descreverBatalha(rows[0], usuarioId);
+async function buscarBatalha(db, batalhaId, usuarioId) {
+  return view.batalha(await model.buscarParaFront(db, batalhaId), usuarioId);
 }
 
 // ---------------------------------------------------------------------------
@@ -91,13 +49,10 @@ async function buscarBatalha(client, batalhaId, usuarioId) {
  */
 async function desafiar(desafianteId, loginOponente) {
   return transacao(async (client) => {
-
     // Trava o desafiante para dois cliques não passarem juntos pelos limites abaixo
+    await model.travarUsuario(client, desafianteId);
 
-    await client.query('SELECT 1 FROM usuarios WHERE id = $1 FOR UPDATE', [desafianteId]);
-
-    const oponente = await client.query('SELECT id FROM usuarios WHERE lower(login) = lower($1)', [loginOponente]);
-    const desafiadoId = oponente.rows[0]?.id;
+    const desafiadoId = await model.buscarIdPorLogin(client, loginOponente);
     if (!desafiadoId) throw new ErroJogo('Treinador não encontrado.');
     if (desafiadoId === desafianteId) throw new ErroJogo('Você não pode desafiar a si mesmo.');
 
@@ -107,30 +62,23 @@ async function desafiar(desafianteId, loginOponente) {
     }
 
     const agora = new Date();
-    const { rows: [pendentes] } = await client.query(
-      `SELECT count(*) AS total,
-              count(*) FILTER (WHERE $2 IN (desafiante_id, desafiado_id)) AS com_oponente
-         FROM batalhas
-        WHERE desafiante_id = $1 AND status = 'aguardando' AND expira_em > $3`,
-      [desafianteId, desafiadoId, agora],
-    );
+    const pendentes = await model.contarDesafiosPendentes(client, desafianteId, desafiadoId, agora);
     if (pendentes.com_oponente > 0) throw new ErroJogo('Você já tem um desafio esperando esse treinador.');
     if (pendentes.total >= config.DESAFIOS_PENDENTES_MAXIMO) {
       throw new ErroJogo(`Você já tem ${config.DESAFIOS_PENDENTES_MAXIMO} desafios esperando resposta.`);
     }
 
-    const { rows } = await client.query(
-      'INSERT INTO batalhas (desafiante_id, desafiado_id, expira_em) VALUES ($1, $2, $3) RETURNING id',
-      [desafianteId, desafiadoId, depoisDe(agora, config.PRAZO_DESAFIO_MS)],
-    );
-    return buscarBatalha(client, rows[0].id, desafianteId);
+    const id = await model.inserirDesafio(client, {
+      desafianteId, desafiadoId, expiraEm: depoisDe(agora, config.PRAZO_DESAFIO_MS),
+    });
+    return buscarBatalha(client, id, desafianteId);
   });
 }
 
 /** Marca o desafio como expirado se o prazo para aceitar já passou */
 async function expirarSeVencido(client, batalha, agora = new Date()) {
   if (batalha.status !== 'aguardando' || batalha.expira_em > agora) return false;
-  await client.query("UPDATE batalhas SET status = 'expirada' WHERE id = $1", [batalha.id]);
+  await model.mudarStatus(client, batalha.id, 'expirada');
   return true;
 }
 
@@ -149,7 +97,7 @@ async function responderDesafio(usuarioId, batalhaId, aceitar) {
     if (batalha.status !== 'aguardando') throw new ErroJogo('Esse desafio já foi respondido.');
 
     if (!aceitar) {
-      await client.query("UPDATE batalhas SET status = 'recusada' WHERE id = $1", [batalhaId]);
+      await model.mudarStatus(client, batalhaId, 'recusada');
       return buscarBatalha(client, batalhaId, usuarioId);
     }
 
@@ -160,10 +108,7 @@ async function responderDesafio(usuarioId, batalhaId, aceitar) {
     if (timeA.length !== config.TAMANHO_TIME || timeB.length !== config.TAMANHO_TIME) {
       throw new ErroJogo(`Os dois jogadores precisam de um time com ${config.TAMANHO_TIME} Pokémon.`);
     }
-    const { rows: usuarios } = await client.query(
-      'SELECT id, login FROM usuarios WHERE id = ANY($1)',
-      [[batalha.desafiante_id, batalha.desafiado_id]],
-    );
+    const usuarios = await model.buscarLogins(client, [batalha.desafiante_id, batalha.desafiado_id]);
     const usuario = (id) => usuarios.find((u) => u.id === id);
 
     const estado = motor.criarEstado(
@@ -171,13 +116,12 @@ async function responderDesafio(usuarioId, batalhaId, aceitar) {
       motor.montarLado(usuario(batalha.desafiado_id), timeB),
     );
     const agora = new Date();
-    await client.query(
-      `UPDATE batalhas
-          SET status = 'em_andamento', estado = $2, turno = 1, vez_de = $3,
-              prazo_em = $4, ultimo_movimento_em = $5
-        WHERE id = $1`,
-      [batalhaId, estado, estado.lados[estado.vez].usuarioId, depoisDe(agora, config.PRAZO_JOGADA_MS), agora],
-    );
+    await model.iniciar(client, batalhaId, {
+      estado,
+      vezDe: estado.lados[estado.vez].usuarioId,
+      prazoEm: depoisDe(agora, config.PRAZO_JOGADA_MS),
+      agora,
+    });
     return buscarBatalha(client, batalhaId, usuarioId);
   });
 }
@@ -191,21 +135,16 @@ async function responderDesafio(usuarioId, batalhaId, aceitar) {
  * duas contas do mesmo dono poderiam batalhar entre si só para gerar Pokécoins.
  * coisa essa que o professor nos alertou durante o uso do jogo, ou então foi comentado pelo felipe.
  */
-async function calcularPremio(client, { usuarioId, oponenteId, base, jogadasManuais }) {
+async function calcularPremio(client, {
+  usuarioId, oponenteId, base, jogadasManuais,
+}) {
   const nada = (semRecompensa) => ({ pokecoins: 0, xp: 0, semRecompensa });
   if (base.pokecoins === 0 && base.xp === 0) return nada('Quem abandona a batalha não recebe recompensa.');
   if (jogadasManuais < config.JOGADAS_MINIMAS_PARA_RECOMPENSA) {
     return nada('A batalha terminou cedo demais para dar recompensa.');
   }
 
-  const { rows: [recentes] } = await client.query(
-    `SELECT count(*) AS total,
-            count(*) FILTER (WHERE $2 IN (b.desafiante_id, b.desafiado_id)) AS contra_oponente
-       FROM transacoes_pokecoins t JOIN batalhas b ON b.id = t.batalha_id
-      WHERE t.usuario_id = $1 AND t.motivo = 'recompensa_batalha'
-        AND t.criado_em > now() - interval '24 hours'`,
-    [usuarioId, oponenteId],
-  );
+  const recentes = await model.contarRecompensasRecentes(client, usuarioId, oponenteId);
   if (recentes.total >= config.RECOMPENSAS_POR_DIA) {
     return nada(`Limite de ${config.RECOMPENSAS_POR_DIA} batalhas premiadas em 24h atingido.`);
   }
@@ -217,11 +156,7 @@ async function calcularPremio(client, { usuarioId, oponenteId, base, jogadasManu
 
 /** Pokécoins para os jogadores e XP para os Pokémon do time de cada um */
 async function distribuirRecompensas(client, batalhaId, estado, fim) {
-  const { rows: [{ total: jogadasManuais }] } = await client.query(
-    `SELECT count(*) AS total FROM batalha_acoes
-      WHERE batalha_id = $1 AND NOT automatica AND tipo IN ('atacar', 'golpe', 'trocar')`,
-    [batalhaId],
-  );
+  const jogadasManuais = await model.contarJogadasManuais(client, batalhaId);
 
   const perdedor = fim.vencedor === 0 ? 1 : 0;
   const lados = [
@@ -239,12 +174,9 @@ async function distribuirRecompensas(client, batalhaId, estado, fim) {
       usuarioId: lado.usuarioId, oponenteId: oponente.usuarioId, base, jogadasManuais,
     });
     if (premio.pokecoins > 0) {
-      await client.query('UPDATE usuarios SET pokecoins = pokecoins + $2 WHERE id = $1', [lado.usuarioId, premio.pokecoins]);
-      await client.query(
-        `INSERT INTO transacoes_pokecoins (usuario_id, valor, motivo, batalha_id)
-         VALUES ($1, $2, 'recompensa_batalha', $3)`,
-        [lado.usuarioId, premio.pokecoins, batalhaId],
-      );
+      await carteira.creditar(client, {
+        usuarioId: lado.usuarioId, valor: premio.pokecoins, motivo: 'recompensa_batalha', batalhaId,
+      });
     }
     const subiram = await darXp(client, lado.usuarioId, lado.pokemons.map((p) => p.pokemonId), premio.xp);
     recompensas[lado.usuarioId] = { ...premio, subiram };
@@ -263,35 +195,35 @@ async function distribuirRecompensas(client, batalhaId, estado, fim) {
  * nunca é paga duas vezes.
  * evita o bug de ficar dando recompensa duas vezes, caso o jogador clique duas vezes no botão de atacar.
  */
-async function registrarResultado(client, batalha, { indiceJogador, tipo, automatica, resultado, agora }) {
+async function registrarResultado(client, batalha, {
+  indiceJogador, tipo, automatica, resultado, agora,
+}) {
   const { estado, eventos, fim } = resultado;
 
-  await client.query(
-    `INSERT INTO batalha_acoes (batalha_id, turno, jogador_id, tipo, automatica, eventos)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [batalha.id, batalha.turno, estado.lados[indiceJogador].usuarioId, tipo, automatica, JSON.stringify(eventos)],
-  );
+  await model.inserirAcao(client, {
+    batalhaId: batalha.id,
+    turno: batalha.turno,
+    jogadorId: estado.lados[indiceJogador].usuarioId,
+    tipo,
+    automatica,
+    eventos,
+  });
 
   if (!fim) {
-    await client.query(
-      `UPDATE batalhas
-          SET estado = $2, turno = turno + 1, vez_de = $3, prazo_em = $4, ultimo_movimento_em = $5
-        WHERE id = $1`,
-      [batalha.id, estado, estado.lados[estado.vez].usuarioId, depoisDe(agora, config.PRAZO_JOGADA_MS), agora],
-    );
+    await model.avancarTurno(client, batalha.id, {
+      estado,
+      vezDe: estado.lados[estado.vez].usuarioId,
+      prazoEm: depoisDe(agora, config.PRAZO_JOGADA_MS),
+      agora,
+    });
     return;
   }
 
-  const vencedor = estado.lados[fim.vencedor];
-  await client.query(
-    `UPDATE batalhas
-        SET status = 'finalizada', estado = $2, vencedor_id = $3, motivo_fim = $4,
-            vez_de = NULL, prazo_em = NULL, ultimo_movimento_em = $5, finalizada_em = $5
-      WHERE id = $1`,
-    [batalha.id, estado, vencedor.usuarioId, fim.motivo, agora],
-  );
+  await model.finalizar(client, batalha.id, {
+    estado, vencedorId: estado.lados[fim.vencedor].usuarioId, motivo: fim.motivo, agora,
+  });
   const recompensas = await distribuirRecompensas(client, batalha.id, estado, fim);
-  await client.query('UPDATE batalhas SET recompensas = $2 WHERE id = $1', [batalha.id, recompensas]);
+  await model.salvarRecompensas(client, batalha.id, recompensas);
 }
 
 /**
@@ -321,7 +253,7 @@ async function atualizarPrazos(batalhaId) {
  * Jogada do usuário.
  * @param {number} usuarioId
  * @param {number} batalhaId
- * @param {import('./motor').Acao} acao
+ * @param {import('../../nucleo/motor').Acao} acao
  */
 async function jogar(usuarioId, batalhaId, acao) {
   await atualizarPrazos(batalhaId);
@@ -344,38 +276,20 @@ async function jogar(usuarioId, batalhaId, acao) {
 async function obterBatalha(usuarioId, batalhaId) {
   await atualizarPrazos(batalhaId);
 
-  const { rows } = await pool.query(`${SELECT_BATALHA} WHERE b.id = $1`, [batalhaId]);
-  if (!rows[0] || !participa(rows[0], usuarioId)) throw new ErroJogo('Batalha não encontrada.');
+  const linha = await model.buscarParaFront(pool, batalhaId);
+  if (!linha || !participa(linha, usuarioId)) throw new ErroJogo('Batalha não encontrada.');
 
-  const { rows: acoes } = await pool.query(
-    `SELECT turno, jogador_id AS "jogadorId", tipo, automatica, eventos, criada_em AS "criadaEm"
-       FROM batalha_acoes WHERE batalha_id = $1 ORDER BY id`,
-    [batalhaId],
-  );
-  return { batalha: descreverBatalha(rows[0], usuarioId), acoes };
+  const acoes = await model.listarAcoes(pool, batalhaId);
+  return { batalha: view.batalha(linha, usuarioId), acoes };
 }
 
 /** Batalhas do usuário: pendentes e em andamento primeiro, depois as últimas 20 encerradas */
 async function listarBatalhas(usuarioId) {
   // Resolve prazos vencidos antes de listar, para a lista não mostrar estado velho
-  const { rows: vencidas } = await pool.query(
-    `SELECT id FROM batalhas
-      WHERE $1 IN (desafiante_id, desafiado_id)
-        AND ((status = 'em_andamento' AND prazo_em <= now()) OR (status = 'aguardando' AND expira_em <= now()))`,
-    [usuarioId],
-  );
-  for (const { id } of vencidas) await atualizarPrazos(id);
+  for (const id of await model.idsVencidosDoUsuario(pool, usuarioId)) await atualizarPrazos(id);
 
-  const { rows } = await pool.query(
-    `(${SELECT_BATALHA}
-       WHERE $1 IN (b.desafiante_id, b.desafiado_id) AND b.status IN ('aguardando', 'em_andamento'))
-     UNION ALL
-     (${SELECT_BATALHA}
-       WHERE $1 IN (b.desafiante_id, b.desafiado_id) AND b.status NOT IN ('aguardando', 'em_andamento')
-       ORDER BY b.criada_em DESC LIMIT 20)`,
-    [usuarioId],
-  );
-  return rows.map((linha) => descreverBatalha(linha, usuarioId));
+  const linhas = await model.listarDoUsuario(pool, usuarioId);
+  return linhas.map((linha) => view.batalha(linha, usuarioId));
 }
 
 // ---------------------------------------------------------------------------
@@ -388,25 +302,19 @@ async function listarBatalhas(usuarioId) {
  * recebendo uma jogada agora (ela mesma resolve o prazo) e permite rodar o
  * agendador em mais de uma instância do back.
  * @returns {Promise<number>} quantas batalhas foram processadas
- * 
+ *
  * foi uma saida para não usar o web socket, tenho a impressão que iria ficar muito pesado!
  */
 async function processarPrazosVencidos(limite = 100) {
   const agora = new Date();
-  const { rows } = await pool.query(
-    `SELECT id FROM batalhas
-      WHERE status = 'em_andamento' AND prazo_em <= $1
-      ORDER BY prazo_em
-      LIMIT $2`,
-    [agora, limite],
-  );
+  const ids = await model.idsComJogadaVencida(pool, agora, limite);
 
   let processadas = 0;
-  for (const { id } of rows) {
+  for (const id of ids) {
     try {
       await transacao(async (client) => {
-        const travada = await client.query('SELECT * FROM batalhas WHERE id = $1 FOR UPDATE SKIP LOCKED', [id]);
-        if (travada.rows[0] && (await resolverPrazo(client, travada.rows[0], agora))) processadas += 1;
+        const travada = await model.travarBatalhaSeLivre(client, id);
+        if (travada && (await resolverPrazo(client, travada, agora))) processadas += 1;
       });
     } catch (erro) {
       console.error(`Erro ao processar o prazo da batalha ${id}:`, erro);
@@ -417,10 +325,7 @@ async function processarPrazosVencidos(limite = 100) {
 
 /** Desafios que ninguém respondeu no prazo viram 'expirada' (um único UPDATE, sem estado para calcular) */
 async function expirarDesafios() {
-  const { rowCount } = await pool.query(
-    "UPDATE batalhas SET status = 'expirada' WHERE status = 'aguardando' AND expira_em <= now()",
-  );
-  return rowCount;
+  return model.expirarDesafiosVencidos(pool);
 }
 
 module.exports = {

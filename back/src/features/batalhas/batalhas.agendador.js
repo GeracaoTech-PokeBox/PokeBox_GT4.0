@@ -3,7 +3,7 @@ e expira desafios não respondidos. Com o prazo de 1 min por jogada, roda bem ma
 de qualquer jeito toda leitura/jogada também confere os prazos.*/
 
 //OBS: Cron é um agendador de tarefas baseado em tempo em sistemas operacionais
-const { processarPrazosVencidos, expirarDesafios } = require('./batalhas');
+const { processarPrazosVencidos, expirarDesafios } = require('./batalhas.service');
 
 const INTERVALO_MS = 10 * 1000;
 

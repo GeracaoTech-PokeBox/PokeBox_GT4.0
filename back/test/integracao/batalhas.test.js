@@ -12,7 +12,7 @@ describe('batalhas', { skip: semBanco }, () => {
 
   before(async () => {
     amb = await prepararAmbiente();
-    agendador = require('../../src/jogo/agendador');
+    agendador = require('../../src/features/batalhas');
   });
   after(() => amb?.encerrar());
 

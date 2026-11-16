@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { efetividade } = require('../../src/jogo/tipos');
+const { efetividade } = require('../../src/nucleo/tipos');
 
 test('vantagem simples: 2x, 0,5x e 0x', () => {
   assert.equal(efetividade('fire', ['grass']), 2);

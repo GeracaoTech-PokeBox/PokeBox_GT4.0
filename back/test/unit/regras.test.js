@@ -1,6 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const regras = require('../../src/jogo/regras');
+// As regras testadas aqui ficam em três lugares: as do Pokémon no núcleo (usadas por várias features),
+// as da história na feature historia e a montagem do card na view de pokemons.
+const regras = {
+  ...require('../../src/nucleo/regras'),
+  ...require('../../src/features/historia/historia.regras'),
+  ...require('../../src/features/pokemons/pokemons.view'),
+};
 const config = require('../../src/compartilhado/config');
 const { ErroJogo } = require('../../src/compartilhado/erros');
 const { rngSequencia, rngConstante, QUASE_UM } = require('../helpers/rng');
