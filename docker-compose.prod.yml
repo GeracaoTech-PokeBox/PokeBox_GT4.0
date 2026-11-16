@@ -26,6 +26,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-pokebox}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-pokebox}
       PORT: 8080
+      # Endereço do front na Vercel, para o CORS (ex.: https://pokebox.vercel.app), vindo do .env
+      CORS_ORIGENS: ${CORS_ORIGENS:-}
     volumes:
       # O back aplica sozinho, ao subir, as migrações desta pasta que o banco ainda não tem
       - ./db/migracoes:/db/migracoes:ro

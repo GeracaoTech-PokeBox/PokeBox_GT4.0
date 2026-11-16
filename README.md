@@ -46,7 +46,7 @@ Faça nesta ordem, porque cada passo usa o endereço gerado no anterior.
 
 ### 2. Back no Render
 
-**New → Blueprint**, escolha este repositório e cole a connection string do Neon quando ele pedir `DATABASE_URL`.
+**New → Blueprint**, escolha este repositório e cole a connection string do Neon quando ele pedir `DATABASE_URL`. Em `CORS_ORIGENS`, coloque o endereço do front (ex.: `https://pokebox.netlify.app`); se ainda não tiver, preencha depois do passo 3.
 
 Se o Render não conseguir acessar a organização do GitHub, crie à mão: **New → Web Service → Public Git Repository**, cole a URL do repositório e preencha:
 
@@ -55,7 +55,7 @@ Se o Render não conseguir acessar a organização do GitHub, crie à mão: **Ne
 - Start Command: `node server.js`
 - Instance Type: Free
 - Health Check Path: `/api/saude`
-- Environment: `DATABASE_URL` = connection string do Neon
+- Environment: `DATABASE_URL` = connection string do Neon e `CORS_ORIGENS` = endereço do front
 
 Para testar, abra `https://SEU-BACK.onrender.com/api/saude`, que deve responder `{"ok":true}`.
 
@@ -75,6 +75,7 @@ npx netlify-cli deploy --build --prod
 
 - **O back grátis do Render dorme depois de 15 min sem acesso** e leva cerca de 1 min para acordar. O front já manda um "acorda" ao abrir, mas antes de apresentar abra o site com alguns minutos de antecedência.
 - O `VITE_BACK_URL` entra no front na hora do build: se a URL do back mudar, faça um novo deploy no Netlify.
+- **O back só aceita chamadas do navegador vindas dos endereços em `CORS_ORIGENS`** (mais de um, separados por vírgula). Se o front publicado mostrar erro de conexão e o console do navegador falar em CORS, confira essa variável no Render. No `docker-compose` local ela não é necessária.
 - Nunca coloque a connection string do Neon no `back/.env` (o repositório é público). Ela fica só no painel do Render.
 - O aviso `SECURITY WARNING: The SSL modes 'prefer', 'require'...` no log do Render é normal e não impede a conexão.
 

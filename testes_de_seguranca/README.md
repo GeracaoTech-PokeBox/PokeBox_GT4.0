@@ -59,6 +59,15 @@ relatório JSON do ZAP passar a trazer a marcação `OWASP_2021_Axx`, ela tem pr
 - **Rota nova no back:** ela precisa entrar em `zap/openapi.yaml`, senão o scan ativo não a ataca.
 - `POST /auth/sair` fica de fora de propósito: o ZAP derrubaria a própria sessão no meio do scan.
 
+## Falsos positivos conhecidos
+
+- **SQL Injection em `POST /batalhas/{id}/jogadas` (campo `indice`)**: o ZAP troca `0` por `2-2`,
+  recebe a mesma resposta e conclui que o banco "calculou" a conta. Não é injeção: com
+  `tipo: "atacar"` o back ignora o `indice`, o valor vira número antes de qualquer uso e as
+  consultas usam parâmetros (`$1`). Conferido à mão em 16/11/2026: `0`, `2-2` e `0' OR '1'='1`
+  dão exatamente a mesma resposta. O alerta aparece em algumas execuções e em outras não, porque o
+  ZAP varia as tentativas.
+
 ## Escopo
 
 Rode só contra o ambiente isolado deste compose. Não aponte o ZAP para a Vercel ou para o Render:
