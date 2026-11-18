@@ -9,7 +9,7 @@ No back do PokeBox, o YAGNI aparece de duas formas:
 1. **Coisas expostas ou parametrizadas sem ninguém usar** (exports, parâmetros opcionais).
 2. **Código que já foi necessário e pode estar sobrando** (compatibilidade com dados antigos).
 
-Os exemplos são **propostas**: o "antes" é o código atual e o "depois" é a mudança sugerida.
+**Os itens 1 a 3 já foram aplicados no código**: o "antes" é como o código era e o "depois" é como ficou. O item 4 continua como proposta, porque depende de conferir os bancos que estão no ar.
 
 ---
 
@@ -173,6 +173,8 @@ SELECT count(*) FROM historia_encontros
 ```
 
 Se algum der mais que 0, o caminho mais limpo é uma migração ou um script que complete os dados uma vez, e só então tirar o código.
+
+**Situação em 17/11/2026:** o banco local (Docker) deu 0 nas duas consultas. Falta conferir os bancos do Render/Neon e da máquina própria.
 
 ---
 

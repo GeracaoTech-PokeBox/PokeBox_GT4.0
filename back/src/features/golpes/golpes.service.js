@@ -137,6 +137,4 @@ async function desbloquearGolpes(usuarioId, pokemonId, rng = rngSeguro) {
   }, rng);
 }
 
-module.exports = {
-  garantirGolpe, garantirMovimentos, roletarGolpes, desbloquearGolpes, causaDano,
-};
+module.exports = { roletarGolpes, desbloquearGolpes };

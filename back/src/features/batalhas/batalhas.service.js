@@ -24,6 +24,9 @@ const view = require('./batalhas.view');
 
 const depoisDe = (agora, ms) => new Date(agora.getTime() + ms);
 
+// Batalhas processadas por rodada do agendador; o resto fica para a próxima (10s depois)
+const LOTE_DE_PRAZOS = 100;
+
 const participa = (batalha, usuarioId) => batalha.desafiante_id === usuarioId || batalha.desafiado_id === usuarioId;
 const indiceDo = (estado, usuarioId) => estado.lados.findIndex((lado) => lado.usuarioId === usuarioId);
 
@@ -309,9 +312,9 @@ async function listarBatalhas(usuarioId) {
  *
  * foi uma saida para não usar o web socket, tenho a impressão que iria ficar muito pesado!
  */
-async function processarPrazosVencidos(limite = 100) {
+async function processarPrazosVencidos() {
   const agora = new Date();
-  const ids = await model.idsComJogadaVencida(pool, agora, limite);
+  const ids = await model.idsComJogadaVencida(pool, agora, LOTE_DE_PRAZOS);
 
   let processadas = 0;
   for (const id of ids) {
