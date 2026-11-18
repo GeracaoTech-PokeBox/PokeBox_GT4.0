@@ -13,10 +13,12 @@ O prazo é conferido de dois jeitos, e os dois chamam resolverPrazo:
  Regras de negócio e transações; o SQL fica no model e o formato da resposta na view.*/
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
+const { travarUsuario } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
 const { ErroJogo } = require('../../compartilhado/erros');
 const motor = require('../../nucleo/motor');
 const { darXp } = require('../pokemons');
+const { buscarPorLogin } = require('../contas');
 const model = require('./batalhas.model');
 const view = require('./batalhas.view');
 
@@ -27,6 +29,9 @@ const indiceDo = (estado, usuarioId) => estado.lados.findIndex((lado) => lado.us
 
 /** Time de batalha do usuário (a história usa o mesmo) */
 const carregarTime = (db, usuarioId) => model.carregarTime(db, usuarioId);
+
+/** O time tem os TAMANHO_TIME Pokémon necessários para batalhar? */
+const timeCompleto = (time) => time.length === config.TAMANHO_TIME;
 
 async function travarBatalha(client, batalhaId) {
   const batalha = await model.travarBatalha(client, batalhaId);
@@ -50,14 +55,14 @@ async function buscarBatalha(db, batalhaId, usuarioId) {
 async function desafiar(desafianteId, loginOponente) {
   return transacao(async (client) => {
     // Trava o desafiante para dois cliques não passarem juntos pelos limites abaixo
-    await model.travarUsuario(client, desafianteId);
+    await travarUsuario(client, desafianteId);
 
-    const desafiadoId = await model.buscarIdPorLogin(client, loginOponente);
+    const desafiadoId = (await buscarPorLogin(client, loginOponente))?.id;
     if (!desafiadoId) throw new ErroJogo('Treinador não encontrado.');
     if (desafiadoId === desafianteId) throw new ErroJogo('Você não pode desafiar a si mesmo.');
 
     const time = await carregarTime(client, desafianteId);
-    if (time.length !== config.TAMANHO_TIME) {
+    if (!timeCompleto(time)) {
       throw new ErroJogo(`Monte um time com ${config.TAMANHO_TIME} Pokémon antes de desafiar.`);
     }
 
@@ -105,7 +110,7 @@ async function responderDesafio(usuarioId, batalhaId, aceitar) {
       await carregarTime(client, batalha.desafiante_id),
       await carregarTime(client, batalha.desafiado_id),
     ];
-    if (timeA.length !== config.TAMANHO_TIME || timeB.length !== config.TAMANHO_TIME) {
+    if (!timeCompleto(timeA) || !timeCompleto(timeB)) {
       throw new ErroJogo(`Os dois jogadores precisam de um time com ${config.TAMANHO_TIME} Pokémon.`);
     }
     const usuarios = await model.buscarLogins(client, [batalha.desafiante_id, batalha.desafiado_id]);
@@ -330,6 +335,7 @@ async function expirarDesafios() {
 
 module.exports = {
   carregarTime,
+  timeCompleto,
   desafiar,
   responderDesafio,
   jogar,

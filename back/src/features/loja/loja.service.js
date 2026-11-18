@@ -2,6 +2,7 @@
 // Regras de negócio e transações; o SQL fica no model.
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
+const { travarUsuario } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
 const { ErroJogo } = require('../../compartilhado/erros');
 const { rngSeguro, inteiroEntre } = require('../../compartilhado/aleatorio');
@@ -16,7 +17,7 @@ async function escolherInicial(usuarioId, especieId) {
 
   return transacao(async (client) => {
     // Trava o usuário para dois cliques não criarem dois iniciais
-    await model.travarUsuario(client, usuarioId);
+    await travarUsuario(client, usuarioId);
     if (await model.temAlgumPokemon(client, usuarioId)) throw new ErroJogo('Você já escolheu seu Pokémon inicial.');
 
     const id = await mintarPokemon(client, {

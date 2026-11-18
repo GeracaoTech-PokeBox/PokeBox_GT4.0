@@ -1,7 +1,7 @@
 // Pokémon: formato do JSON que vai para o front (o card). Testado em test/unit/regras.test.js.
 const config = require('../../compartilhado/config');
 const {
-  calcularStatus, coracoes, bonusAfeto, afetoMaximo, bemEstarAtual,
+  calcularStatus, coracoes, bonusAfeto, afetoMaximo, bemEstarAtual, resumoGolpe,
 } = require('../../nucleo/regras');
 
 /** Altura (m) e peso (kg) do card, calculados a partir da espécie atual */
@@ -73,9 +73,7 @@ function descreverPokemon(linha) {
     anunciado: Boolean(linha.anunciado),
     afeto: descreverAfeto(linha.afeto),
     // Golpes especiais (liberados com o afeto máximo) e quanto custa sortear de novo
-    golpes: (linha.golpes_detalhe ?? []).map((g) => ({
-      id: g.id, nome: g.nome, tipo: g.tipo, classe: g.classe, poder: g.poder, precisao: g.precisao, pp: g.pp,
-    })),
+    golpes: (linha.golpes_detalhe ?? []).map(resumoGolpe),
     custoRoletaGolpes: linha.golpes?.length > 0 ? config.CUSTO_ROLETA_GOLPES : 0,
     // Liberados pelo afeto máximo ou pelo desbloqueio pago (custoDesbloqueioGolpes)
     golpesLiberados: afetoMaximo(linha.afeto) || Boolean(linha.golpes_desbloqueados),

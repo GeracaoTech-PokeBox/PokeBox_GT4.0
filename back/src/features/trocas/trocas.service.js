@@ -7,8 +7,10 @@
 // Regras de negócio e transações; o SQL fica no model e o formato da resposta na view.
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
+const { travarUsuarios } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
 const { ErroJogo } = require('../../compartilhado/erros');
+const { temRepetidos } = require('../../compartilhado/validacao');
 const { buscarCard } = require('../pokemons');
 const model = require('./trocas.model');
 const view = require('./trocas.view');
@@ -106,7 +108,7 @@ async function criarAnuncio(usuarioId, { pokemonId, preco, aceitaPropostas }) {
   }
 
   return transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId]);
+    await travarUsuarios(client, [usuarioId]);
     await travarCardsLivres(client, [pokemonId], usuarioId, 'Pokémon não encontrado.');
 
     const { ativos, jaAnunciado } = await model.contarAnunciosAtivos(client, usuarioId, pokemonId);
@@ -139,7 +141,7 @@ async function comprar(usuarioId, anuncioId) {
   if (previa.vendedor_id === usuarioId) throw new ErroJogo('Você não pode comprar o próprio anúncio.');
 
   return transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId, previa.vendedor_id]);
+    await travarUsuarios(client, [usuarioId, previa.vendedor_id]);
     const anuncio = await travarAnuncioAtivo(client, anuncioId);
     if (anuncio.preco === null) throw new ErroJogo('Esse anúncio só aceita propostas de troca.');
     await travarCardsLivres(client, [anuncio.pokemon_id], anuncio.vendedor_id, 'Esse Pokémon não está mais disponível.');
@@ -174,13 +176,13 @@ async function proporTroca(usuarioId, anuncioId, { pokemonIds, pokecoins }) {
   if (!Number.isSafeInteger(pokecoins) || pokecoins < 0 || pokecoins > config.PRECO_MAXIMO_ANUNCIO) {
     throw new ErroJogo(`Ofereça entre 0 e ${config.PRECO_MAXIMO_ANUNCIO} Pokécoins.`);
   }
-  if (pokemonIds.length > config.POKEMONS_POR_PROPOSTA || new Set(pokemonIds).size !== pokemonIds.length) {
+  if (pokemonIds.length > config.POKEMONS_POR_PROPOSTA || temRepetidos(pokemonIds)) {
     throw new ErroJogo(`Ofereça até ${config.POKEMONS_POR_PROPOSTA} Pokémon diferentes.`);
   }
   if (pokemonIds.length === 0 && pokecoins === 0) throw new ErroJogo('Ofereça pelo menos um Pokémon ou Pokécoins.');
 
   return transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId]);
+    await travarUsuarios(client, [usuarioId]);
     const anuncio = await travarAnuncioAtivo(client, anuncioId);
     if (anuncio.vendedor_id === usuarioId) throw new ErroJogo('Você não pode fazer proposta no próprio anúncio.');
     if (!anuncio.aceita_propostas) throw new ErroJogo('Esse anúncio não aceita propostas, só a compra direta.');
@@ -230,7 +232,7 @@ async function aceitarProposta(usuarioId, propostaId) {
   const previa = await lerProposta(propostaId, usuarioId, 'vendedor');
 
   await transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId, previa.proponente_id]);
+    await travarUsuarios(client, [usuarioId, previa.proponente_id]);
     const anuncio = await travarAnuncioAtivo(client, previa.anuncio_id);
     const proposta = await travarPropostaPendente(client, propostaId);
     const oferta = await model.pokemonsDaProposta(client, propostaId);

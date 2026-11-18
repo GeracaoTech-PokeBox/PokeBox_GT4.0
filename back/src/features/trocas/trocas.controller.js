@@ -1,6 +1,7 @@
 // Trocas: lê e valida a requisição, chama o service e responde
-const { ErroJogo } = require('../../compartilhado/erros');
-const { inteiro, busca, opcao } = require('../../compartilhado/validacao');
+const {
+  inteiro, pokemonIds, busca, opcao,
+} = require('../../compartilhado/validacao');
 const service = require('./trocas.service');
 
 // ---------------------------------------------------------------------------
@@ -49,10 +50,9 @@ async function comprar(req, res) {
 // ---------------------------------------------------------------------------
 
 async function propor(req, res) {
-  const { pokemonIds = [], pokecoins = 0 } = req.body;
-  if (!Array.isArray(pokemonIds)) throw new ErroJogo('Envie a lista pokemonIds.');
+  const { pokemonIds: ids = [], pokecoins = 0 } = req.body;
   res.status(201).json(await service.proporTroca(req.usuario.id, inteiro(req.params.id, 'Anúncio'), {
-    pokemonIds: pokemonIds.map((id) => inteiro(id, 'Pokémon')),
+    pokemonIds: pokemonIds(ids),
     pokecoins: Number(pokecoins),
   }));
 }

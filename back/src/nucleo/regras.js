@@ -92,11 +92,14 @@ function calcularStatus(especie, pokemon) {
   const escala = (base, iv) => Math.floor(((2 * base + iv) * pokemon.nivel) / 100);
   const bonus = 1 + bonusAfeto(pokemon.afeto);
   const comBonus = (valor) => Math.floor(valor * bonus);
+  // Ataque, defesa e velocidade usam a mesma fórmula (colunas <nome>_base, iv_<nome> e bonus_<nome>)
+  const statusComum = (nome) => comBonus(escala(especie[`${nome}_base`], pokemon[`iv_${nome}`]) + 5)
+    + (pokemon[`bonus_${nome}`] ?? 0);
   return {
     hp: comBonus(escala(especie.hp_base, pokemon.iv_hp) + pokemon.nivel + 10) + (pokemon.bonus_hp ?? 0),
-    ataque: comBonus(escala(especie.ataque_base, pokemon.iv_ataque) + 5) + (pokemon.bonus_ataque ?? 0),
-    defesa: comBonus(escala(especie.defesa_base, pokemon.iv_defesa) + 5) + (pokemon.bonus_defesa ?? 0),
-    velocidade: comBonus(escala(especie.velocidade_base, pokemon.iv_velocidade) + 5) + (pokemon.bonus_velocidade ?? 0),
+    ataque: statusComum('ataque'),
+    defesa: statusComum('defesa'),
+    velocidade: statusComum('velocidade'),
   };
 }
 
@@ -134,6 +137,15 @@ function bemEstarAtual(pokemon, agora = new Date()) {
 }
 
 /**
+ * Confere que `tipo` é um dos cuidados de config.CUIDADOS e o devolve.
+ * hasOwn: senão 'toString', 'constructor'... achariam a propriedade herdada de Object
+ */
+function tipoDeCuidado(tipo) {
+  if (!Object.hasOwn(config.CUIDADOS, tipo)) throw new ErroJogo('Cuidado inválido.');
+  return tipo;
+}
+
+/**
  * Aplica um cuidado (carinho, brincar, alimentar), respeitando a espera desde o último do mesmo tipo.
  * Brincar gasta energia: sem energia suficiente, o Pokémon está cansado demais.
  * @param {{ afeto: number, humor: number, energia: number }} atual  humor e energia já com o desgaste
@@ -143,9 +155,7 @@ function bemEstarAtual(pokemon, agora = new Date()) {
  * @returns {{ afeto: number, humor: number, energia: number, ganho: number }}
  */
 function aplicarCuidado(atual, tipo, ultimoEm, agora = new Date()) {
-  // hasOwn: senão 'toString', 'constructor'... achariam a propriedade herdada de Object
-  if (!Object.hasOwn(config.CUIDADOS, tipo)) throw new ErroJogo('Cuidado inválido.');
-  const cuidado = config.CUIDADOS[tipo];
+  const cuidado = config.CUIDADOS[tipoDeCuidado(tipo)];
   if (ultimoEm && agora.getTime() - ultimoEm.getTime() < cuidado.esperaMs) {
     throw new ErroJogo('Esse cuidado ainda não está disponível. Espere um pouco e tente de novo.');
   }
@@ -158,6 +168,17 @@ function aplicarCuidado(atual, tipo, ultimoEm, agora = new Date()) {
     humor: limitarBemEstar(atual.humor + cuidado.humor),
     energia: limitarBemEstar(atual.energia + cuidado.energia),
     ganho: afeto - atual.afeto,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Golpes
+// ---------------------------------------------------------------------------
+
+/** O que o card e a batalha mostram de um golpe especial (linha da tabela golpes) */
+function resumoGolpe(g) {
+  return {
+    id: g.id, nome: g.nome, tipo: g.tipo, classe: g.classe, poder: g.poder, precisao: g.precisao, pp: g.pp,
   };
 }
 
@@ -214,9 +235,11 @@ module.exports = {
   coracoes,
   bonusAfeto,
   afetoMaximo,
+  tipoDeCuidado,
   aplicarCuidado,
   bemEstarAtual,
   aplicarXp,
   sortearBonusEvolucao,
   evolucoesDisponiveis,
+  resumoGolpe,
 };

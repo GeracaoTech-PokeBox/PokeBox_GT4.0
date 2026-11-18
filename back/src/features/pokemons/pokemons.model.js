@@ -56,6 +56,25 @@ async function listarDoDono(db, donoId) {
   return rows;
 }
 
+/** Quantos desses Pokémon são do dono */
+async function contarDoDono(db, pokemonIds, donoId) {
+  const { rowCount } = await db.query('SELECT 1 FROM pokemons WHERE id = ANY($1) AND dono_id = $2', [pokemonIds, donoId]);
+  return rowCount;
+}
+
+// Colunas de ordem do card. A coluna entra no SQL, então só nomes desta lista são aceitos.
+const COLUNAS_DE_POSICAO = new Set(['posicao_time', 'posicao_vitrine']);
+
+/** Grava a ordem recebida (posição 1, 2, 3...) na coluna escolhida (time ou vitrine) */
+async function definirPosicoes(client, donoId, coluna, pokemonIds) {
+  if (!COLUNAS_DE_POSICAO.has(coluna)) throw new Error(`Coluna de posição inválida: ${coluna}`);
+  // Limpa antes de gravar para não esbarrar no UNIQUE (dono_id, coluna)
+  await client.query(`UPDATE pokemons SET ${coluna} = NULL WHERE dono_id = $1`, [donoId]);
+  for (const [i, id] of pokemonIds.entries()) {
+    await client.query(`UPDATE pokemons SET ${coluna} = $2 WHERE id = $1`, [id, i + 1]);
+  }
+}
+
 /** Trava e devolve os cards (que ainda são do dono) com o que o XP precisa */
 async function travarParaXp(client, donoId, pokemonIds) {
   const { rows } = await client.query(
@@ -151,6 +170,8 @@ module.exports = {
   inserir,
   buscarCard,
   listarDoDono,
+  contarDoDono,
+  definirPosicoes,
   travarParaXp,
   salvarNivel,
   travarParaEvolucao,

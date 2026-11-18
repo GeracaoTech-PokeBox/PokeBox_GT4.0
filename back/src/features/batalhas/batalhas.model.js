@@ -26,16 +26,6 @@ async function carregarTime(db, usuarioId) {
   return rows;
 }
 
-async function travarUsuario(client, usuarioId) {
-  await client.query('SELECT 1 FROM usuarios WHERE id = $1 FOR UPDATE', [usuarioId]);
-}
-
-/** Id do usuário pelo login (sem diferenciar maiúsculas), ou undefined */
-async function buscarIdPorLogin(db, login) {
-  const { rows: [usuario] } = await db.query('SELECT id FROM usuarios WHERE lower(login) = lower($1)', [login]);
-  return usuario?.id;
-}
-
 /** { id, login } de cada usuário */
 async function buscarLogins(db, ids) {
   const { rows } = await db.query('SELECT id, login FROM usuarios WHERE id = ANY($1)', [ids]);
@@ -232,8 +222,6 @@ async function contarRecompensasRecentes(db, usuarioId, oponenteId) {
 
 module.exports = {
   carregarTime,
-  travarUsuario,
-  buscarIdPorLogin,
   buscarLogins,
   travarBatalha,
   travarBatalhaSeLivre,

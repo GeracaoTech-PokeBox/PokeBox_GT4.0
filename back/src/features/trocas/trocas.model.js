@@ -85,11 +85,6 @@ async function buscarAnuncioCompleto(db, anuncioId) {
 // Travas e posse dos cards
 // ---------------------------------------------------------------------------
 
-/** Trava os usuários sempre em ordem de id, para duas operações cruzadas não se travarem */
-async function travarUsuarios(client, ids) {
-  await client.query('SELECT 1 FROM usuarios WHERE id = ANY($1) ORDER BY id FOR UPDATE', [ids]);
-}
-
 /** Linha de anuncios, ou undefined */
 async function lerAnuncio(db, anuncioId, { travar = false } = {}) {
   const { rows: [anuncio] } = await db.query(
@@ -264,7 +259,6 @@ module.exports = {
   listarAnunciosDaEspecie,
   listarAnunciosAtivosDoVendedor,
   buscarAnuncioCompleto,
-  travarUsuarios,
   lerAnuncio,
   travarCards,
   transferirCards,

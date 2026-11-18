@@ -8,7 +8,7 @@ const config = require('../../compartilhado/config');
 const { ErroJogo } = require('../../compartilhado/erros');
 const { rngSeguro } = require('../../compartilhado/aleatorio');
 const { afetoMaximo } = require('../../nucleo/regras');
-const { buscarCard } = require('../pokemons');
+const { buscarCard, doDono } = require('../pokemons');
 const model = require('./golpes.model');
 const pokeapi = require('./golpes.pokeapi');
 
@@ -67,9 +67,7 @@ const golpesLiberados = (pokemon) => afetoMaximo(pokemon.afeto) || pokemon.golpe
 
 /** O card, se for do usuário; senão "não encontrado" */
 async function buscarPokemonDoUsuario(db, usuarioId, pokemonId, opcoes) {
-  const pokemon = await model.buscarPokemon(db, pokemonId, opcoes);
-  if (!pokemon || pokemon.dono_id !== usuarioId) throw new ErroJogo('Pokémon não encontrado.');
-  return pokemon;
+  return doDono(await model.buscarPokemon(db, pokemonId, opcoes), usuarioId);
 }
 
 /**

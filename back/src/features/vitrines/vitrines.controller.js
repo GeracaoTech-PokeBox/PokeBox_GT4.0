@@ -1,7 +1,7 @@
 // Vitrines: lê e valida a requisição, chama o service e responde
 const { ErroJogo } = require('../../compartilhado/erros');
 const {
-  LOGIN_MAXIMO, texto, inteiro, busca,
+  LOGIN_MAXIMO, texto, pokemonIds, busca,
 } = require('../../compartilhado/validacao');
 const service = require('./vitrines.service');
 
@@ -15,13 +15,12 @@ async function obter(req, res) {
 }
 
 async function salvar(req, res) {
-  const { bio = '', estilo, pokemonIds } = req.body;
+  const { bio = '', estilo } = req.body;
   if (typeof bio !== 'string') throw new ErroJogo('Apresentação inválida.');
-  if (!Array.isArray(pokemonIds)) throw new ErroJogo('Envie a lista pokemonIds.');
   await service.salvarVitrine(req.usuario.id, {
     bio: bio.trim(),
     estilo,
-    pokemonIds: pokemonIds.map((id) => inteiro(id, 'Pokémon')),
+    pokemonIds: pokemonIds(req.body.pokemonIds),
   });
   res.status(204).end();
 }

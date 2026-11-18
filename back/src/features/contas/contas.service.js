@@ -83,6 +83,12 @@ async function entrar(login, senha) {
   return { usuario, token: await criarSessao(usuario.id) };
 }
 
+/**
+ * Treinador pelo login (sem diferenciar maiúsculas): { id, login, criado_em }, ou undefined.
+ * Recebe `db` para poder rodar dentro da transação de quem chama (ex.: o desafio de batalha).
+ */
+const buscarPorLogin = (db, login) => model.buscarPorLogin(db, login);
+
 async function existeUsuario(login, celular) {
   return model.existeComCelular(pool, login, celular);
 }
@@ -101,6 +107,7 @@ module.exports = {
   usuarioDaSessao,
   encerrarSessao,
   cadastrarUsuario,
+  buscarPorLogin,
   entrar,
   existeUsuario,
   redefinirSenha,

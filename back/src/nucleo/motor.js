@@ -1,7 +1,7 @@
 // Motor de batalha puro: recebe o estado e uma ação, devolve o novo estado e o que aconteceu.
 // Não sabe nada de banco, relógio ou prazo; quem cuida disso é batalhas.js.
 const config = require('../compartilhado/config');
-const { calcularStatus, afetoMaximo } = require('./regras');
+const { calcularStatus, afetoMaximo, resumoGolpe } = require('./regras');
 const { rngSeguro, decimalEntre } = require('../compartilhado/aleatorio');
 const { efetividade } = require('./tipos');
 const { ErroJogo } = require('../compartilhado/erros');
@@ -89,9 +89,7 @@ function montarLado(usuario, time) {
         afetoMaximo: afetoMaximo(pokemon.afeto),
         resistiu: false,
         tipos: especie.tipos ?? [],
-        golpes: golpes.map((g) => ({
-          id: g.id, nome: g.nome, tipo: g.tipo, classe: g.classe, poder: g.poder, precisao: g.precisao, pp: g.pp, ppMax: g.pp,
-        })),
+        golpes: golpes.map((g) => ({ ...resumoGolpe(g), ppMax: g.pp })),
       };
     }),
   };

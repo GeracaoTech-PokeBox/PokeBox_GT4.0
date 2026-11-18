@@ -18,6 +18,15 @@ function inteiro(valor, nome) {
   return numero;
 }
 
+/** Lista de ids de Pokémon vinda do corpo, cada um já validado como inteiro positivo */
+function pokemonIds(valor) {
+  if (!Array.isArray(valor)) throw new ErroJogo('Envie a lista pokemonIds.');
+  return valor.map((id) => inteiro(id, 'Pokémon'));
+}
+
+/** true se algum item aparece mais de uma vez */
+const temRepetidos = (lista) => new Set(lista).size !== lista.length;
+
 /** Termo de busca opcional da query string: texto cortado em `maximo` caracteres, ou '' */
 function busca(valor, maximo) {
   return typeof valor === 'string' ? valor.trim().slice(0, maximo) : '';
@@ -35,5 +44,5 @@ function acaoDe(corpo) {
 }
 
 module.exports = {
-  LOGIN_MAXIMO, texto, inteiro, busca, opcao, acaoDe,
+  LOGIN_MAXIMO, texto, inteiro, pokemonIds, temRepetidos, busca, opcao, acaoDe,
 };

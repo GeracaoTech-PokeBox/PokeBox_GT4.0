@@ -4,15 +4,6 @@ const { comecaCom } = require('../../banco/busca');
 
 /** @typedef {import('pg').Pool | import('pg').PoolClient} Db */
 
-/** Dono da vitrine pelo login, sem diferenciar maiúsculas */
-async function buscarDonoPorLogin(db, login) {
-  const { rows: [dono] } = await db.query(
-    'SELECT id, login, criado_em FROM usuarios WHERE lower(login) = lower($1)',
-    [login],
-  );
-  return dono;
-}
-
 /** Linha da vitrine, ou undefined se o treinador nunca salvou nem recebeu visita */
 async function lerVitrine(db, usuarioId) {
   const { rows: [vitrine] } = await db.query(
@@ -83,35 +74,12 @@ async function buscarDestaques(db, donoId) {
   return rows;
 }
 
-/** Trava o usuário, como definirTime, para dois salvamentos não se misturarem */
-async function travarUsuario(client, usuarioId) {
-  await client.query('SELECT 1 FROM usuarios WHERE id = $1 FOR UPDATE', [usuarioId]);
-}
-
-/** Quantos desses Pokémon são do usuário */
-async function contarPokemonsDoDono(db, pokemonIds, usuarioId) {
-  const { rowCount } = await db.query(
-    'SELECT 1 FROM pokemons WHERE id = ANY($1) AND dono_id = $2',
-    [pokemonIds, usuarioId],
-  );
-  return rowCount;
-}
-
 async function salvarApresentacao(db, usuarioId, { bio, estilo }) {
   await db.query(
     `INSERT INTO vitrines (usuario_id, bio, estilo) VALUES ($1, $2, $3)
      ON CONFLICT (usuario_id) DO UPDATE SET bio = $2, estilo = $3, atualizada_em = now()`,
     [usuarioId, bio, estilo],
   );
-}
-
-/** Grava os destaques na ordem recebida (posição 1, 2, 3...) */
-async function definirDestaques(client, usuarioId, pokemonIds) {
-  // Limpa antes de gravar para não esbarrar no UNIQUE (dono_id, posicao_vitrine)
-  await client.query('UPDATE pokemons SET posicao_vitrine = NULL WHERE dono_id = $1', [usuarioId]);
-  for (const [i, id] of pokemonIds.entries()) {
-    await client.query('UPDATE pokemons SET posicao_vitrine = $2 WHERE id = $1', [id, i + 1]);
-  }
 }
 
 /**
@@ -144,16 +112,12 @@ async function listarVitrines(db, usuarioId, busca) {
 }
 
 module.exports = {
-  buscarDonoPorLogin,
   lerVitrine,
   registrarVisita,
   contarColecao,
   listarEspecies,
   contarVitorias,
   buscarDestaques,
-  travarUsuario,
-  contarPokemonsDoDono,
   salvarApresentacao,
-  definirDestaques,
   listarVitrines,
 };
