@@ -24,7 +24,7 @@ const { mintarPokemon, buscarCard, darXp } = require('../pokemons');
 const { carregarTime, timeCompleto } = require('../batalhas');
 const { sortearEspecieDaLoja } = require('../loja');
 const {
-  forcaDoPonto, proximoPonto, nivelSelvagem, xpDaHistoria, chanceDeCaptura,
+  forcaDoPonto, proximoPonto, nivelSelvagem, xpDaHistoria, chanceDeCaptura, resultadoDaCaptura,
 } = require('./historia.regras');
 const batalha = require('./historia.batalha');
 const model = require('./historia.model');
@@ -259,10 +259,7 @@ async function capturar(usuarioId, encontroId, rng = rngSeguro) {
       pokemon = await buscarCard(client, id);
     }
     const tentativas = encontro.tentativas_captura + 1;
-    const fugiu = !capturou && tentativas >= config.TENTATIVAS_CAPTURA_MAXIMO;
-    let status = encontro.status;
-    if (capturou) status = 'capturado';
-    else if (fugiu) status = 'fugiu';
+    const { status, fugiu } = resultadoDaCaptura({ capturou, tentativas, statusAtual: encontro.status });
     await model.salvarTentativaCaptura(client, encontroId, { tentativas, status, pokemonId: pokemon?.id ?? null });
     return {
       capturou, fugiu, pokemon, pokebolas, encontro: await buscarEncontro(client, encontroId),

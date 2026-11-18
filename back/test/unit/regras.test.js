@@ -287,6 +287,13 @@ test('chanceDeCaptura interpola entre os pontos da tabela', () => {
   assert.equal(regras.chanceDeCaptura(300), 0.5);
 });
 
+test('resultadoDaCaptura: captura, fuga na última tentativa ou segue como estava', () => {
+  const max = config.TENTATIVAS_CAPTURA_MAXIMO;
+  assert.deepEqual(regras.resultadoDaCaptura({ capturou: true, tentativas: max, statusAtual: 'vencido' }), { status: 'capturado', fugiu: false });
+  assert.deepEqual(regras.resultadoDaCaptura({ capturou: false, tentativas: max, statusAtual: 'vencido' }), { status: 'fugiu', fugiu: true });
+  assert.deepEqual(regras.resultadoDaCaptura({ capturou: false, tentativas: max - 1, statusAtual: 'vencido' }), { status: 'vencido', fugiu: false });
+});
+
 test('xpDaHistoria é progressivo e a revanche paga metade', () => {
   assert.equal(regras.xpDaHistoria(0.1), 515);
   assert.equal(regras.xpDaHistoria(1), 6500);
@@ -299,7 +306,7 @@ test('xpDaHistoria é progressivo e a revanche paga metade', () => {
 // Card para o front
 // ---------------------------------------------------------------------------
 
-test('descreverPokemon', async (t) => {
+test('card', async (t) => {
   const linha = {
     ...CHARMANDER,
     ...IVS_MAXIMOS,
@@ -322,7 +329,7 @@ test('descreverPokemon', async (t) => {
   };
 
   await t.test('monta o card com status, afeto e evoluções', () => {
-    const card = regras.descreverPokemon(linha);
+    const card = regras.card(linha);
     assert.equal(card.id, 10);
     assert.equal(card.mintNumero, 7);
     assert.equal(card.xpParaSubir, 1600);
@@ -334,25 +341,25 @@ test('descreverPokemon', async (t) => {
   });
 
   await t.test('não mostra xp para subir no nível máximo', () => {
-    assert.equal(regras.descreverPokemon({ ...linha, nivel: 100 }).xpParaSubir, null);
+    assert.equal(regras.card({ ...linha, nivel: 100 }).xpParaSubir, null);
   });
 
   await t.test('golpes: primeira roleta grátis, depois paga; liberados por afeto ou desbloqueio', () => {
-    const semGolpes = regras.descreverPokemon(linha);
+    const semGolpes = regras.card(linha);
     assert.equal(semGolpes.custoRoletaGolpes, 0);
     assert.equal(semGolpes.golpesLiberados, false);
 
-    assert.equal(regras.descreverPokemon({ ...linha, golpes: [1, 2] }).custoRoletaGolpes, config.CUSTO_ROLETA_GOLPES);
-    assert.equal(regras.descreverPokemon({ ...linha, afeto: 500 }).golpesLiberados, true);
-    assert.equal(regras.descreverPokemon({ ...linha, golpes_desbloqueados: true }).golpesLiberados, true);
+    assert.equal(regras.card({ ...linha, golpes: [1, 2] }).custoRoletaGolpes, config.CUSTO_ROLETA_GOLPES);
+    assert.equal(regras.card({ ...linha, afeto: 500 }).golpesLiberados, true);
+    assert.equal(regras.card({ ...linha, golpes_desbloqueados: true }).golpesLiberados, true);
   });
 
   await t.test('cuidadosDisponiveisEm: null quando já pode, senão a hora em que libera', () => {
-    assert.deepEqual(regras.descreverPokemon(linha).cuidadosDisponiveisEm, { carinho: null, brincar: null, alimentar: null });
+    assert.deepEqual(regras.card(linha).cuidadosDisponiveisEm, { carinho: null, brincar: null, alimentar: null });
 
     const umaHoraAtras = new Date(Date.now() - HORA);
     const cincoHorasAtras = new Date(Date.now() - 5 * HORA);
-    const { cuidadosDisponiveisEm } = regras.descreverPokemon({
+    const { cuidadosDisponiveisEm } = regras.card({
       ...linha, ultimos_cuidados: { carinho: umaHoraAtras, brincar: cincoHorasAtras.toISOString() },
     });
     assert.equal(cuidadosDisponiveisEm.carinho.getTime(), umaHoraAtras.getTime() + 2 * HORA);

@@ -106,10 +106,8 @@ async function responderDesafio(usuarioId, batalhaId, aceitar) {
       return buscarBatalha(client, batalhaId, usuarioId);
     }
 
-    const [timeA, timeB] = [
-      await carregarTime(client, batalha.desafiante_id),
-      await carregarTime(client, batalha.desafiado_id),
-    ];
+    const timeA = await carregarTime(client, batalha.desafiante_id);
+    const timeB = await carregarTime(client, batalha.desafiado_id);
     if (!timeCompleto(timeA) || !timeCompleto(timeB)) {
       throw new ErroJogo(`Os dois jogadores precisam de um time com ${config.TAMANHO_TIME} Pokémon.`);
     }
@@ -163,7 +161,7 @@ async function calcularPremio(client, {
 async function distribuirRecompensas(client, batalhaId, estado, fim) {
   const jogadasManuais = await model.contarJogadasManuais(client, batalhaId);
 
-  const perdedor = fim.vencedor === 0 ? 1 : 0;
+  const perdedor = motor.outro(fim.vencedor);
   const lados = [
     { lado: estado.lados[fim.vencedor], oponente: estado.lados[perdedor], base: config.RECOMPENSA_VENCEDOR },
     {
@@ -291,7 +289,8 @@ async function obterBatalha(usuarioId, batalhaId) {
 /** Batalhas do usuário: pendentes e em andamento primeiro, depois as últimas 20 encerradas */
 async function listarBatalhas(usuarioId) {
   // Resolve prazos vencidos antes de listar, para a lista não mostrar estado velho
-  for (const id of await model.idsVencidosDoUsuario(pool, usuarioId)) await atualizarPrazos(id);
+  const vencidas = await model.idsVencidosDoUsuario(pool, usuarioId);
+  for (const id of vencidas) await atualizarPrazos(id);
 
   const linhas = await model.listarDoUsuario(pool, usuarioId);
   return linhas.map((linha) => view.batalha(linha, usuarioId));

@@ -38,20 +38,21 @@ function disponibilidadeCuidados(ultimos) {
 }
 
 /**
- * Card pronto para o front, a partir de uma linha com CAMPOS_CARD (pokemons + especies)
+ * Card pronto para o front, a partir de uma linha com CAMPOS_CARD.
+ * A linha junta pokemons + especies, então serve tanto de espécie quanto de Pokémon
+ * para calcularStatus e medidas.
  * @param {import('../../nucleo/regras').Pokemon & import('../../nucleo/regras').Especie
  *   & { id: number, mint_numero: number, posicao_time: number | null }} linha
  */
-function descreverPokemon(linha) {
-  const especie = linha;
+function card(linha) {
   return {
     id: linha.id,
     mintNumero: linha.mint_numero,
     especieId: linha.especie_id,
     especieOriginalId: linha.especie_original_id,
-    nome: especie.nome,
-    tipos: especie.tipos,
-    raridade: especie.raridade,
+    nome: linha.nome,
+    tipos: linha.tipos,
+    raridade: linha.raridade,
     shiny: linha.shiny,
     nivel: linha.nivel,
     xp: linha.xp,
@@ -59,7 +60,7 @@ function descreverPokemon(linha) {
     ivs: {
       hp: linha.iv_hp, ataque: linha.iv_ataque, defesa: linha.iv_defesa, velocidade: linha.iv_velocidade,
     },
-    status: calcularStatus(especie, linha),
+    status: calcularStatus(linha, linha),
     // Pontos extras somados nas evoluções (já incluídos em status)
     bonusEvolucao: {
       hp: linha.bonus_hp ?? 0,
@@ -67,7 +68,7 @@ function descreverPokemon(linha) {
       defesa: linha.bonus_defesa ?? 0,
       velocidade: linha.bonus_velocidade ?? 0,
     },
-    ...medidas(especie, linha),
+    ...medidas(linha, linha),
     posicaoTime: linha.posicao_time,
     posicaoVitrine: linha.posicao_vitrine,
     anunciado: Boolean(linha.anunciado),
@@ -80,16 +81,11 @@ function descreverPokemon(linha) {
     custoDesbloqueioGolpes: config.CUSTO_DESBLOQUEIO_GOLPES,
     ...bemEstarAtual(linha),
     cuidadosDisponiveisEm: disponibilidadeCuidados(linha.ultimos_cuidados),
-    evolucoes: especie.evolucoes.map((evolucao) => ({
+    evolucoes: linha.evolucoes.map((evolucao) => ({
       ...evolucao,
       disponivel: linha.nivel >= evolucao.nivel,
     })),
   };
 }
 
-/** Card completo a partir de uma linha com CAMPOS_CARD */
-const card = descreverPokemon;
-
-module.exports = {
-  card, descreverPokemon, descreverAfeto, medidas,
-};
+module.exports = { card, descreverAfeto, medidas };

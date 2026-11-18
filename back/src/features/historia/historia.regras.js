@@ -83,6 +83,19 @@ function xpDaHistoria(forca, revanche = false) {
   return Math.round(revanche ? cheio * multXpRevanche : cheio);
 }
 
+/**
+ * Como o encontro fica depois de uma tentativa de captura: capturado, fugiu (esgotou as
+ * TENTATIVAS_CAPTURA_MAXIMO tentativas) ou continua como estava.
+ * @param {{ capturou: boolean, tentativas: number, statusAtual: string }} tentativa
+ *   tentativas = quantas já foram feitas, contando esta
+ * @returns {{ status: string, fugiu: boolean }}
+ */
+function resultadoDaCaptura({ capturou, tentativas, statusAtual }) {
+  if (capturou) return { status: 'capturado', fugiu: false };
+  if (tentativas >= config.TENTATIVAS_CAPTURA_MAXIMO) return { status: 'fugiu', fugiu: true };
+  return { status: statusAtual, fugiu: false };
+}
+
 module.exports = {
   forcaDoPonto,
   proximoPonto,
@@ -90,4 +103,5 @@ module.exports = {
   statusSelvagem,
   chanceDeCaptura,
   xpDaHistoria,
+  resultadoDaCaptura,
 };

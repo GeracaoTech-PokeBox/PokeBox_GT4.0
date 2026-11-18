@@ -8,7 +8,7 @@ const SELECT_GOLPES = `(SELECT coalesce(jsonb_agg(to_jsonb(g) ORDER BY array_pos
 // Os campos de especies vêm depois de p.* e sobrescreveriam o "id" do card, então listamos só os necessários.
 // ultimos_cuidados: { "carinho": <data do último>, ... }, para o front saber quando cada cuidado volta.
 // golpes_detalhe: os golpes especiais do card, na ordem em que foram sorteados.
-// Usado com "FROM pokemons p JOIN especies e ON e.id = p.especie_id"; a view (descreverPokemon) lê estes campos.
+// Usado com "FROM pokemons p JOIN especies e ON e.id = p.especie_id"; a view (card) lê estes campos.
 const CAMPOS_CARD = `p.*, e.nome, e.tipos, e.raridade, e.hp_base, e.ataque_base, e.defesa_base,
   e.velocidade_base, e.altura_base, e.peso_base, e.evolucoes,
   (SELECT jsonb_object_agg(c.tipo, c.ultimo)

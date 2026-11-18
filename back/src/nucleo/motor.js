@@ -135,6 +135,7 @@ function calcularDano(atacante, defensor, rng, golpe = null) {
   return { dano, critico, efetividade: multiplicadorTipo };
 }
 
+/** Índice do outro lado da batalha (0 <-> 1) */
 const outro = (indice) => (indice === 0 ? 1 : 0);
 
 /**
@@ -248,4 +249,6 @@ function aplicarTimeout(estadoAtual) {
   return { estado, eventos, fim: null };
 }
 
-module.exports = { montarLado, criarEstado, aplicarAcao, aplicarTimeout, calcularDano };
+module.exports = {
+  montarLado, criarEstado, aplicarAcao, aplicarTimeout, calcularDano, outro,
+};

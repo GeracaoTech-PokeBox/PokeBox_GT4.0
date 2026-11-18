@@ -4,7 +4,7 @@
 
 KISS é escolher a forma **mais fácil de ler e de mudar** que ainda resolve o problema. Código simples não é código curto: uma linha esperta que precisa de um minuto para ser entendida é menos simples que três linhas óbvias.
 
-Este documento mostra trechos do back do PokeBox que podem ficar mais diretos sem mudar o comportamento. Os exemplos são **propostas**: o "antes" é o código atual e o "depois" é a mudança sugerida.
+Este documento mostra trechos do back do PokeBox que ficaram mais diretos sem mudar o comportamento. **Todas as mudanças abaixo, inclusive as da tabela "Outros pontos menores", já foram aplicadas no código**: o "antes" é como o código era e o "depois" é como ficou.
 
 ---
 
@@ -48,12 +48,13 @@ function loginECelular(corpo) {
   return { login, celular };
 }
 
-/** Login, celular e senha nova do corpo, já validados */
+/** Login, celular e senha nova do corpo, já validados (nessa ordem) */
 function dadosConta(corpo) {
+  const { login, celular } = loginECelular(corpo);
   if (typeof corpo.senha !== 'string' || corpo.senha.length < SENHA_MINIMA) {
     throw new ErroJogo(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
   }
-  return { ...loginECelular(corpo), senha: corpo.senha };
+  return { login, celular, senha: corpo.senha };
 }
 
 async function verificar(req, res) {
@@ -64,7 +65,7 @@ async function verificar(req, res) {
 
 **Ganho:** cada função tem um formato de retorno só, e o nome já diz o que volta.
 
-**Detalhe:** no código atual, o login e o celular são validados antes da senha, então quem manda os três inválidos recebe o erro do login. No "depois", a senha vem primeiro. Se a ordem das mensagens importar para o front, basta chamar `loginECelular` antes de validar a senha.
+**Detalhe:** `dadosConta` chama `loginECelular` antes de conferir a senha, então a ordem das mensagens de erro continua a mesma de antes: quem manda os três campos inválidos recebe primeiro o erro do login.
 
 ---
 
@@ -249,7 +250,7 @@ const dados = vitrine ?? VITRINE_PADRAO;
 |---|---|---|
 | [batalhas.service.js](../src/features/batalhas/batalhas.service.js) (`listarBatalhas`) | `for (const id of await model.idsVencidosDoUsuario(pool, usuarioId)) await atualizarPrazos(id);` | Guardar os ids numa variável antes do `for`: a consulta e o laço ficam em linhas separadas |
 | [batalhas.service.js](../src/features/batalhas/batalhas.service.js) (`distribuirRecompensas`) | `const perdedor = fim.vencedor === 0 ? 1 : 0;`, enquanto o motor já tem a função `outro(indice)` para isso | Exportar `outro` do motor (ou chamá-la de `oponenteDe`) e reutilizar |
-| [historia.service.js](../src/features/historia/historia.service.js) (`capturar`) | `let status = encontro.status; if (capturou) ... else if (fugiu) ...` no meio da transação | Uma função pura `statusAposCaptura({ capturou, fugiu, atual })` em `historia.regras.js`, que também fica fácil de testar |
+| [historia.service.js](../src/features/historia/historia.service.js) (`capturar`) | `let status = encontro.status; if (capturou) ... else if (fugiu) ...` no meio da transação | A função pura `resultadoDaCaptura({ capturou, tentativas, statusAtual })` em `historia.regras.js`, que devolve `{ status, fugiu }` e ganhou um teste unitário |
 
 ---
 

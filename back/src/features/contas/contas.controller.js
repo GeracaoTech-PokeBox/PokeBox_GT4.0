@@ -7,13 +7,18 @@ const { tokenDe } = require('./contas.autenticar');
 const SENHA_MINIMA = 8;
 const CELULAR = /^\d{11}$/;
 
-/** Login, celular e (se `comSenha`) senha do corpo, já validados */
-function dadosConta(corpo, { comSenha = true } = {}) {
+/** Login e celular do corpo, já validados */
+function loginECelular(corpo) {
   const login = texto(corpo.login, 'o usuário');
   if (login.length > LOGIN_MAXIMO) throw new ErroJogo(`O usuário pode ter no máximo ${LOGIN_MAXIMO} caracteres.`);
   const celular = texto(corpo.celular, 'o celular');
   if (!CELULAR.test(celular)) throw new ErroJogo('Informe um celular válido com DDD.');
-  if (!comSenha) return { login, celular };
+  return { login, celular };
+}
+
+/** Login, celular e senha nova do corpo, já validados (nessa ordem) */
+function dadosConta(corpo) {
+  const { login, celular } = loginECelular(corpo);
   if (typeof corpo.senha !== 'string' || corpo.senha.length < SENHA_MINIMA) {
     throw new ErroJogo(`A senha precisa ter pelo menos ${SENHA_MINIMA} caracteres.`);
   }
@@ -29,7 +34,7 @@ async function entrar(req, res) {
 }
 
 async function verificar(req, res) {
-  const { login, celular } = dadosConta(req.body, { comSenha: false });
+  const { login, celular } = loginECelular(req.body);
   res.json({ encontrado: await service.existeUsuario(login, celular) });
 }
 

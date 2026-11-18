@@ -260,13 +260,26 @@ async function aceitarProposta(usuarioId, propostaId) {
   });
 }
 
+// Quem encerra a proposta define como ela fica
+const STATUS_AO_ENCERRAR = { vendedor: 'recusada', proponente: 'cancelada' };
+
 /** Recusar (dono do anúncio) ou cancelar (quem mandou) uma proposta pendente */
 async function encerrarProposta(usuarioId, propostaId, papel) {
   await lerProposta(propostaId, usuarioId, papel);
   await transacao(async (client) => {
     await travarPropostaPendente(client, propostaId);
-    await model.responderProposta(client, propostaId, papel === 'vendedor' ? 'recusada' : 'cancelada');
+    await model.responderProposta(client, propostaId, STATUS_AO_ENCERRAR[papel]);
   });
+}
+
+/** O dono do anúncio recusa uma proposta pendente */
+async function recusarProposta(usuarioId, propostaId) {
+  await encerrarProposta(usuarioId, propostaId, 'vendedor');
+}
+
+/** Quem mandou a proposta desiste dela enquanto está pendente */
+async function cancelarProposta(usuarioId, propostaId) {
+  await encerrarProposta(usuarioId, propostaId, 'proponente');
 }
 
 module.exports = {
@@ -281,6 +294,6 @@ module.exports = {
   proporTroca,
   listarPropostas,
   aceitarProposta,
-  recusarProposta: (usuarioId, propostaId) => encerrarProposta(usuarioId, propostaId, 'vendedor'),
-  cancelarProposta: (usuarioId, propostaId) => encerrarProposta(usuarioId, propostaId, 'proponente'),
+  recusarProposta,
+  cancelarProposta,
 };

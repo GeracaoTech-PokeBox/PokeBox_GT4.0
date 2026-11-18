@@ -25,9 +25,11 @@ async function obterVitrine(visitanteId, login) {
   if (!dono) throw new ErroJogo('Treinador não encontrado.');
   const souDono = dono.id === visitanteId;
 
-  // A primeira visita de outro treinador já cria a linha
-  const dados = (souDono ? await model.lerVitrine(pool, dono.id) : await model.registrarVisita(pool, dono.id))
-    ?? VITRINE_PADRAO;
+  // O dono só lê; a visita de outro treinador soma no contador (e cria a linha na primeira vez)
+  const vitrine = souDono
+    ? await model.lerVitrine(pool, dono.id)
+    : await model.registrarVisita(pool, dono.id);
+  const dados = vitrine ?? VITRINE_PADRAO;
 
   const [numeros, especies, vitorias, destaques] = await Promise.all([
     model.contarColecao(pool, dono.id),
