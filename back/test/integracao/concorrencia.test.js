@@ -236,7 +236,7 @@ describe('concorrência', { skip: semBanco }, () => {
     });
 
     test('prazo vencido: agendador e jogada ao mesmo tempo registram um único timeout', async () => {
-      const agendador = require('../../src/jogo/agendador');
+      const agendador = require('../../src/features/batalhas');
       const id = await criarBatalhaEmAndamento(amb, ash, gary);
       const atrasado = await daVez(amb, id, [ash, gary]);
       await amb.pool.query("UPDATE batalhas SET prazo_em = now() - interval '1 minute' WHERE id = $1", [id]);

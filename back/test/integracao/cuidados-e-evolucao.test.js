@@ -32,7 +32,7 @@ describe('cuidados e evolução', { skip: semBanco }, () => {
     assert.equal(brincar.status, 200);
     assert.deepEqual([brincar.dados.pokemon.humor, brincar.dados.pokemon.energia], [90, 25]);
     assert.equal((await cuidar(ash.token, id, 'dormir')).status, 400);
-    assert.equal((await cuidar(gary.token, id, 'alimentar')).status, 400);
+    assert.equal((await cuidar(gary.token, id, 'alimentar')).status, 404);
 
     const { dados } = await amb.api('GET', '/eu', { token: ash.token });
     assert.equal(dados.pokemons.find((p) => p.id === id).afeto.pontos, 30);
@@ -112,7 +112,7 @@ describe('cuidados e evolução', { skip: semBanco }, () => {
     const id = await criarPokemon(ash, { especieId: 4, nivel: 50 });
 
     const alheio = await amb.api('POST', `/pokemons/${id}/evoluir`, { token: gary.token, corpo: { especieId: 5 } });
-    assert.equal(alheio.status, 400);
+    assert.equal(alheio.status, 404);
     const foraDaLinha = await amb.api('POST', `/pokemons/${id}/evoluir`, { token: ash.token, corpo: { especieId: 9 } });
     assert.equal(foraDaLinha.status, 400);
 

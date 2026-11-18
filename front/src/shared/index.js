@@ -29,5 +29,5 @@ export { formatoPokemon } from './types/index_types';
 // Utilitários
 export {
   carregar, dadosTipo, formatarNome, formatarNumero, nomesTipos, plural, resumoEvolucao, somaValores,
-  tempoDesde, tempoRestante, urlArtwork, urlSprite,
+  rolarParaVisao, tempoDesde, tempoRestante, urlArtwork, urlSprite,
 } from './utils/index_utils';

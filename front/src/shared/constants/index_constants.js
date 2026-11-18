@@ -1,6 +1,6 @@
 /* Constantes usadas por mais de uma feature. As regras que só uma feature usa (preços da loja,
  * limites da vitrine, das trocas e da história) foram para constants/ ou models/ da feature.
- * Todas espelham back/src/jogo/config.js: se uma mudar lá, mude aqui também.
+ * Todas espelham back/src/compartilhado/config.js: se uma mudar lá, mude aqui também.
  */
 
 // Nome em português e cor de cada tipo (usado pelos cards da Pokédex e da coleção)
@@ -25,7 +25,7 @@ export const TIPOS = {
   fairy: { nome: 'Fada', cor: '#d685ad' },
 };
 
-// Mesma tabela do back (back/src/jogo/tipos.js): para cada tipo de golpe, contra quem ele é
+// Mesma tabela do back (back/src/nucleo/tipos.js): para cada tipo de golpe, contra quem ele é
 // super efetivo (2x), pouco efetivo (0,5x) ou não tem efeito (0x)
 export const EFETIVIDADE = {
   normal: { forte: [], fraco: ['rock', 'steel'], nulo: ['ghost'] },

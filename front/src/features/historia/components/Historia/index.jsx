@@ -1,5 +1,9 @@
+import { useRef } from 'react';
+import { flushSync } from 'react-dom';
 import PropTypes from 'prop-types';
-import { plural, formatarNome, urlArtwork, urlSprite } from '@/shared';
+import {
+  plural, formatarNome, rolarParaVisao, urlArtwork, urlSprite,
+} from '@/shared';
 import BatalhaSelvagem from '../BatalhaSelvagem';
 import { dificuldadeCaptura } from '../../models/index_models';
 import { formatarForca } from '../../utils/index_utils';
@@ -34,6 +38,8 @@ Pokebola.propTypes = { balancando: PropTypes.bool };
 
 function Historia({ onIrPara }) {
   const vm = useHistoriaViewModel();
+  // Painel do ponto escolhido (explorar, batalhar, capturar): a página rola até ele no clique
+  const painelRef = useRef(null);
   const {
     historia, selecionado, pontoSelecionado, trilha, temTime, pokebolas, enviando, capturando, mensagemCaptura,
   } = vm;
@@ -153,7 +159,7 @@ function Historia({ onIrPara }) {
     if (selecionado) {
       const { status } = selecionado;
       painel = (
-        <div className="historia-painel jogo-painel" data-situacao={selecionado.situacao}>
+        <div ref={painelRef} className="historia-painel jogo-painel" data-situacao={selecionado.situacao}>
           <img
             className="historia-painel-arte"
             src={urlArtwork(selecionado.especieId, selecionado.shiny)}
@@ -225,7 +231,7 @@ function Historia({ onIrPara }) {
       );
     } else if (vm.pontoEhProximo(pontoSelecionado)) {
       painel = (
-        <div className="historia-painel jogo-painel" data-situacao="inexplorado">
+        <div ref={painelRef} className="historia-painel jogo-painel" data-situacao="inexplorado">
           <span className="historia-painel-misterio" aria-hidden="true">?</span>
           <div className="historia-painel-info">
             <p className="historia-painel-ponto">{cabecalho}</p>
@@ -240,7 +246,7 @@ function Historia({ onIrPara }) {
       );
     } else {
       painel = (
-        <div className="historia-painel jogo-painel" data-situacao="bloqueado">
+        <div ref={painelRef} className="historia-painel jogo-painel" data-situacao="bloqueado">
           <span className="historia-painel-misterio" aria-hidden="true">?</span>
           <div className="historia-painel-info">
             <p className="historia-painel-ponto">{cabecalho}</p>
@@ -305,7 +311,11 @@ function Historia({ onIrPara }) {
                 data-situacao={situacao}
                 aria-pressed={pontoSelecionado === p}
                 aria-label={`Ponto ${p}: ${rotulo}`}
-                onClick={() => vm.selecionarPonto(p)}
+                onClick={() => {
+                  // flushSync: desenha o painel do ponto antes de medir onde ele ficou para rolar até lá
+                  flushSync(() => vm.selecionarPonto(p));
+                  rolarParaVisao(painelRef.current);
+                }}
               >
                 {encontro ? <img src={urlSprite(encontro.especieId, encontro.shiny)} alt="" /> : <span aria-hidden="true">{situacao === 'inexplorado' ? '?' : p}</span>}
               </button>

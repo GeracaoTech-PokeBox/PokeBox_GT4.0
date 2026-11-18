@@ -17,8 +17,8 @@ let proximoCelular = 11900000000;
  * @returns {Promise<{ id: number, login: string, token: string, senha: string, celular: string }>}
  */
 async function criarTreinador(login, { pokecoins = 1000, pokebolas = 0, senha = 'senha12345', celular } = {}) {
-  const { cadastrarUsuario } = require('../../src/jogo/usuarios');
-  const { pool } = require('../../src/db');
+  const { cadastrarUsuario } = require('../../src/features/contas');
+  const { pool } = require('../../src/banco/db');
   proximoCelular += 1;
   const cel = celular ?? String(proximoCelular);
   const { usuario, token } = await cadastrarUsuario({ login, celular: cel, senha });
@@ -39,9 +39,9 @@ async function criarTreinador(login, { pokecoins = 1000, pokebolas = 0, senha = 
 async function criarPokemon(dono, {
   especieId = 4, posicaoTime = null, nivel = 1, atributos = {}, origem = 'loja', ...campos
 } = {}) {
-  const { garantirEspecie } = require('../../src/jogo/especies');
-  const { mintarPokemon } = require('../../src/jogo/pokemons');
-  const { pool, transacao } = require('../../src/db');
+  const { garantirEspecie } = require('../../src/features/especies');
+  const { mintarPokemon } = require('../../src/features/pokemons');
+  const { pool, transacao } = require('../../src/banco/db');
 
   await garantirEspecie(especieId);
   const id = await transacao((client) => mintarPokemon(client, {

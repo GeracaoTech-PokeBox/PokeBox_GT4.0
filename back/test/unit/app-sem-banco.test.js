@@ -1,4 +1,4 @@
-// Partes do app que respondem sem tocar no banco: proxy da PokeAPI, CORS, saúde,
+// Partes do app que respondem sem tocar no banco: proxy da PokeAPI, CORS, saúde, documentação,
 // autenticação ausente e o formato dos erros. A PokeAPI é falsa (helpers/pokeapi-fake).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,7 +6,7 @@ const { once } = require('node:events');
 const { instalarPokeApiFake } = require('../helpers/pokeapi-fake');
 
 const app = require('../../src/app');
-const { pool } = require('../../src/db');
+const { pool } = require('../../src/banco/db');
 
 let base;
 let servidor;
@@ -91,11 +91,43 @@ test('saúde responde sem banco', async () => {
   assert.deepEqual(await chamar('/api/saude').then((r) => [r.status, r.dados]), [200, { ok: true }]);
 });
 
-test('CORS: preflight 204 com os cabeçalhos', async () => {
-  const { status, cabecalhos } = await chamar('/api/eu', { method: 'OPTIONS' });
+test('documentação: Swagger UI e especificação respondem sem login e sem banco', async () => {
+  const pagina = await chamar('/api/docs/');
+  assert.equal(pagina.status, 200);
+  assert.match(pagina.cabecalhos.get('content-type'), /text\/html/);
+  assert.match(pagina.dados, /<title>PokeBox API<\/title>/);
+
+  const { status, dados } = await chamar('/api/docs/openapi.json');
+  assert.equal(status, 200);
+  assert.equal(dados.info.title, 'PokeBox API');
+  assert.ok(dados.paths['/saude']);
+});
+
+test('CORS: preflight 204 com os cabeçalhos para a origem do front', async () => {
+  const origem = 'http://localhost:5173';
+  const { status, cabecalhos } = await chamar('/api/eu', { method: 'OPTIONS', headers: { Origin: origem } });
   assert.equal(status, 204);
-  assert.equal(cabecalhos.get('access-control-allow-origin'), '*');
+  assert.equal(cabecalhos.get('access-control-allow-origin'), origem);
   assert.match(cabecalhos.get('access-control-allow-headers'), /Authorization/);
+  assert.match(cabecalhos.get('vary'), /Origin/);
+});
+
+test('CORS: origem fora da lista não recebe os cabeçalhos', async () => {
+  const { status, cabecalhos } = await chamar('/api/eu', { method: 'OPTIONS', headers: { Origin: 'https://site-qualquer.com' } });
+  assert.equal(status, 204);
+  assert.equal(cabecalhos.get('access-control-allow-origin'), null);
+});
+
+test('cabeçalhos de segurança: API trancada, Swagger UI com CSP próprio', async () => {
+  const api = await chamar('/api/saude');
+  assert.equal(api.cabecalhos.get('x-powered-by'), null);
+  assert.equal(api.cabecalhos.get('x-content-type-options'), 'nosniff');
+  assert.equal(api.cabecalhos.get('x-frame-options'), 'DENY');
+  assert.match(api.cabecalhos.get('content-security-policy'), /default-src 'none'/);
+
+  const docs = await chamar('/api/docs/');
+  assert.match(docs.cabecalhos.get('content-security-policy'), /default-src 'self'/);
+  assert.match(docs.cabecalhos.get('content-security-policy'), /frame-ancestors 'none'/);
 });
 
 // ---------------------------------------------------------------------------

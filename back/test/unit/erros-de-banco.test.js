@@ -5,10 +5,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');
 
-// Antes de carregar o app: o pool do src/db.js lê a URL quando é criado
+// Antes de carregar o app: o pool do src/banco/db.js lê a URL quando é criado
 process.env.DATABASE_URL = 'postgres://pokebox:pokebox@127.0.0.1:1/pokebox';
 const app = require('../../src/app');
-const { pool } = require('../../src/db');
+const { pool } = require('../../src/banco/db');
 
 const FORA_DO_AR = 'O banco de dados está fora do ar. Tente de novo em instantes.';
 const ERRO_INTERNO = 'Erro interno. Tente novamente.';

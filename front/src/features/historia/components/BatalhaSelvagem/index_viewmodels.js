@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { descreverEventos, reservasDoLado } from '@/features/batalhas';
+import { descreverEventos, itensDoFeed, reservasDoLado } from '@/features/batalhas';
 
 /* [MVVM] ViewModel do BatalhaSelvagem. Era o useBatalhaSelvagem, exportado junto com o
  * useHistoriaViewModel; agora fica na pasta do componente que o usa.
@@ -43,6 +43,8 @@ export function useBatalhaSelvagem(batalha, onJogar) {
         frases: descreverEventos(turno.eventos, estado),
       }))
       .reverse(),
+    // Mini-histórico dentro do campo: quem começou (pela velocidade) e as jogadas, em ordem
+    feed: itensDoFeed(estado, log, 0),
     trocando,
     alternarTroca: () => setTrocando((v) => !v),
     atacar: () => jogar({ tipo: 'atacar' }),

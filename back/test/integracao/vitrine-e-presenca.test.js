@@ -53,7 +53,7 @@ describe('vitrine e presença', { skip: semBanco }, () => {
 
     assert.equal((await salvar({ estilo: 'palco', pokemonIds: [doGary] })).status, 400);
     assert.equal((await salvar({ estilo: 'neon', pokemonIds: [] })).status, 400);
-    assert.equal((await amb.api('GET', '/vitrines/ninguem', { token: ash.token })).status, 400);
+    assert.equal((await amb.api('GET', '/vitrines/ninguem', { token: ash.token })).status, 404);
   });
 
   test('vitrine: apresentação de até 160 caracteres e até 6 destaques diferentes', async () => {
