@@ -17,6 +17,14 @@ const CAMPOS_CARD = `p.*, e.nome, e.tipos, e.raridade, e.hp_base, e.ataque_base,
   EXISTS (SELECT 1 FROM anuncios WHERE pokemon_id = p.id AND status = 'ativo') AS anunciado,
   ${SELECT_GOLPES} AS golpes_detalhe`;
 
+// Só o que o card público (cardPublico, na view) usa: sem cuidados, golpes nem anúncio.
+// Usado pelo mercado, com o mesmo "FROM pokemons p JOIN especies e ON e.id = p.especie_id".
+const CAMPOS_CARD_PUBLICO = `p.id, p.mint_numero, p.especie_id, p.shiny, p.nivel,
+  p.iv_hp, p.iv_ataque, p.iv_defesa, p.iv_velocidade, p.mult_altura, p.mult_peso,
+  p.bonus_hp, p.bonus_ataque, p.bonus_defesa, p.bonus_velocidade,
+  e.nome, e.tipos, e.raridade, e.hp_base, e.ataque_base, e.defesa_base, e.velocidade_base,
+  e.altura_base, e.peso_base`;
+
 /**
  * Cria o card. O mint_numero vem da sequence global no DEFAULT da coluna.
  * @returns {Promise<number>} id do card
@@ -75,13 +83,18 @@ async function definirPosicoes(client, donoId, coluna, pokemonIds) {
   }
 }
 
+// Travar com JOIN (FOR UPDATE OF p) perde o card se outra transação mudar a espécie dele enquanto
+// esperamos a trava: o Postgres reconfere o JOIN com o card novo e a espécie antiga, e a linha some.
+// Por isso trava primeiro só pokemons e depois lê a espécie, já com a versão atual do card.
+
 /** Trava e devolve os cards (que ainda são do dono) com o que o XP precisa */
 async function travarParaXp(client, donoId, pokemonIds) {
+  // Em ordem de id, para duas transações com os mesmos cards não se travarem
+  await client.query('SELECT 1 FROM pokemons WHERE id = ANY($1) AND dono_id = $2 ORDER BY id FOR UPDATE', [pokemonIds, donoId]);
   const { rows } = await client.query(
     `SELECT p.id, p.mint_numero, p.nivel, p.xp, e.nome, e.evolucoes
        FROM pokemons p JOIN especies e ON e.id = p.especie_id
-      WHERE p.id = ANY($1) AND p.dono_id = $2
-        FOR UPDATE OF p`,
+      WHERE p.id = ANY($1) AND p.dono_id = $2`,
     [pokemonIds, donoId],
   );
   return rows;
@@ -93,11 +106,12 @@ async function salvarNivel(db, pokemonId, { nivel, xp }) {
 
 /** Trava o card e devolve dono, nível e as evoluções da espécie atual */
 async function travarParaEvolucao(client, pokemonId) {
+  // Trava sem JOIN (ver o aviso acima de travarParaXp)
+  await client.query('SELECT 1 FROM pokemons WHERE id = $1 FOR UPDATE', [pokemonId]);
   const { rows: [pokemon] } = await client.query(
     `SELECT p.dono_id, p.nivel, e.evolucoes
        FROM pokemons p JOIN especies e ON e.id = p.especie_id
-      WHERE p.id = $1
-        FOR UPDATE OF p`,
+      WHERE p.id = $1`,
     [pokemonId],
   );
   return pokemon;
@@ -167,6 +181,7 @@ async function listarCuidados(db, donoId, pokemonId) {
 module.exports = {
   SELECT_GOLPES,
   CAMPOS_CARD,
+  CAMPOS_CARD_PUBLICO,
   inserir,
   buscarCard,
   listarDoDono,

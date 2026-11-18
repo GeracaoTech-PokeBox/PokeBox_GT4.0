@@ -1,28 +1,6 @@
 // Trocas: formato do JSON que vai para o front
-const { card } = require('../pokemons');
-
-/**
- * O que qualquer treinador vê de um card anunciado. O afeto fica de fora (ele zera na troca),
- * então os status também são mostrados sem o bônus do afeto.
- */
-function cardPublico(linha) {
-  const completo = card({ ...linha, afeto: 0 });
-  return {
-    id: completo.id,
-    mintNumero: completo.mintNumero,
-    especieId: completo.especieId,
-    nome: completo.nome,
-    tipos: completo.tipos,
-    raridade: completo.raridade,
-    shiny: completo.shiny,
-    nivel: completo.nivel,
-    ivs: completo.ivs,
-    ivTotal: Object.values(completo.ivs).reduce((soma, iv) => soma + iv, 0),
-    status: completo.status,
-    alturaM: completo.alturaM,
-    pesoKg: completo.pesoKg,
-  };
-}
+// O card anunciado vem no formato público da feature pokemons (sem afeto, cuidados nem golpes)
+const { cardPublico } = require('../pokemons');
 
 /** Linha de anúncio (SELECT_ANUNCIO) no formato do front */
 function anuncio(linha, usuarioId) {

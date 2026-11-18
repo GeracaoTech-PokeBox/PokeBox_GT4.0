@@ -3,7 +3,7 @@
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { rngSeguro } = require('../../compartilhado/aleatorio');
 const {
   sortearAtributos, aplicarXp, evolucoesDisponiveis, aplicarCuidado, bemEstarAtual,
@@ -38,7 +38,7 @@ async function buscarCard(db, pokemonId) {
 
 /** Devolve o card se for do usuário; senão age como se ele não existisse */
 function doDono(pokemon, usuarioId) {
-  if (!pokemon || pokemon.dono_id !== usuarioId) throw new ErroJogo('Pokémon não encontrado.');
+  if (!pokemon || pokemon.dono_id !== usuarioId) throw new NaoEncontrado('Pokémon não encontrado.');
   return pokemon;
 }
 

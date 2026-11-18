@@ -9,7 +9,7 @@ const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
 const { travarUsuarios } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { temRepetidos } = require('../../compartilhado/validacao');
 const { buscarCard } = require('../pokemons');
 const model = require('./trocas.model');
@@ -47,7 +47,7 @@ async function listarMeusAnuncios(usuarioId) {
 
 async function lerAnuncio(db, anuncioId, opcoes) {
   const anuncio = await model.lerAnuncio(db, anuncioId, opcoes);
-  if (!anuncio) throw new ErroJogo('Anúncio não encontrado.');
+  if (!anuncio) throw new NaoEncontrado('Anúncio não encontrado.');
   return anuncio;
 }
 
@@ -128,7 +128,7 @@ async function criarAnuncio(usuarioId, { pokemonId, preco, aceitaPropostas }) {
 async function cancelarAnuncio(usuarioId, anuncioId) {
   await transacao(async (client) => {
     const anuncio = await lerAnuncio(client, anuncioId, { travar: true });
-    if (anuncio.vendedor_id !== usuarioId) throw new ErroJogo('Anúncio não encontrado.');
+    if (anuncio.vendedor_id !== usuarioId) throw new NaoEncontrado('Anúncio não encontrado.');
     if (anuncio.status !== 'ativo') throw new ErroJogo('Esse anúncio já foi encerrado.');
     await model.cancelarAnuncio(client, anuncioId);
     await model.encerrarPropostasDoAnuncio(client, anuncioId);
@@ -214,7 +214,7 @@ async function listarPropostas(usuarioId) {
 async function lerProposta(propostaId, usuarioId, papel) {
   const proposta = await model.lerProposta(pool, propostaId);
   const dono = papel === 'vendedor' ? proposta?.vendedor_id : proposta?.proponente_id;
-  if (!proposta || dono !== usuarioId) throw new ErroJogo('Proposta não encontrada.');
+  if (!proposta || dono !== usuarioId) throw new NaoEncontrado('Proposta não encontrada.');
   return proposta;
 }
 

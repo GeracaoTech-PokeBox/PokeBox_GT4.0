@@ -13,7 +13,7 @@ const ERROS_BANCO = new Set([
 // eslint-disable-next-line no-unused-vars
 function tratarErros(erro, req, res, next) {
   if (erro instanceof ErroJogo) {
-    res.status(400).json({ erro: erro.message });
+    res.status(erro.status).json({ erro: erro.message });
     return;
   }
   if (erro.type === 'entity.parse.failed') {

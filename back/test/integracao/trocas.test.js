@@ -110,7 +110,7 @@ describe('trocas', { skip: semBanco }, () => {
     assert.equal(recebidas[0].pokecoins, 10);
     assert.equal(recebidas[0].proponente, 'Ash');
 
-    assert.equal((await amb.api('POST', `/propostas/${proposta.dados.id}/aceitar`, { token: ash.token })).status, 400);
+    assert.equal((await amb.api('POST', `/propostas/${proposta.dados.id}/aceitar`, { token: ash.token })).status, 404);
     assert.equal((await amb.api('POST', `/propostas/${proposta.dados.id}/aceitar`, { token: gary.token })).status, 204);
     assert.ok((await colecao(ash)).includes(g1));
     assert.ok((await colecao(gary)).includes(a2));

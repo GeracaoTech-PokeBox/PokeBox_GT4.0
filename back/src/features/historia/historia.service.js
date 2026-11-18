@@ -16,7 +16,7 @@ const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
 const { travarUsuario } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { rngSeguro } = require('../../compartilhado/aleatorio');
 const { sortearAtributos } = require('../../nucleo/regras');
 const { garantirTaxaCaptura } = require('../especies');
@@ -40,7 +40,7 @@ async function buscarEncontro(db, encontroId) {
 
 async function travarEncontro(client, usuarioId, encontroId) {
   const encontro = await model.travarEncontro(client, encontroId);
-  if (!encontro || encontro.usuario_id !== usuarioId) throw new ErroJogo('Encontro não encontrado.');
+  if (!encontro || encontro.usuario_id !== usuarioId) throw new NaoEncontrado('Encontro não encontrado.');
   return encontro;
 }
 

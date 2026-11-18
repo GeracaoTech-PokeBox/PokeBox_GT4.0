@@ -1,9 +1,24 @@
-// Erro de regra do jogo (saldo insuficiente, não é sua vez...). As rotas devolvem 400 com a mensagem.
+// Erro de regra do jogo (saldo insuficiente, não é sua vez...). Cada tipo diz o próprio status HTTP
+// e o tratarErros só repassa: um tipo novo de erro é só uma classe nova aqui.
 class ErroJogo extends Error {
-  constructor(mensagem) {
+  /**
+   * @param {string} mensagem  vai para o front em { erro: mensagem }
+   * @param {number} [status]  status HTTP da resposta (400 = regra do jogo ou dado inválido)
+   */
+  constructor(mensagem, status = 400) {
     super(mensagem);
     this.name = 'ErroJogo';
+    this.status = status;
   }
 }
 
-module.exports = { ErroJogo };
+// O que a URL aponta (/batalhas/:id, /pokemons/:id...) não existe ou não é do usuário: 404.
+// Continua sendo um ErroJogo, então quem trata ErroJogo trata este também.
+class NaoEncontrado extends ErroJogo {
+  constructor(mensagem) {
+    super(mensagem, 404);
+    this.name = 'NaoEncontrado';
+  }
+}
+
+module.exports = { ErroJogo, NaoEncontrado };

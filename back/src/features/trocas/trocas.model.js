@@ -1,7 +1,7 @@
 // Trocas: acesso ao banco (anuncios, propostas, proposta_pokemons e a posse dos cards). Só SQL.
 // Toda função recebe `db` primeiro: o pool (leitura avulsa) ou o client de uma transação.
 const { contem } = require('../../banco/busca');
-const { CAMPOS_CARD } = require('../pokemons');
+const { CAMPOS_CARD_PUBLICO } = require('../pokemons');
 
 // Ordenações aceitas (a chave vem da query string; o valor é SQL, então nunca vem do usuário)
 const ORDENS_MERCADO = {
@@ -17,9 +17,9 @@ const ORDENS_ANUNCIOS = {
   recentes: 'a.id DESC',
 };
 
-// Anúncio + card completo + quem anunciou + quantas propostas esperam resposta
+// Anúncio + card público + quem anunciou + quantas propostas esperam resposta
 const SELECT_ANUNCIO = `
-  SELECT ${CAMPOS_CARD}, a.id AS anuncio_id, a.preco, a.aceita_propostas, a.criado_em AS anunciado_em,
+  SELECT ${CAMPOS_CARD_PUBLICO}, a.id AS anuncio_id, a.preco, a.aceita_propostas, a.criado_em AS anunciado_em,
          a.vendedor_id, u.login AS vendedor_login,
          (SELECT count(*) FROM propostas WHERE anuncio_id = a.id AND status = 'pendente') AS propostas_pendentes
     FROM anuncios a

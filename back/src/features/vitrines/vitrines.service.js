@@ -3,7 +3,7 @@
 const { pool, transacao } = require('../../banco/db');
 const { travarUsuario } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { temRepetidos } = require('../../compartilhado/validacao');
 const { buscarPorLogin } = require('../contas');
 const { garantirQueSaoDoDono, definirOrdem } = require('../pokemons');
@@ -22,7 +22,7 @@ const VITRINE_PADRAO = { bio: '', estilo: 'palco', visitas: 0 };
  */
 async function obterVitrine(visitanteId, login) {
   const dono = await buscarPorLogin(pool, login);
-  if (!dono) throw new ErroJogo('Treinador não encontrado.');
+  if (!dono) throw new NaoEncontrado('Treinador não encontrado.');
   const souDono = dono.id === visitanteId;
 
   // O dono só lê; a visita de outro treinador soma no contador (e cria a linha na primeira vez)

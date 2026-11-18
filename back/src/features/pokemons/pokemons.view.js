@@ -88,4 +88,30 @@ function card(linha) {
   };
 }
 
-module.exports = { card, descreverAfeto, medidas };
+/**
+ * O que qualquer treinador vê de um card (mercado), a partir de uma linha com CAMPOS_CARD_PUBLICO.
+ * O afeto fica de fora (ele zera na troca), então os status também vêm sem o bônus do afeto.
+ */
+function cardPublico(linha) {
+  const ivs = {
+    hp: linha.iv_hp, ataque: linha.iv_ataque, defesa: linha.iv_defesa, velocidade: linha.iv_velocidade,
+  };
+  return {
+    id: linha.id,
+    mintNumero: linha.mint_numero,
+    especieId: linha.especie_id,
+    nome: linha.nome,
+    tipos: linha.tipos,
+    raridade: linha.raridade,
+    shiny: linha.shiny,
+    nivel: linha.nivel,
+    ivs,
+    ivTotal: ivs.hp + ivs.ataque + ivs.defesa + ivs.velocidade,
+    status: calcularStatus(linha, { ...linha, afeto: 0 }),
+    ...medidas(linha, linha),
+  };
+}
+
+module.exports = {
+  card, cardPublico, descreverAfeto, medidas,
+};

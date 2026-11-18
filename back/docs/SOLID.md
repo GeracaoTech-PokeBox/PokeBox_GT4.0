@@ -10,7 +10,7 @@ SOLID são cinco princípios de design que ajudam o código a aguentar mudanças
 | **I** | Interface Segregation Principle (ISP) | Ninguém deve depender de coisas que não usa |
 | **D** | Dependency Inversion Principle (DIP) | A regra de negócio recebe as dependências (banco, rede, relógio), em vez de buscar as implementações concretas |
 
-Os exemplos são **propostas**: o "antes" é o código atual e o "depois" é a mudança sugerida. No fim de cada princípio há uma lista do que o projeto já faz bem.
+**Todas as mudanças abaixo já foram aplicadas no código**: o "antes" é como o código era e o "depois" é como ficou. No fim de cada princípio há uma lista do que o projeto já fazia bem.
 
 ---
 
@@ -283,7 +283,14 @@ if (!pokemon || pokemon.dono_id !== usuarioId) throw new NaoEncontrado('Pokémon
 
 **Ganho:** um erro novo (por exemplo, `SemSaldo` com 402 ou `Conflito` com 409) é só uma classe nova. O `tratarErros` não muda mais.
 
-**Cuidado:** trocar 400 por 404 muda a API. Antes de aplicar, é preciso ajustar o front (se ele trata 400 e 404 de jeitos diferentes), o [openapi.yaml](openapi.yaml) e os testes de integração que conferem `400`.
+**Critério usado:** vira 404 só o que vem **na URL** (`/batalhas/:id`, `/pokemons/:id`, `/anuncios/:id`, `/propostas/:id`, `/historia/encontros/:id`, `/vitrines/:login`). Uma referência que vem **no corpo** continua 400, porque a rota existe e o que está errado é o dado enviado. É o caso do `oponente` ao desafiar e do `pokemonId` ao anunciar.
+
+**Impacto da mudança na API:**
+- **Front:** só trata o 401 de forma especial. Nos outros casos ele mostra `erro` do corpo, então nada muda para o jogador.
+- **[openapi.yaml](openapi.yaml):** ganhou a resposta `NaoEncontrado` nas 18 rotas afetadas.
+- **Testes de integração:** passaram a esperar 404 nesses casos.
+
+**Bug que a mudança revelou:** com 404, o teste de "dois cliques em evoluir" mostrou que o segundo clique recebia "Pokémon não encontrado" mesmo com o Pokémon existindo. A causa era `travarParaEvolucao` (e `travarParaXp`) travar com `JOIN especies ... FOR UPDATE OF p`. Depois de esperar a trava, o Postgres reconfere o JOIN com o card já evoluído e a espécie antiga, e a linha some. No XP isso era pior: um card que evoluísse no mesmo instante em que a batalha terminava perdia o XP sem aviso. Agora as duas funções travam só `pokemons` e leem a espécie numa consulta separada ([pokemons.model.js](../src/features/pokemons/pokemons.model.js)).
 
 ### O que já segue o OCP
 
@@ -322,7 +329,7 @@ function calcularDano(atacante, defensor, rng, golpe = null) {
 // O ataque básico cumpre o mesmo contrato de um golpe: sem tipo (neutro contra todos e sem STAB),
 // com o poder fixo da configuração e sem precisão (nunca erra)
 const ATAQUE_BASICO = Object.freeze({
-  nome: null, tipo: null, poder: config.PODER_ATAQUE, precisao: null,
+  id: null, nome: null, tipo: null, classe: 'physical', poder: config.PODER_ATAQUE, precisao: null, pp: Infinity, ppMax: Infinity,
 });
 
 function calcularDano(atacante, defensor, rng, golpe = ATAQUE_BASICO) {
@@ -378,7 +385,7 @@ async function travarUsuarios(client, ids) {
 }
 ```
 
-**Ganho:** o contrato fica explícito (no JSDoc e numa checagem em tempo de execução), e o erro aparece no primeiro teste em vez de virar uma condição de corrida em produção.
+**Ganho:** o contrato fica explícito (no JSDoc e numa checagem em tempo de execução), e o erro aparece no primeiro teste em vez de virar uma condição de corrida em produção. Coberto em [test/unit/travas.test.js](../test/unit/travas.test.js).
 
 ### O que já segue o LSP
 
@@ -553,7 +560,7 @@ const especie = await garantirEspecie(25);
 // confere que buscou na PokeAPI e mandou um INSERT
 ```
 
-**Ganho:** a regra do cache passa a ser testável em milissegundos, e os testes de integração com banco de verdade continuam existindo para o resto.
+**Ganho:** a regra do cache passa a ser testável em milissegundos, e os testes de integração com banco de verdade continuam existindo para o resto. Os testes estão em [test/unit/especies-servico.test.js](../test/unit/especies-servico.test.js) (espécie nova, espécie já salva e espécie antiga sem taxa de captura).
 
 **Quando aplicar:** fazer isso em todos os services de uma vez seria muito trabalho para pouco ganho, porque os testes de integração já cobrem bem o projeto. Vale começar pelos services que falam com algo externo (PokeAPI): `especies` e `golpes`.
 
