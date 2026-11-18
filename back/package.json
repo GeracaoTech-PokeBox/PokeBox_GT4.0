@@ -2,10 +2,13 @@
   "name": "back_pokebox",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node --env-file=.env server.js",
-    "test": "node test/rodar.js"
+    "start": "node server.js",
+    "test": "npm run test:unit && npm run test:int",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:int": "node test/rodar.js",
+    "test:cobertura": "node test/rodar.js --cobertura"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +18,7 @@
     "dotenv": "^18.0.3",
     "express": "^5.2.1",
     "pg": "^8.23.0",
-    "prompt-sync": "^4.2.0"
+    "swagger-ui-express": "^5.0.1",
+    "yaml": "^2.9.1"
   }
 }

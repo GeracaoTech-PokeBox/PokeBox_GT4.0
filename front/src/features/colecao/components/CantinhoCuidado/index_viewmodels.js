@@ -11,7 +11,7 @@ import * as api from '../../services/index_services';
  *   MeusPokemons: este hook não sabe como elas falam com o back.
  */
 
-// Mesmos valores de back/src/jogo/config.js (CUIDADOS), para os textos dos botões
+// Mesmos valores de back/src/compartilhado/config.js (CUIDADOS), para os textos dos botões
 const CUIDADOS = [
   { tipo: 'carinho', nome: 'Carinho', icone: '🤲', efeitos: '+10 afeto · +15 humor', energia: 0, espera: '2h' },
   { tipo: 'brincar', nome: 'Brincar', icone: '🎾', efeitos: '+20 afeto · +25 humor · −25 energia', energia: -25, espera: '4h' },

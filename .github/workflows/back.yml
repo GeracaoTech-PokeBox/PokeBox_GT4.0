@@ -1,0 +1,77 @@
+# Testes do back: unitários (sem banco) e integração (com Postgres de verdade).
+# Roda nos PRs para develop/main (antes do merge) e nos pushes nelas (depois do merge),
+# só quando algo do back, do banco ou este arquivo muda.
+name: Back
+
+on:
+  push:
+    branches: [develop, main]
+    paths: ['back/**', 'db/**', '.github/workflows/back.yml']
+  pull_request:
+    branches: [develop, main]
+    paths: ['back/**', 'db/**', '.github/workflows/back.yml']
+  workflow_dispatch:
+
+# Um push novo no mesmo branch/PR cancela a execução anterior
+concurrency:
+  group: back-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: back
+
+jobs:
+  unitarios:
+    name: Unitários
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: back/package-lock.json
+      - run: npm ci
+      - run: npm run test:unit
+
+  # Roda unitários + integração juntos para medir a cobertura de verdade e falha se ficar
+  # abaixo das metas de back/test/metas-de-cobertura.js. A tabela aparece no resumo da execução.
+  integracao:
+    name: Integração e cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine # mesma do docker-compose.yml
+        env:
+          POSTGRES_USER: pokebox
+          POSTGRES_PASSWORD: pokebox
+          POSTGRES_DB: pokebox_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pokebox -d pokebox_teste"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      # Com ela o rodar.js usa este banco e não tenta usar Docker
+      DATABASE_URL_TESTE: postgres://pokebox:pokebox@localhost:5432/pokebox_teste
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: back/package-lock.json
+      - run: npm ci
+      - run: npm run test:cobertura
+      # O lcov.info abre em extensões de editor (ex.: Coverage Gutters) e mostra linha a linha o que falta testar
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cobertura-back
+          path: back/coverage/lcov.info
+          if-no-files-found: ignore
