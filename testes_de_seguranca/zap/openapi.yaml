@@ -1,0 +1,327 @@
+# Mapa da API do PokeBox para o ZAP (zap-api-scan.py): é por ele que o scan ativo sabe quais
+# rotas e campos atacar. Espelha back/src/rotas.js; uma rota nova no back precisa entrar aqui.
+# Fica de fora POST /auth/sair: o ZAP derrubaria a própria sessão no meio do scan.
+# Os exemplos de login/celular das rotas de conta apontam para um usuário que não existe, para o
+# scan não trocar a senha do usuário de teste (o que derrubaria o token dele).
+openapi: 3.0.3
+info:
+  title: PokeBox API (testes de segurança)
+  version: "1.0"
+servers:
+  - url: http://back:8080/api
+components:
+  securitySchemes:
+    token:
+      type: http
+      scheme: bearer
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, example: 1 }
+  schemas:
+    Conta:
+      type: object
+      properties:
+        login: { type: string, example: zap-inexistente }
+        celular: { type: string, example: "11900000000" }
+        senha: { type: string, example: senha-de-teste }
+    Jogada:
+      type: object
+      properties:
+        tipo: { type: string, example: atacar }
+        indice: { type: integer, example: 0 }
+    Ids:
+      type: object
+      properties:
+        pokemonIds:
+          type: array
+          items: { type: integer }
+          example: [1, 2, 3]
+  responses:
+    Ok:
+      description: OK
+security:
+  - token: []
+
+paths:
+  # --- Conta (sem token) ---
+  /auth/cadastro:
+    post:
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Conta" }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /auth/login:
+    post:
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Conta" }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /auth/verificar:
+    post:
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Conta" }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /auth/redefinir-senha:
+    post:
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Conta" }
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+
+  # --- Coleção, loja e time ---
+  /eu:
+    get:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /eu/inicial:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                especieId: { type: integer, example: 1 }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /loja/comprar:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                geracao: { type: integer, example: 1 }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /loja/pokebolas:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantidade: { type: integer, example: 1 }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /time:
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Ids" }
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+  /pokemons/{id}/evoluir:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                especieId: { type: integer, example: 2 }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /pokemons/{id}/cuidar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tipo: { type: string, example: carinho }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /pokemons/{id}/golpes/roletar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /pokemons/{id}/golpes/desbloquear:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /pokemons/{id}/cuidados:
+    get:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+
+  # --- Trocas ---
+  /mercado:
+    get:
+      parameters:
+        - { name: busca, in: query, schema: { type: string, example: bulba } }
+        - { name: ordem, in: query, schema: { type: string, example: popularidade } }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /mercado/{especieId}:
+    get:
+      parameters:
+        - { name: especieId, in: path, required: true, schema: { type: integer, example: 1 } }
+        - { name: ordem, in: query, schema: { type: string, example: preco } }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /anuncios/meus:
+    get:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /anuncios:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pokemonId: { type: integer, example: 1 }
+                preco: { type: integer, example: 100 }
+                aceitaPropostas: { type: boolean, example: true }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /anuncios/{id}:
+    delete:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+  /anuncios/{id}/comprar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /anuncios/{id}/propostas:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pokemonIds: { type: array, items: { type: integer }, example: [1] }
+                pokecoins: { type: integer, example: 10 }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /propostas:
+    get:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /propostas/{id}/aceitar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+  /propostas/{id}/recusar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+  /propostas/{id}:
+    delete:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+
+  # --- Vitrine e treinadores ---
+  /vitrines:
+    get:
+      parameters:
+        - { name: busca, in: query, schema: { type: string, example: lucas } }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /vitrines/{login}:
+    get:
+      parameters:
+        - { name: login, in: path, required: true, schema: { type: string, example: zap-inexistente } }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /vitrine:
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bio: { type: string, example: Treinador de teste }
+                estilo: { type: string, example: classico }
+                pokemonIds: { type: array, items: { type: integer }, example: [1] }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /treinadores:
+    get:
+      parameters:
+        - { name: busca, in: query, schema: { type: string, example: lucas } }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /treinadores/ativos:
+    get:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /presenca:
+    post:
+      responses: { "204": { $ref: "#/components/responses/Ok" } }
+
+  # --- História ---
+  /historia:
+    get:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /historia/explorar:
+    post:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /historia/encontros/{id}/batalha:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /historia/trilhas/{trilha}/pontos/{ponto}/refazer:
+    post:
+      parameters:
+        - { name: trilha, in: path, required: true, schema: { type: integer, example: 1 } }
+        - { name: ponto, in: path, required: true, schema: { type: integer, example: 1 } }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /historia/encontros/{id}/jogadas:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Jogada" }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /historia/encontros/{id}/capturar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /historia/encontros/{id}/ignorar:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+
+  # --- Batalhas entre treinadores ---
+  /batalhas:
+    get:
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oponente: { type: string, example: zap-inexistente }
+      responses: { "201": { $ref: "#/components/responses/Ok" } }
+  /batalhas/{id}:
+    get:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /batalhas/{id}/responder:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                aceitar: { type: boolean, example: false }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }
+  /batalhas/{id}/jogadas:
+    post:
+      parameters: [{ $ref: "#/components/parameters/id" }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Jogada" }
+      responses: { "200": { $ref: "#/components/responses/Ok" } }

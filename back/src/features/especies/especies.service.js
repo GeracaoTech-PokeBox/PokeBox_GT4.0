@@ -36,4 +36,12 @@ async function garantirEspecie(id) {
   return especie;
 }
 
-module.exports = { garantirEspecie, garantirTaxaCaptura };
+/**
+ * Espécie aleatória entre as já salvas no banco, com id entre primeira e ultima (null se não há
+ * nenhuma). Plano B do sorteio da loja quando a PokeAPI não responde.
+ */
+async function especieSalvaEntre(primeira, ultima, rng) {
+  return (await model.sortearSalvaEntre(pool, primeira, ultima, rng)) ?? null;
+}
+
+module.exports = { garantirEspecie, garantirTaxaCaptura, especieSalvaEntre };

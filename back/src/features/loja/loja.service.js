@@ -3,9 +3,9 @@
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, ErroPokeApi } = require('../../compartilhado/erros');
 const { rngSeguro, inteiroEntre } = require('../../compartilhado/aleatorio');
-const { garantirEspecie } = require('../especies');
+const { garantirEspecie, especieSalvaEntre } = require('../especies');
 const { mintarPokemon, buscarCard } = require('../pokemons');
 const model = require('./loja.model');
 
@@ -30,11 +30,27 @@ async function escolherInicial(usuarioId, especieId) {
  * Sorteia a espécie na loja da geração. Cada sorteio é aceito com a chance da raridade
  * (PESO_RARIDADE): quase sempre um comum sai de primeira, lendários e míticos
  * costumam ser recusados e sorteados de novo.
+ * Se a PokeAPI não responde, sorteia entre as espécies da faixa já salvas no banco (o jogo segue
+ * funcionando); sem nenhuma salva, o ErroPokeApi sobe e a rota responde 503.
  * @param {{ primeira: number, ultima: number }} geracao  intervalo de ids de espécie
  */
 async function sortearEspecieDaLoja(geracao, rng) {
+  let semPokeApi = false;
   for (let tentativa = 0; tentativa < 100; tentativa += 1) {
-    const especie = await garantirEspecie(inteiroEntre(rng, geracao.primeira, geracao.ultima));
+    let especie = null;
+    if (!semPokeApi) {
+      try {
+        especie = await garantirEspecie(inteiroEntre(rng, geracao.primeira, geracao.ultima));
+      } catch (erro) {
+        if (!(erro instanceof ErroPokeApi)) throw erro;
+        console.warn(`${erro.message}. Sorteando entre as espécies já salvas no banco.`);
+        semPokeApi = true;
+      }
+    }
+    if (semPokeApi) {
+      especie = await especieSalvaEntre(geracao.primeira, geracao.ultima, rng);
+      if (!especie) throw new ErroPokeApi('PokeAPI fora do ar e nenhuma espécie desta faixa salva no banco.');
+    }
     if (rng() < config.PESO_RARIDADE[especie.raridade]) return especie;
   }
   throw new Error('A loja não conseguiu sortear um Pokémon.');

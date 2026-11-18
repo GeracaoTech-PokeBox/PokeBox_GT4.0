@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { tempoRestante } from '@/shared';
-import { descreverEventos, reservasDoLado } from '../../models/index_models';
+import { descreverEventos, itensDoFeed, reservasDoLado } from '../../models/index_models';
 import * as api from '../../services/index_services';
 import { useSessao } from '@/features/auth';
 
@@ -107,6 +107,17 @@ export function useBatalhaViewModel(batalhaId) {
     // Jogadas da mais nova para a mais antiga, já em frases
     historico: estado
       ? [...dados.acoes].reverse().map((acao) => ({ ...acao, frases: descreverEventos(acao.eventos, estado) }))
+      : [],
+    // Mini-histórico dentro do campo: quem começou (pela velocidade) e as jogadas, em ordem
+    feed: estado
+      ? itensDoFeed(
+        estado,
+        dados.acoes.map((acao) => ({
+          lado: estado.lados.findIndex((lado) => lado.usuarioId === acao.jogadorId),
+          eventos: acao.eventos,
+        })),
+        meuIndice,
+      )
       : [],
     enviando,
     trocando,

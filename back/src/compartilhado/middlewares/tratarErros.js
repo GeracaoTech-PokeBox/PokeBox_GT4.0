@@ -1,6 +1,6 @@
 // Tratamento de erros da API. Precisa ser o último middleware do roteador de /api:
 // o Express 5 já encaminha para cá os erros lançados nas funções async das rotas.
-const { ErroJogo } = require('../erros');
+const { ErroJogo, ErroPokeApi } = require('../erros');
 
 // Códigos de erro do Node/PostgreSQL que significam "não deu para usar o banco"
 const ERROS_BANCO = new Set([
@@ -14,6 +14,12 @@ const ERROS_BANCO = new Set([
 function tratarErros(erro, req, res, next) {
   if (erro instanceof ErroJogo) {
     res.status(400).json({ erro: erro.message });
+    return;
+  }
+  // PokeAPI fora do ar ou conexão recusada: passageiro, vale tentar de novo
+  if (erro instanceof ErroPokeApi) {
+    console.error(erro.message);
+    res.status(503).json({ erro: 'Não foi possível falar com a PokeAPI agora. Tente de novo em instantes.' });
     return;
   }
   if (erro.type === 'entity.parse.failed') {

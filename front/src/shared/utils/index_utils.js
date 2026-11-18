@@ -159,3 +159,20 @@ export function carregar(promessa, onSucesso, onErro = () => {}) {
     ativo = false;
   };
 }
+
+// Espaço entre o cabeçalho fixo e o elemento depois da rolagem
+const FOLGA_ROLAGEM = 16;
+
+/**
+ * Rola a página até o elemento ficar à vista, logo abaixo do cabeçalho fixo (sticky) do jogo.
+ * Se ele já cabe inteiro na tela, não mexe. Ex.: as compras da Loja e o painel do ponto da História.
+ * @param {Element | null} elemento
+ */
+export function rolarParaVisao(elemento) {
+  if (!elemento) return;
+  const cabecalho = document.querySelector('.layout-topo')?.getBoundingClientRect().bottom ?? 0;
+  const { top, bottom } = elemento.getBoundingClientRect();
+  if (top >= cabecalho && bottom <= window.innerHeight) return;
+  const semAnimacao = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollBy({ top: top - cabecalho - FOLGA_ROLAGEM, behavior: semAnimacao ? 'auto' : 'smooth' });
+}

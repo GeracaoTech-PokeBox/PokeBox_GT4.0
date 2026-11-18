@@ -3,6 +3,7 @@ const { describe, test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { prepararAmbiente, semBanco } = require('../helpers/ambiente');
 const { criarTreinador, criarPokemon, criarTime } = require('../helpers/fabricas');
+const { instalarPokeApiFake } = require('../helpers/pokeapi-fake');
 
 describe('loja e time', { skip: semBanco }, () => {
   let amb;
@@ -83,6 +84,32 @@ describe('loja e time', { skip: semBanco }, () => {
       // Com o time cheio, o próximo fica só na coleção
       const extra = await amb.api('POST', '/loja/comprar', { token: gary.token, corpo: { geracao: 9 } });
       assert.equal(extra.dados.pokemon.posicaoTime, null);
+    });
+
+    test('PokeAPI fora do ar: sorteia entre as espécies salvas; sem nenhuma salva, 503 sem cobrar', async (t) => {
+      const ash = await criarTreinador('Ash', { pokecoins: 200 });
+      const comprar = () => amb.api('POST', '/loja/comprar', { token: ash.token, corpo: { geracao: 9 } });
+      t.mock.method(console, 'warn', () => {});
+      t.mock.method(console, 'error', () => {});
+
+      // Só a 906 (comum) salva na faixa da geração 9; depois a PokeAPI cai.
+      // require aqui dentro: o pool do banco só pode carregar depois do prepararAmbiente
+      const { garantirEspecie } = require('../../src/features/especies');
+      await amb.pool.query('DELETE FROM especies WHERE id BETWEEN 906 AND 1025');
+      await garantirEspecie(906);
+      instalarPokeApiFake(t, () => new TypeError('fetch failed'));
+
+      const compra = await comprar();
+      assert.equal(compra.status, 201, JSON.stringify(compra.dados));
+      assert.equal(compra.dados.pokemon.especieId, 906);
+      assert.equal(await amb.saldo(ash.token), 100);
+
+      await amb.pool.query('DELETE FROM pokemons');
+      await amb.pool.query('DELETE FROM especies WHERE id BETWEEN 906 AND 1025');
+      const semEspecie = await comprar();
+      assert.equal(semEspecie.status, 503);
+      assert.match(semEspecie.dados.erro, /PokeAPI/);
+      assert.equal(await amb.saldo(ash.token), 100);
     });
   });
 

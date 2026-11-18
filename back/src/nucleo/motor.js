@@ -45,6 +45,8 @@ const { ErroJogo } = require('../compartilhado/erros');
  * @typedef {object} EstadoBatalha
  * @property {[Lado, Lado]} lados
  * @property {0 | 1} vez                 índice do lado que joga agora
+ * @property {{ lado: 0 | 1, sorteio: boolean }} [inicio]  quem começou e se foi no sorteio (empate de
+ *   velocidade); o front mostra no histórico. Batalhas criadas antes não têm o campo.
  *
  * @typedef {{ tipo: 'atacar' } | { tipo: 'golpe', indice: number } | { tipo: 'trocar', indice: number }
  *   | { tipo: 'desistir' }} Acao
@@ -107,7 +109,7 @@ function criarEstado(ladoA, ladoB, rng = rngSeguro) {
   let vez;
   if (velA === velB) vez = rng() < 0.5 ? 0 : 1;
   else vez = velA > velB ? 0 : 1;
-  return { lados: [ladoA, ladoB], vez };
+  return { lados: [ladoA, ladoB], vez, inicio: { lado: vez, sorteio: velA === velB } };
 }
 
 /**
