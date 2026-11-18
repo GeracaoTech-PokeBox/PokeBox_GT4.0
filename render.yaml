@@ -14,5 +14,7 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false         # connection string do Neon, preenchida no painel (não vai para o Git)
+      - key: CORS_ORIGENS
+        sync: false         # endereço do front (ex.: https://pokebox.vercel.app); sem ele o front publicado não acessa a API
       - key: NODE_VERSION
         value: "22"

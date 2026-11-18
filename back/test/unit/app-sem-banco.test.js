@@ -103,11 +103,31 @@ test('documentação: Swagger UI e especificação respondem sem login e sem ban
   assert.ok(dados.paths['/saude']);
 });
 
-test('CORS: preflight 204 com os cabeçalhos', async () => {
-  const { status, cabecalhos } = await chamar('/api/eu', { method: 'OPTIONS' });
+test('CORS: preflight 204 com os cabeçalhos para a origem do front', async () => {
+  const origem = 'http://localhost:5173';
+  const { status, cabecalhos } = await chamar('/api/eu', { method: 'OPTIONS', headers: { Origin: origem } });
   assert.equal(status, 204);
-  assert.equal(cabecalhos.get('access-control-allow-origin'), '*');
+  assert.equal(cabecalhos.get('access-control-allow-origin'), origem);
   assert.match(cabecalhos.get('access-control-allow-headers'), /Authorization/);
+  assert.match(cabecalhos.get('vary'), /Origin/);
+});
+
+test('CORS: origem fora da lista não recebe os cabeçalhos', async () => {
+  const { status, cabecalhos } = await chamar('/api/eu', { method: 'OPTIONS', headers: { Origin: 'https://site-qualquer.com' } });
+  assert.equal(status, 204);
+  assert.equal(cabecalhos.get('access-control-allow-origin'), null);
+});
+
+test('cabeçalhos de segurança: API trancada, Swagger UI com CSP próprio', async () => {
+  const api = await chamar('/api/saude');
+  assert.equal(api.cabecalhos.get('x-powered-by'), null);
+  assert.equal(api.cabecalhos.get('x-content-type-options'), 'nosniff');
+  assert.equal(api.cabecalhos.get('x-frame-options'), 'DENY');
+  assert.match(api.cabecalhos.get('content-security-policy'), /default-src 'none'/);
+
+  const docs = await chamar('/api/docs/');
+  assert.match(docs.cabecalhos.get('content-security-policy'), /default-src 'self'/);
+  assert.match(docs.cabecalhos.get('content-security-policy'), /frame-ancestors 'none'/);
 });
 
 // ---------------------------------------------------------------------------

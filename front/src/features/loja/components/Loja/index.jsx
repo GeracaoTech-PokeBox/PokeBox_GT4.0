@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import {
-  CartaPokemon, formatarNome, formatarNumero, plural,
+  CartaPokemon, formatarNome, formatarNumero, plural, rolarParaVisao,
 } from '@/shared';
 import LojaPokebolas from '../LojaPokebolas';
 import {
@@ -66,13 +66,27 @@ function Loja({ onIrParaTime }) {
       </ul>
 
       {secaoAberta === 'pokebolas' && (
-        <div id="loja-secao-aberta" className="loja-secao-aberta jogo-painel" role="region" aria-label="Comprar Pokébolas">
+        <div
+          // Ao abrir o card, rola até as compras ficarem à vista (a função é a mesma a cada render:
+          // o React só a chama quando o painel aparece)
+          ref={rolarParaVisao}
+          id="loja-secao-aberta"
+          className="loja-secao-aberta jogo-painel"
+          role="region"
+          aria-label="Comprar Pokébolas"
+        >
           <LojaPokebolas />
         </div>
       )}
 
       {secaoAberta === 'pokemons' && (
-        <div id="loja-secao-aberta" className="loja-secao-aberta jogo-painel" role="region" aria-label="Comprar Pokémon">
+        <div
+          ref={rolarParaVisao}
+          id="loja-secao-aberta"
+          className="loja-secao-aberta jogo-painel"
+          role="region"
+          aria-label="Comprar Pokémon"
+        >
           <p className="loja-intervalo">
             Uma loja por geração: cada uma sorteia só entre os Pokémon dela.
             Cada Pokémon é sorteado na hora e é único: IVs, altura, peso e a chance de 1% de ser shiny.

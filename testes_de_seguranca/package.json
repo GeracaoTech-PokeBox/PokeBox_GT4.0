@@ -1,0 +1,12 @@
+{
+  "name": "pokebox-testes-de-seguranca",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Testes de segurança do PokeBox com o OWASP ZAP, em ambiente Docker isolado, resumidos pelo OWASP Top 10.",
+  "scripts": {
+    "seguranca": "node rodar.js",
+    "seguranca:front": "node rodar.js --so front",
+    "seguranca:api": "node rodar.js --so api",
+    "resumo": "node resumo.js"
+  }
+}

@@ -21,4 +21,15 @@ class NaoEncontrado extends ErroJogo {
   }
 }
 
-module.exports = { ErroJogo, NaoEncontrado };
+// A PokeAPI não respondeu (fora do ar, sem internet, ou a conexão HTTPS foi interceptada por
+// antivírus/proxy). As rotas devolvem 503: é um problema passageiro, não do jogador.
+// Não estende ErroJogo de propósito: a mensagem tem URL e código internos, e o tratarErros
+// responde com uma mensagem genérica em vez de repassá-la ao front.
+class ErroPokeApi extends Error {
+  constructor(mensagem, opcoes) {
+    super(mensagem, opcoes);
+    this.name = 'ErroPokeApi';
+  }
+}
+
+module.exports = { ErroJogo, NaoEncontrado, ErroPokeApi };

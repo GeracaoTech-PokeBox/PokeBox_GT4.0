@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { MOTIVOS } from '../../models/index_models';
 import AcoesBatalha from '../AcoesBatalha';
+import FeedBatalha from '../FeedBatalha';
 import { LadoCampo } from '../CampoBatalha';
 import RecompensaBatalha from '../RecompensaBatalha';
 import { useBatalhaViewModel } from './index_viewmodels';
@@ -68,25 +69,28 @@ function Batalha({ batalhaId, onVoltar }) {
       <div className="batalha-campo">
         <LadoCampo lado={oponente} meu={false} online={batalha.oponenteOnline} />
         <LadoCampo lado={eu} meu online />
+        <FeedBatalha itens={vm.feed} />
+
+        {/* As ações ficam dentro do campo, no gramado ao lado do seu Pokémon: dá para jogar vendo
+          os dois PS, sem rolar a página */}
+        {/* [DRY] Retirado daqui: o painel de ações (golpes, Atacar, Trocar Pokémon e a lista de
+          reservas) era uma cópia do mesmo JSX do BatalhaSelvagem (./index.jsx). Agora os dois usam
+          o componente AcoesBatalha. */}
+        {batalha.minhaVez && (
+          <AcoesBatalha
+            pokemon={eu.pokemons[eu.ativo]}
+            reservas={reservas}
+            enviando={enviando}
+            trocando={vm.trocando}
+            onAlternarTroca={vm.alternarTroca}
+            onAtacar={vm.atacar}
+            onUsarGolpe={vm.usarGolpe}
+            onTrocar={vm.trocar}
+          />
+        )}
       </div>
 
       {vm.erro && <p className="jogo-erro" role="alert">{vm.erro}</p>}
-
-      {/* [DRY] Retirado daqui: o painel de ações (golpes, Atacar, Trocar Pokémon e a lista de
-        reservas) era uma cópia do mesmo JSX do BatalhaSelvagem (./index.jsx). Agora os dois usam
-        o componente AcoesBatalha. */}
-      {batalha.minhaVez && (
-        <AcoesBatalha
-          pokemon={eu.pokemons[eu.ativo]}
-          reservas={reservas}
-          enviando={enviando}
-          trocando={vm.trocando}
-          onAlternarTroca={vm.alternarTroca}
-          onAtacar={vm.atacar}
-          onUsarGolpe={vm.usarGolpe}
-          onTrocar={vm.trocar}
-        />
-      )}
 
       {batalha.status === 'em_andamento' && (
         <div className="batalha-desistir">

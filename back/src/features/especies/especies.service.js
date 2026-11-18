@@ -44,7 +44,15 @@ function criarServicoEspecies({ db = pool, pokeapi = pokeapiReal } = {}) {
     return especie;
   }
 
-  return { garantirEspecie, garantirTaxaCaptura };
+  /**
+   * Espécie aleatória entre as já salvas no banco, com id entre primeira e ultima (null se não há
+   * nenhuma). Plano B do sorteio da loja quando a PokeAPI não responde.
+   */
+  async function especieSalvaEntre(primeira, ultima, rng) {
+    return (await model.sortearSalvaEntre(db, primeira, ultima, rng)) ?? null;
+  }
+
+  return { garantirEspecie, garantirTaxaCaptura, especieSalvaEntre };
 }
 
 module.exports = { ...criarServicoEspecies(), criarServicoEspecies };

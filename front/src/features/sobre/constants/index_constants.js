@@ -38,6 +38,7 @@ export const ESTRUTURAS = [
           { caminho: 'db/', descricao: 'Esquema do PostgreSQL e migrações' },
           { caminho: 'cypress/', descricao: 'Testes de ponta a ponta (E2E) da interface' },
           { caminho: 'cypress.config.js', descricao: 'Configuração do Cypress e do relatório Mochawesome' },
+          { caminho: 'testes_de_seguranca/', descricao: 'Testes de segurança com o OWASP ZAP, num ambiente Docker isolado' },
           { caminho: 'docker-compose.yml', descricao: 'Sobe banco, back e front juntos' },
           { caminho: 'docker-compose.prod.yml', descricao: 'Produção: só banco e back (o front fica na Vercel); a senha vem do .env' },
           { caminho: 'package.json', descricao: 'Dependências e scripts dos testes E2E (cy:open, cy:run)' },
@@ -199,6 +200,77 @@ export const ESTRUTURAS = [
           { caminho: 'npm run cy:open', descricao: 'Abre o Cypress com interface, para acompanhar os testes' },
           { caminho: 'npm run cy:run', descricao: 'Roda todos os testes no terminal e gera o relatório' },
           { caminho: 'cypress.env.json', descricao: 'Endereço do app (baseUrl) e treinador/senha dos testes de login real' },
+        ],
+      },
+    ],
+  },
+  {
+    valor: 'seguranca',
+    nome: 'Testes de segurança',
+    resumo: 'Varredura com o OWASP ZAP, com os alertas agrupados pelas categorias do OWASP Top 10 (2021). Roda numa cópia isolada do jogo, com banco descartável: o banco de desenvolvimento não é tocado.',
+    secoes: [
+      {
+        titulo: 'testes_de_seguranca/',
+        itens: [
+          { caminho: 'rodar.js', descricao: 'Sobe o ambiente isolado, cria o usuário de teste, roda os scans do ZAP e desliga tudo no fim' },
+          { caminho: 'resumo.js', descricao: 'Agrupa os alertas do ZAP por categoria do OWASP Top 10, pelo CWE de cada alerta' },
+          { caminho: 'docker-compose.yml', descricao: 'Cópia do jogo só para ser atacada: banco descartável e nenhuma porta aberta na máquina' },
+          { caminho: 'zap/openapi.yaml', descricao: 'Mapa das rotas da API: é por ele que o ZAP sabe o que atacar' },
+          { caminho: 'relatorios/<data-hora>/', descricao: 'Saída de cada execução: resumo.md, relatórios HTML/JSON do ZAP (fora do git)' },
+          { caminho: 'README.md', descricao: 'Como rodar, o que cada scan faz e os limites do ZAP' },
+        ],
+      },
+      {
+        titulo: 'Os dois scans',
+        itens: [
+          { caminho: 'Front (baseline)', descricao: 'Passivo, no build de produção: analisa as respostas sem atacar (cabeçalhos de segurança, cookies, vazamento de informação)' },
+          { caminho: 'API (ativo)', descricao: 'Autenticado com um usuário de teste: tenta SQL injection, XSS, injeção de comandos e mais em cada rota' },
+        ],
+      },
+      {
+        titulo: 'Como rodar (dentro de testes_de_seguranca/)',
+        itens: [
+          { caminho: 'npm run seguranca', descricao: 'Os dois scans e o resumo por categoria' },
+          { caminho: 'npm run seguranca:front', descricao: 'Só o scan passivo do front' },
+          { caminho: 'npm run seguranca:api', descricao: 'Só o scan ativo da API' },
+          { caminho: 'npm run seguranca -- --top10 A01,A05', descricao: 'Resumo só das categorias escolhidas do OWASP Top 10' },
+        ],
+      },
+      {
+        titulo: 'Resultado do primeiro scan (15/11/2026, 20:29)',
+        itens: [
+          { caminho: 'Risco alto', descricao: 'Nenhum alerta' },
+          { caminho: 'A03 Injeção', descricao: 'Sem falhas: SQL injection, XSS, injeção de comandos e de templates foram testados na API' },
+          { caminho: 'A01 Controle de acesso', descricao: 'CORS liberado para qualquer site (Access-Control-Allow-Origin: *) e cabeçalho X-Powered-By revelando o Express' },
+          { caminho: 'A04 / A05 Configuração', descricao: 'Faltam cabeçalhos de segurança (CSP, anti-clickjacking, X-Content-Type-Options)' },
+          { caminho: 'Outros', descricao: 'Busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
+        ],
+      },
+      {
+        titulo: 'Resultado do segundo scan (16/11/2026, 08:24)',
+        itens: [
+          { caminho: 'A01 Controle de acesso', descricao: 'Corrigido: o CORS só libera o endereço do front (variável CORS_ORIGENS) e o cabeçalho X-Powered-By não é mais enviado. O ZAP passou a aprovar os dois testes' },
+          { caminho: 'A04 / A05 Configuração', descricao: 'Continua: faltam cabeçalhos de segurança (X-Content-Type-Options, Cross-Origin-Resource-Policy)' },
+          { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
+        ],
+      },
+      {
+        titulo: 'Resultado do terceiro scan (16/11/2026, 09:58)',
+        itens: [
+          { caminho: 'Risco alto', descricao: 'Nenhum alerta' },
+          { caminho: 'A01 Controle de acesso', descricao: 'Sem alertas: as correções de CORS e do X-Powered-By continuam valendo' },
+          { caminho: 'A05 Configuração', descricao: 'Corrigido: X-Content-Type-Options e Cross-Origin-Resource-Policy agora são enviados pela API e pelo front. O ZAP passou a aprovar os dois testes' },
+          { caminho: 'A04 / A05 Configuração', descricao: 'Continua no front: faltam CSP, anti-clickjacking, Permissions-Policy, Cross-Origin-Opener-Policy e Cross-Origin-Embedder-Policy' },
+          { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
+        ],
+      },
+      {
+        titulo: 'Resultado do quarto scan (16/11/2026, 10:48)',
+        itens: [
+          { caminho: 'Risco alto e médio', descricao: 'Nenhum alerta' },
+          { caminho: 'OWASP Top 10', descricao: 'Nenhuma das 10 categorias com alerta' },
+          { caminho: 'A04 / A05 Configuração', descricao: 'Corrigido: CSP, anti-clickjacking (X-Frame-Options e frame-ancestors), Permissions-Policy, Cross-Origin-Opener-Policy e Cross-Origin-Embedder-Policy no front e na API. O ZAP passou a aprovar todos' },
+          { caminho: 'Outros', descricao: 'Continua: busca com caractere nulo (%00) devolve erro 500 em /mercado, /treinadores e /vitrines' },
         ],
       },
     ],
