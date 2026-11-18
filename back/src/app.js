@@ -1,12 +1,8 @@
 // App Express sem o listen, para os testes de integração poderem subir o servidor numa porta qualquer
 const express = require('express');
 const rotas = require('./rotas');
-
-const POKEAPI_URL = 'https://pokeapi.co/api/v2';
-
-// Aceita só "/recurso" ou "/recurso/id-ou-nome" (ex.: /pokemon, /type/fire)
-const CAMINHO_VALIDO = /^\/[a-z0-9-]+(\/[a-z0-9-]+)?\/?$/i;
-const PARAMETROS_PERMITIDOS = ['limit', 'offset'];
+const { proxyPokeApi } = require('./features/especies');
+const { documentacao } = require('./documentacao');
 
 const app = express();
 
@@ -35,30 +31,11 @@ app.get('/api/saude', (req, res) => {
   res.json({ ok: true });
 });
 
-// Repassa GET /api/pokeapi/<caminho> para https://pokeapi.co/api/v2/<caminho>
-app.use('/api/pokeapi', async (req, res) => {
-  if (req.method !== 'GET') {
-    res.sendStatus(405);
-    return;
-  }
-  if (!CAMINHO_VALIDO.test(req.path)) {
-    res.status(400).json({ erro: 'Caminho inválido.' });
-    return;
-  }
+// Repassa GET /api/pokeapi/<caminho> para https://pokeapi.co/api/v2/<caminho> (features/especies)
+app.use('/api/pokeapi', proxyPokeApi);
 
-  const url = new URL(`${POKEAPI_URL}${req.path}`);
-  PARAMETROS_PERMITIDOS.forEach((parametro) => {
-    if (req.query[parametro]) url.searchParams.set(parametro, String(req.query[parametro]));
-  });
-
-  try {
-    const resposta = await fetch(url);
-    const corpo = await resposta.text();
-    res.status(resposta.status).type('application/json').send(corpo);
-  } catch {
-    res.status(502).json({ erro: 'Não foi possível acessar a PokeAPI.' });
-  }
-});
+// Documentação das rotas (Swagger UI), a partir de docs/openapi.yaml
+app.use('/api/docs', documentacao);
 
 // Endpoints do jogo (precisam do banco)
 app.use('/api', rotas);

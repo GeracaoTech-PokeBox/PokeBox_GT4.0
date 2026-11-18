@@ -1,0 +1,1526 @@
+# Documentação das rotas da API (OpenAPI 3). O back serve esta especificação em /api/docs
+# (Swagger UI) e em /api/docs/openapi.json. Ao criar, mudar ou remover uma rota, atualize aqui:
+# test/unit/documentacao.test.js falha se uma rota do rotas.js não estiver documentada.
+openapi: 3.0.3
+info:
+  title: PokeBox API
+  version: 1.0.0
+  description: |
+    API REST do PokeBox (Node.js + Express 5 + PostgreSQL).
+
+    **Como testar por aqui:** chame `POST /auth/login` (ou `/auth/cadastro`), copie o `token` da
+    resposta, clique em **Authorize** e cole o token. As rotas com cadeado passam a funcionar.
+
+    **Erros:** toda resposta de erro tem o formato `{ "erro": "mensagem" }`. Regra do jogo violada ou
+    dado inválido dá 400, JSON malformado dá 400, corpo acima de 10 kb dá 413, banco fora do ar dá 503
+    e qualquer outro erro dá 500.
+
+    Arquitetura e regras do jogo: `back/docs/BACKEND.md`.
+servers:
+  - url: /api   # relativo: funciona igual em localhost e no Render
+
+tags:
+  - name: Sistema
+    description: Saúde do back e proxy da PokeAPI (sem login e sem banco)
+  - name: Conta
+    description: Cadastro, login e recuperação de senha. Limite de 20 requisições por IP e rota a cada 15 min
+  - name: Coleção
+    description: O treinador logado e os Pokémon dele
+  - name: Loja
+  - name: Time
+  - name: Pokémon
+    description: Evolução, cuidados e golpes especiais de um card
+  - name: Mercado
+    description: Anúncios, compras e propostas de troca
+  - name: Vitrine
+  - name: Treinadores
+  - name: História
+    description: Modo história (PvE). 5 trilhas de 10 pontos, cada ponto um Pokémon selvagem
+  - name: Batalhas
+    description: Batalhas PvP assíncronas, com 1 minuto por jogada
+
+# Por padrão toda rota exige o token; as públicas sobrescrevem com "security: []"
+security:
+  - bearerAuth: []
+
+paths:
+  # -------------------------------------------------------------------------
+  # Sistema (montadas direto no app.js)
+  # -------------------------------------------------------------------------
+  /saude:
+    get:
+      tags: [Sistema]
+      summary: Health check
+      description: Responde sem tocar no banco. Usada pelo Render e pelo front para "acordar" o back.
+      security: []
+      responses:
+        '200':
+          description: Back no ar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+
+  /pokeapi/{recurso}:
+    get:
+      tags: [Sistema]
+      summary: Proxy da PokeAPI (lista)
+      description: Repassa para `https://pokeapi.co/api/v2/{recurso}`. Só `limit` e `offset` vão junto.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RecursoPokeApi'
+        - $ref: '#/components/parameters/LimitPokeApi'
+        - $ref: '#/components/parameters/OffsetPokeApi'
+      responses:
+        '200': { $ref: '#/components/responses/RespostaPokeApi' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '502': { $ref: '#/components/responses/PokeApiFora' }
+
+  /pokeapi/{recurso}/{id}:
+    get:
+      tags: [Sistema]
+      summary: Proxy da PokeAPI (um item)
+      description: Repassa para `https://pokeapi.co/api/v2/{recurso}/{id}`.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RecursoPokeApi'
+        - name: id
+          in: path
+          required: true
+          description: Id ou nome (letras, números e hífen)
+          schema: { type: string, pattern: '^[a-zA-Z0-9-]+$', example: charmander }
+      responses:
+        '200': { $ref: '#/components/responses/RespostaPokeApi' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '404': { description: A PokeAPI não encontrou o item (o status dela é repassado) }
+        '502': { $ref: '#/components/responses/PokeApiFora' }
+
+  # -------------------------------------------------------------------------
+  # Conta
+  # -------------------------------------------------------------------------
+  /auth/cadastro:
+    post:
+      tags: [Conta]
+      summary: Criar conta
+      description: Cria o treinador com 1000 Pokécoins e já devolve uma sessão.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DadosConta' }
+      responses:
+        '201':
+          description: Conta criada e sessão aberta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '429': { $ref: '#/components/responses/MuitasTentativas' }
+
+  /auth/login:
+    post:
+      tags: [Conta]
+      summary: Entrar
+      description: A sessão vale 30 dias. Usuário ou senha errados dão a mesma mensagem.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, senha]
+              properties:
+                login: { type: string, example: ash }
+                senha: { type: string, format: password, example: pikachu123 }
+      responses:
+        '200':
+          description: Sessão aberta
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sessao' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '429': { $ref: '#/components/responses/MuitasTentativas' }
+
+  /auth/verificar:
+    post:
+      tags: [Conta]
+      summary: Recuperar senha, passo 1
+      description: Informa se existe um treinador com esse login e celular.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, celular]
+              properties:
+                login: { $ref: '#/components/schemas/Login' }
+                celular: { $ref: '#/components/schemas/Celular' }
+      responses:
+        '200':
+          description: Resultado da busca
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  encontrado: { type: boolean }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '429': { $ref: '#/components/responses/MuitasTentativas' }
+
+  /auth/redefinir-senha:
+    post:
+      tags: [Conta]
+      summary: Recuperar senha, passo 2
+      description: Troca a senha e encerra todas as sessões do treinador.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DadosConta' }
+      responses:
+        '204': { description: Senha trocada }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '429': { $ref: '#/components/responses/MuitasTentativas' }
+
+  /auth/sair:
+    post:
+      tags: [Conta]
+      summary: Sair
+      description: Encerra a sessão do token enviado e marca o treinador como offline.
+      responses:
+        '204': { description: Sessão encerrada }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+        '429': { $ref: '#/components/responses/MuitasTentativas' }
+
+  # -------------------------------------------------------------------------
+  # Coleção, loja e time
+  # -------------------------------------------------------------------------
+  /eu:
+    get:
+      tags: [Coleção]
+      summary: Treinador logado e a coleção dele
+      description: O time vem primeiro, na ordem; depois os demais, do mais novo para o mais antigo.
+      responses:
+        '200':
+          description: Treinador e coleção
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+                  pokemons:
+                    type: array
+                    items: { $ref: '#/components/schemas/Card' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /eu/inicial:
+    post:
+      tags: [Coleção]
+      summary: Escolher o Pokémon inicial
+      description: Só para quem ainda não tem nenhum Pokémon. O card já entra no time na posição 1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [especieId]
+              properties:
+                especieId:
+                  type: integer
+                  description: Um dos 27 iniciais
+                  enum: [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 495, 498, 501,
+                    650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912]
+      responses:
+        '201':
+          description: Card criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /loja/comprar:
+    post:
+      tags: [Loja]
+      summary: Comprar um Pokémon aleatório (100 Pokécoins)
+      description: Sorteia uma espécie da geração escolhida; lendários e míticos saem bem menos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [geracao]
+              properties:
+                geracao: { type: integer, minimum: 1, maximum: 9, example: 1 }
+      responses:
+        '201':
+          description: Card criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pokemon: { $ref: '#/components/schemas/Card' }
+                  saldo: { type: integer, description: Pokécoins depois da compra }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /loja/pokebolas:
+    post:
+      tags: [Loja]
+      summary: Comprar Pokébolas (10 Pokécoins cada)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantidade]
+              properties:
+                quantidade: { type: integer, minimum: 1, maximum: 99, example: 5 }
+      responses:
+        '201':
+          description: Compra feita
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saldo: { type: integer, description: Pokécoins depois da compra }
+                  pokebolas: { type: integer, description: Pokébolas depois da compra }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /time:
+    put:
+      tags: [Time]
+      summary: Definir o time de batalha
+      description: Exatamente 3 cards diferentes, todos do treinador e nenhum anunciado no mercado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pokemonIds]
+              properties:
+                pokemonIds:
+                  type: array
+                  minItems: 3
+                  maxItems: 3
+                  uniqueItems: true
+                  items: { type: integer }
+                  example: [12, 7, 30]
+      responses:
+        '204': { description: Time salvo }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # Pokémon (card)
+  # -------------------------------------------------------------------------
+  /pokemons/{id}/evoluir:
+    post:
+      tags: [Pokémon]
+      summary: Evoluir
+      description: |
+        Precisa do nível mínimo da evolução. Mint, shiny, IVs e nível continuam iguais. Cada status
+        tem 30% de chance de ganhar de +1 a +5 permanentes (`bonusGanho`).
+      parameters:
+        - $ref: '#/components/parameters/IdPokemon'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [especieId]
+              properties:
+                especieId: { type: integer, description: Espécie de destino (uma das `evolucoes` do card), example: 5 }
+      responses:
+        '200':
+          description: Card evoluído
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Card'
+                  - type: object
+                    properties:
+                      bonusGanho: { $ref: '#/components/schemas/Atributos' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /pokemons/{id}/cuidar:
+    post:
+      tags: [Pokémon]
+      summary: Cuidar (carinho, brincar ou alimentar)
+      description: |
+        | Tipo | Afeto | Humor | Energia | Espera |
+        |---|---|---|---|---|
+        | carinho | +10 | +15 | 0 | 2 h |
+        | brincar | +20 | +25 | −25 | 4 h |
+        | alimentar | +20 | 0 | +35 | 4 h |
+
+        Cada coração completado pela primeira vez neste card paga 100 Pokécoins (`pokecoins`).
+      parameters:
+        - $ref: '#/components/parameters/IdPokemon'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo]
+              properties:
+                tipo: { type: string, enum: [carinho, brincar, alimentar] }
+      responses:
+        '200':
+          description: Cuidado feito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pokemon: { $ref: '#/components/schemas/Card' }
+                  ganho: { type: integer, description: Pontos de afeto ganhos }
+                  pokecoins: { type: integer, description: Pokécoins ganhas por corações novos (0 se nenhum) }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /pokemons/{id}/cuidados:
+    get:
+      tags: [Pokémon]
+      summary: Últimos 10 cuidados do card
+      parameters:
+        - $ref: '#/components/parameters/IdPokemon'
+      responses:
+        '200':
+          description: Cuidados, do mais recente para o mais antigo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    tipo: { type: string, enum: [carinho, brincar, alimentar] }
+                    afeto: { type: integer, description: Afeto ganho nesse cuidado }
+                    criadoEm: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /pokemons/{id}/golpes/roletar:
+    post:
+      tags: [Pokémon]
+      summary: Sortear golpes especiais
+      description: |
+        Sorteia 2 golpes que causam dano entre os que a espécie aprende. Exige golpes liberados
+        (afeto máximo ou desbloqueio pago). A primeira roleta é grátis; as seguintes custam 100.
+      parameters:
+        - $ref: '#/components/parameters/IdPokemon'
+      responses:
+        '200': { $ref: '#/components/responses/CardComCusto' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /pokemons/{id}/golpes/desbloquear:
+    post:
+      tags: [Pokémon]
+      summary: Desbloquear golpes especiais (200 Pokécoins)
+      description: Libera os golpes sem precisar do afeto máximo. Já inclui a primeira roleta.
+      parameters:
+        - $ref: '#/components/parameters/IdPokemon'
+      responses:
+        '200': { $ref: '#/components/responses/CardComCusto' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # Mercado
+  # -------------------------------------------------------------------------
+  /mercado:
+    get:
+      tags: [Mercado]
+      summary: Espécies com anúncios ativos
+      parameters:
+        - name: busca
+          in: query
+          description: Parte do nome da espécie (até 40 caracteres)
+          schema: { type: string }
+        - name: ordem
+          in: query
+          schema: { type: string, enum: [popularidade, preco, nome], default: popularidade }
+      responses:
+        '200':
+          description: Até 120 espécies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    especieId: { type: integer }
+                    nome: { type: string }
+                    tipos: { type: array, items: { type: string } }
+                    anuncios: { type: integer }
+                    menorPreco: { type: integer, nullable: true, description: null se nenhum anúncio tem preço }
+                    aceitamPropostas: { type: integer, description: Quantos anúncios aceitam propostas }
+                    shinies: { type: integer }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /mercado/{especieId}:
+    get:
+      tags: [Mercado]
+      summary: Anúncios ativos de uma espécie
+      parameters:
+        - name: especieId
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+        - name: ordem
+          in: query
+          schema: { type: string, enum: [preco, nivel, ivs, recentes], default: preco }
+      responses:
+        '200': { $ref: '#/components/responses/ListaDeAnuncios' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /anuncios/meus:
+    get:
+      tags: [Mercado]
+      summary: Anúncios ativos do treinador logado
+      responses:
+        '200': { $ref: '#/components/responses/ListaDeAnuncios' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /anuncios:
+    post:
+      tags: [Mercado]
+      summary: Anunciar um Pokémon
+      description: |
+        Precisa ter preço, aceitar propostas ou as duas coisas. O card precisa estar fora do time.
+        Até 20 anúncios ativos por treinador e 1 por card.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pokemonId]
+              properties:
+                pokemonId: { type: integer, example: 30 }
+                preco: { type: integer, nullable: true, minimum: 1, maximum: 100000, default: null, example: 500 }
+                aceitaPropostas: { type: boolean, default: false }
+      responses:
+        '201':
+          description: Anúncio criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Anuncio' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /anuncios/{id}:
+    delete:
+      tags: [Mercado]
+      summary: Cancelar um anúncio próprio
+      parameters:
+        - $ref: '#/components/parameters/IdAnuncio'
+      responses:
+        '204': { description: Anúncio cancelado }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /anuncios/{id}/comprar:
+    post:
+      tags: [Mercado]
+      summary: Comprar pelo preço do anúncio
+      description: Transfere o card e as Pokécoins. O afeto do card zera na troca de dono.
+      parameters:
+        - $ref: '#/components/parameters/IdAnuncio'
+      responses:
+        '200':
+          description: Card comprado, já do novo dono
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Card' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /anuncios/{id}/propostas:
+    post:
+      tags: [Mercado]
+      summary: Fazer uma proposta de troca
+      description: |
+        Até 6 Pokémon (fora do time) e/ou de 0 a 100.000 Pokécoins. Até 10 propostas pendentes por
+        treinador e 1 por anúncio. Nada fica reservado: tudo é conferido de novo quando a proposta é aceita.
+      parameters:
+        - $ref: '#/components/parameters/IdAnuncio'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pokemonIds:
+                  type: array
+                  maxItems: 6
+                  items: { type: integer }
+                  default: []
+                pokecoins: { type: integer, minimum: 0, maximum: 100000, default: 0 }
+      responses:
+        '201':
+          description: Proposta enviada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /propostas:
+    get:
+      tags: [Mercado]
+      summary: Propostas recebidas e enviadas
+      description: Até 60, as pendentes primeiro.
+      responses:
+        '200':
+          description: Propostas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recebidas:
+                    type: array
+                    items: { $ref: '#/components/schemas/Proposta' }
+                  enviadas:
+                    type: array
+                    items: { $ref: '#/components/schemas/Proposta' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /propostas/{id}:
+    delete:
+      tags: [Mercado]
+      summary: Cancelar uma proposta enviada
+      parameters:
+        - $ref: '#/components/parameters/IdProposta'
+      responses:
+        '204': { description: Proposta cancelada }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /propostas/{id}/aceitar:
+    post:
+      tags: [Mercado]
+      summary: Aceitar uma proposta recebida
+      description: Troca os cards e as Pokécoins numa só transação.
+      parameters:
+        - $ref: '#/components/parameters/IdProposta'
+      responses:
+        '204': { description: Troca feita }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /propostas/{id}/recusar:
+    post:
+      tags: [Mercado]
+      summary: Recusar uma proposta recebida
+      parameters:
+        - $ref: '#/components/parameters/IdProposta'
+      responses:
+        '204': { description: Proposta recusada }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # Vitrine
+  # -------------------------------------------------------------------------
+  /vitrines:
+    get:
+      tags: [Vitrine]
+      summary: Vitrines de outros treinadores
+      description: Até 30, das mais visitadas para as menos visitadas.
+      parameters:
+        - $ref: '#/components/parameters/BuscaLogin'
+      responses:
+        '200':
+          description: Vitrines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    login: { type: string }
+                    visitas: { type: integer }
+                    bio: { type: string }
+                    especies: { type: integer, description: Espécies diferentes na coleção }
+                    previa:
+                      type: array
+                      description: Até 3 Pokémon (destaques ou time)
+                      items:
+                        type: object
+                        properties:
+                          especieId: { type: integer }
+                          shiny: { type: boolean }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /vitrines/{login}:
+    get:
+      tags: [Vitrine]
+      summary: Vitrine de um treinador
+      description: A visita de outro treinador soma 1 no contador. Os destaques não mostram IVs.
+      parameters:
+        - name: login
+          in: path
+          required: true
+          schema: { type: string, maxLength: 20 }
+      responses:
+        '200':
+          description: Vitrine
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Vitrine' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /vitrine:
+    put:
+      tags: [Vitrine]
+      summary: Salvar a própria vitrine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pokemonIds]
+              properties:
+                bio: { type: string, maxLength: 160, default: '' }
+                estilo: { type: string, enum: [palco, album] }
+                pokemonIds:
+                  type: array
+                  description: Destaques, na ordem (até 6). Lista vazia mostra o time.
+                  maxItems: 6
+                  items: { type: integer }
+      responses:
+        '204': { description: Vitrine salva }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # Treinadores
+  # -------------------------------------------------------------------------
+  /treinadores:
+    get:
+      tags: [Treinadores]
+      summary: Buscar treinadores pelo começo do login
+      description: Sem `busca`, devolve lista vazia.
+      parameters:
+        - $ref: '#/components/parameters/BuscaLogin'
+      responses:
+        '200':
+          description: Até 10 logins
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: string }
+                example: [ash, ashley]
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /treinadores/ativos:
+    get:
+      tags: [Treinadores]
+      summary: Treinadores que podem ser desafiados
+      description: Online agora, com acesso nas últimas 24 h e time completo (até 50).
+      responses:
+        '200':
+          description: Treinadores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    login: { type: string }
+                    ultimoAcessoEm: { type: string, format: date-time }
+                    nivelMedio: { type: integer }
+                    time:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          especieId: { type: integer }
+                          nome: { type: string }
+                          shiny: { type: boolean }
+                          nivel: { type: integer }
+                    desafioEnviado: { type: boolean }
+                    desafioRecebido: { type: boolean }
+                    emBatalha: { type: boolean }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /presenca:
+    post:
+      tags: [Treinadores]
+      summary: Sinal de vida
+      description: O front envia a cada ~20 s com o jogo aberto, para o treinador aparecer como online.
+      responses:
+        '204': { description: Presença registrada }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # História
+  # -------------------------------------------------------------------------
+  /historia:
+    get:
+      tags: [História]
+      summary: Progresso no modo história
+      responses:
+        '200':
+          description: Regras, progresso e o último encontro de cada ponto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Historia' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /historia/explorar:
+    post:
+      tags: [História]
+      summary: Encontrar o Pokémon selvagem do próximo ponto
+      description: Se já existe um encontro aberto, devolve ele mesmo.
+      responses:
+        '200':
+          description: Encontro
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Encontro' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /historia/encontros/{id}/batalha:
+    post:
+      tags: [História]
+      summary: Começar (ou retomar) a batalha contra o selvagem
+      parameters:
+        - $ref: '#/components/parameters/IdEncontro'
+      responses:
+        '200': { $ref: '#/components/responses/TurnoDaHistoria' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /historia/encontros/{id}/jogadas:
+    post:
+      tags: [História]
+      summary: Jogar um turno contra o selvagem
+      description: O selvagem responde na mesma requisição. Não há prazo.
+      parameters:
+        - $ref: '#/components/parameters/IdEncontro'
+      requestBody: { $ref: '#/components/requestBodies/Jogada' }
+      responses:
+        '200': { $ref: '#/components/responses/TurnoDaHistoria' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /historia/encontros/{id}/capturar:
+    post:
+      tags: [História]
+      summary: Jogar uma Pokébola no selvagem vencido
+      description: Gasta 1 Pokébola. Depois de 10 tentativas sem sucesso, o selvagem foge.
+      parameters:
+        - $ref: '#/components/parameters/IdEncontro'
+      responses:
+        '200':
+          description: Resultado da tentativa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  capturou: { type: boolean }
+                  fugiu: { type: boolean }
+                  pokemon:
+                    allOf:
+                      - $ref: '#/components/schemas/Card'
+                    nullable: true
+                    description: O card novo (null se não capturou)
+                  pokebolas: { type: integer, description: Pokébolas que sobraram }
+                  encontro: { $ref: '#/components/schemas/Encontro' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /historia/encontros/{id}/ignorar:
+    post:
+      tags: [História]
+      summary: Desistir de capturar o selvagem vencido
+      description: Ele vai embora e o ponto fica livre para refazer. Não dá para desfazer.
+      parameters:
+        - $ref: '#/components/parameters/IdEncontro'
+      responses:
+        '200':
+          description: Encontro atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Encontro' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /historia/trilhas/{trilha}/pontos/{ponto}/refazer:
+    post:
+      tags: [História]
+      summary: Revanche num ponto já concluído (25 Pokécoins)
+      description: Sorteia um novo selvagem com a mesma força e já começa a batalha. Não avança a trilha.
+      parameters:
+        - name: trilha
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 5 }
+        - name: ponto
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 10 }
+      responses:
+        '200': { $ref: '#/components/responses/TurnoDaHistoria' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # Batalhas
+  # -------------------------------------------------------------------------
+  /batalhas:
+    get:
+      tags: [Batalhas]
+      summary: Batalhas do treinador
+      description: Pendentes e em andamento, mais as 20 últimas encerradas.
+      responses:
+        '200':
+          description: Batalhas
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Batalha' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+    post:
+      tags: [Batalhas]
+      summary: Desafiar um treinador
+      description: |
+        Precisa de time completo. Até 5 desafios pendentes e 1 por oponente. O desafio expira em 24 h.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oponente]
+              properties:
+                oponente: { type: string, description: Login do treinador desafiado, example: misty }
+      responses:
+        '201':
+          description: Desafio criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Batalha' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /batalhas/{id}:
+    get:
+      tags: [Batalhas]
+      summary: Uma batalha, com o log de ações
+      parameters:
+        - $ref: '#/components/parameters/IdBatalha'
+      responses:
+        '200':
+          description: Batalha e ações
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batalha: { $ref: '#/components/schemas/Batalha' }
+                  acoes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        turno: { type: integer }
+                        jogadorId: { type: integer }
+                        tipo: { type: string, enum: [atacar, golpe, trocar, passar, desistir], description: '`passar` = vez perdida por timeout' }
+                        automatica: { type: boolean, description: Feita pelo back quando o prazo venceu }
+                        eventos: { type: array, items: { type: object } }
+                        criadaEm: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /batalhas/{id}/responder:
+    post:
+      tags: [Batalhas]
+      summary: Aceitar ou recusar um desafio recebido
+      description: Ao aceitar, os dois times são congelados e começa quem tiver o primeiro Pokémon mais rápido.
+      parameters:
+        - $ref: '#/components/parameters/IdBatalha'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                aceitar: { type: boolean, description: Qualquer valor diferente de true recusa }
+      responses:
+        '200':
+          description: Batalha atualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Batalha' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /batalhas/{id}/jogadas:
+    post:
+      tags: [Batalhas]
+      summary: Jogar um turno
+      description: |
+        1 minuto por jogada; 2 timeouts seguidos do mesmo jogador dão W.O. `desistir` vale a
+        qualquer momento, mesmo fora da vez.
+      parameters:
+        - $ref: '#/components/parameters/IdBatalha'
+      requestBody: { $ref: '#/components/requestBodies/Jogada' }
+      responses:
+        '200':
+          description: Batalha depois da jogada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Batalha' }
+        '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Token devolvido por `/auth/login` ou `/auth/cadastro`
+
+  parameters:
+    IdPokemon:
+      name: id
+      in: path
+      required: true
+      description: Id do card
+      schema: { type: integer, minimum: 1 }
+    IdAnuncio:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    IdProposta:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    IdEncontro:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    IdBatalha:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    BuscaLogin:
+      name: busca
+      in: query
+      description: Começo do login (até 20 caracteres)
+      schema: { type: string }
+    RecursoPokeApi:
+      name: recurso
+      in: path
+      required: true
+      description: Recurso da PokeAPI (letras, números e hífen)
+      schema: { type: string, pattern: '^[a-zA-Z0-9-]+$', example: pokemon }
+    LimitPokeApi:
+      name: limit
+      in: query
+      schema: { type: integer, example: 20 }
+    OffsetPokeApi:
+      name: offset
+      in: query
+      schema: { type: integer, example: 0 }
+
+  requestBodies:
+    Jogada:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Jogada' }
+          examples:
+            atacar: { value: { tipo: atacar } }
+            golpe: { value: { tipo: golpe, indice: 0 } }
+            trocar: { value: { tipo: trocar, indice: 2 } }
+            desistir: { value: { tipo: desistir } }
+
+  responses:
+    ErroDeRegra:
+      description: Regra do jogo violada, dado inválido ou JSON malformado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+          example: { erro: Pokécoins insuficientes. }
+    NaoAutenticado:
+      description: Token ausente, inválido ou expirado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+          example: { erro: Faça login para continuar. }
+    MuitasTentativas:
+      description: Limite de 20 requisições por IP e rota a cada 15 minutos
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+          example: { erro: Muitas tentativas. Espere alguns minutos e tente de novo. }
+    PokeApiFora:
+      description: A PokeAPI não respondeu
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+          example: { erro: Não foi possível acessar a PokeAPI. }
+    RespostaPokeApi:
+      description: JSON da PokeAPI, sem alteração
+      content:
+        application/json:
+          schema: { type: object }
+    CardComCusto:
+      description: Card com os golpes novos e quanto foi cobrado
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              pokemon: { $ref: '#/components/schemas/Card' }
+              custo: { type: integer, description: Pokécoins cobradas }
+    ListaDeAnuncios:
+      description: Anúncios
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/Anuncio' }
+    TurnoDaHistoria:
+      description: Encontro e batalha depois da jogada
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/TurnoDaHistoria' }
+
+  schemas:
+    Erro:
+      type: object
+      properties:
+        erro: { type: string }
+
+    # --- Conta -----------------------------------------------------------------
+    Login:
+      type: string
+      maxLength: 20
+      example: ash
+    Celular:
+      type: string
+      pattern: '^\d{11}$'
+      description: 11 dígitos, com DDD
+      example: '11987654321'
+    DadosConta:
+      type: object
+      required: [login, celular, senha]
+      properties:
+        login: { $ref: '#/components/schemas/Login' }
+        celular: { $ref: '#/components/schemas/Celular' }
+        senha: { type: string, format: password, minLength: 8, example: pikachu123 }
+    Usuario:
+      type: object
+      properties:
+        id: { type: integer }
+        login: { type: string }
+        pokecoins: { type: integer }
+        pokebolas: { type: integer, description: Só em GET /eu }
+    Sessao:
+      type: object
+      properties:
+        usuario: { $ref: '#/components/schemas/Usuario' }
+        token:
+          type: string
+          description: Vai no cabeçalho `Authorization` (`Bearer <token>`) das outras rotas
+          example: 3f9c2a7e5b...
+
+    # --- Card --------------------------------------------------------------------
+    Atributos:
+      type: object
+      properties:
+        hp: { type: integer }
+        ataque: { type: integer }
+        defesa: { type: integer }
+        velocidade: { type: integer }
+    Raridade:
+      type: string
+      enum: [comum, lendario, mitico]
+    Card:
+      type: object
+      description: Um Pokémon da coleção (card)
+      properties:
+        id: { type: integer }
+        mintNumero: { type: integer, description: Número único do card no jogo }
+        especieId: { type: integer }
+        especieOriginalId: { type: integer, description: Espécie com que o card nasceu (antes de evoluir) }
+        nome: { type: string, example: charmander }
+        tipos: { type: array, items: { type: string }, example: [fire] }
+        raridade: { $ref: '#/components/schemas/Raridade' }
+        shiny: { type: boolean }
+        nivel: { type: integer, minimum: 1, maximum: 100 }
+        xp: { type: integer }
+        xpParaSubir: { type: integer, nullable: true, description: null no nível máximo }
+        ivs: { $ref: '#/components/schemas/Atributos' }
+        status: { $ref: '#/components/schemas/Atributos' }
+        bonusEvolucao: { $ref: '#/components/schemas/Atributos' }
+        alturaM: { type: number }
+        pesoKg: { type: number }
+        posicaoTime: { type: integer, nullable: true, minimum: 1, maximum: 3 }
+        posicaoVitrine: { type: integer, nullable: true }
+        anunciado: { type: boolean }
+        afeto:
+          type: object
+          properties:
+            pontos: { type: integer }
+            coracoes: { type: integer, minimum: 0, maximum: 5 }
+            maximo: { type: boolean }
+            faltamParaProximo: { type: integer, nullable: true }
+            bonusStatus: { type: number, description: Multiplicador extra nos status (0,02 por coração) }
+        golpes:
+          type: array
+          items: { $ref: '#/components/schemas/Golpe' }
+        custoRoletaGolpes: { type: integer, description: 0 enquanto o card não tem golpes }
+        golpesLiberados: { type: boolean }
+        custoDesbloqueioGolpes: { type: integer }
+        humor: { type: integer, minimum: 0, maximum: 100 }
+        energia: { type: integer, minimum: 0, maximum: 100 }
+        cuidadosDisponiveisEm:
+          type: object
+          description: Quando cada cuidado volta a ficar disponível (null = já está)
+          properties:
+            carinho: { type: string, format: date-time, nullable: true }
+            brincar: { type: string, format: date-time, nullable: true }
+            alimentar: { type: string, format: date-time, nullable: true }
+        evolucoes:
+          type: array
+          items:
+            type: object
+            properties:
+              especieId: { type: integer }
+              nome: { type: string }
+              nivel: { type: integer, description: Nível mínimo para evoluir }
+              disponivel: { type: boolean }
+    Golpe:
+      type: object
+      properties:
+        id: { type: integer }
+        nome: { type: string }
+        tipo: { type: string }
+        classe: { type: string, enum: [physical, special] }
+        poder: { type: integer }
+        precisao: { type: integer, nullable: true }
+        pp: { type: integer }
+    ResumoCard:
+      type: object
+      properties:
+        id: { type: integer }
+        mintNumero: { type: integer }
+        especieId: { type: integer }
+        nome: { type: string }
+        shiny: { type: boolean }
+        nivel: { type: integer }
+        tipos: { type: array, items: { type: string } }
+        ivTotal: { type: integer }
+
+    # --- Mercado -------------------------------------------------------------------
+    Anuncio:
+      type: object
+      properties:
+        id: { type: integer }
+        preco: { type: integer, nullable: true }
+        aceitaPropostas: { type: boolean }
+        anunciadoEm: { type: string, format: date-time }
+        vendedor: { type: string, description: Login do vendedor }
+        meu: { type: boolean }
+        propostasPendentes: { type: integer }
+        pokemon:
+          type: object
+          description: Card sem o afeto (que zera na troca) e com os status sem o bônus de afeto
+          properties:
+            id: { type: integer }
+            mintNumero: { type: integer }
+            especieId: { type: integer }
+            nome: { type: string }
+            tipos: { type: array, items: { type: string } }
+            raridade: { $ref: '#/components/schemas/Raridade' }
+            shiny: { type: boolean }
+            nivel: { type: integer }
+            ivs: { $ref: '#/components/schemas/Atributos' }
+            ivTotal: { type: integer }
+            status: { $ref: '#/components/schemas/Atributos' }
+            alturaM: { type: number }
+            pesoKg: { type: number }
+    Proposta:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string, enum: [pendente, aceita, recusada, cancelada, encerrada] }
+        pokecoins: { type: integer }
+        criadaEm: { type: string, format: date-time }
+        respondidaEm: { type: string, format: date-time, nullable: true }
+        anuncioId: { type: integer }
+        preco: { type: integer, nullable: true }
+        vendedor: { type: string }
+        proponente: { type: string }
+        alvo: { $ref: '#/components/schemas/ResumoCard' }
+        oferta:
+          type: array
+          items: { $ref: '#/components/schemas/ResumoCard' }
+
+    # --- Vitrine -------------------------------------------------------------------
+    Vitrine:
+      type: object
+      properties:
+        treinador:
+          type: object
+          properties:
+            login: { type: string }
+            desde: { type: string, format: date-time }
+        souDono: { type: boolean }
+        bio: { type: string }
+        estilo: { type: string, enum: [palco, album] }
+        visitas: { type: integer }
+        estatisticas:
+          type: object
+          properties:
+            pokemons: { type: integer }
+            especies: { type: integer }
+            shinies: { type: integer }
+            vitorias: { type: integer }
+            afetoTime: { type: number, description: Média de corações do time, com uma casa }
+        destaques:
+          type: array
+          description: Até 6 (ou o time, se o treinador não escolheu). Sem IVs.
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              mintNumero: { type: integer }
+              especieId: { type: integer }
+              nome: { type: string }
+              tipos: { type: array, items: { type: string } }
+              raridade: { $ref: '#/components/schemas/Raridade' }
+              shiny: { type: boolean }
+              nivel: { type: integer }
+              coracoes: { type: integer }
+        colecao:
+          type: array
+          description: Espécies que o treinador tem hoje (álbum)
+          items:
+            type: object
+            properties:
+              id: { type: integer, description: Id da espécie }
+              shiny: { type: boolean, description: Tem pelo menos um shiny dessa espécie }
+
+    # --- Batalhas e história ----------------------------------------------------------
+    Jogada:
+      type: object
+      required: [tipo]
+      properties:
+        tipo: { type: string, enum: [atacar, golpe, trocar, desistir] }
+        indice:
+          type: integer
+          minimum: 0
+          description: Só em `golpe` (índice do golpe) e `trocar` (índice do Pokémon no time)
+    EstadoBatalha:
+      type: object
+      description: Estado congelado da batalha (nucleo/motor.js)
+      properties:
+        vez: { type: integer, enum: [0, 1], description: Índice do lado que joga agora }
+        lados:
+          type: array
+          minItems: 2
+          maxItems: 2
+          items:
+            type: object
+            properties:
+              usuarioId: { type: integer, nullable: true }
+              login: { type: string }
+              ativo: { type: integer, description: Índice do Pokémon em campo }
+              timeoutsSeguidos: { type: integer }
+              pokemons:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    pokemonId: { type: integer, nullable: true }
+                    mintNumero: { type: integer, nullable: true }
+                    especieId: { type: integer }
+                    nome: { type: string }
+                    shiny: { type: boolean }
+                    nivel: { type: integer }
+                    hpMax: { type: integer }
+                    hp: { type: integer }
+                    ataque: { type: integer }
+                    defesa: { type: integer }
+                    velocidade: { type: integer }
+                    afetoMaximo: { type: boolean }
+                    resistiu: { type: boolean, description: Já aguentou um golpe com 1 PS nesta batalha }
+                    tipos: { type: array, items: { type: string } }
+                    golpes:
+                      type: array
+                      items:
+                        allOf:
+                          - $ref: '#/components/schemas/Golpe'
+                          - type: object
+                            properties:
+                              ppMax: { type: integer }
+    Batalha:
+      type: object
+      description: Batalha PvP do ponto de vista de quem pediu
+      properties:
+        id: { type: integer }
+        status: { type: string, enum: [aguardando, em_andamento, finalizada, recusada, expirada] }
+        desafiante: { $ref: '#/components/schemas/Participante' }
+        desafiado: { $ref: '#/components/schemas/Participante' }
+        oponente: { type: string, description: Login do outro treinador }
+        oponenteOnline: { type: boolean }
+        souDesafiante: { type: boolean }
+        minhaVez: { type: boolean }
+        turno: { type: integer }
+        prazoEm: { type: string, format: date-time, nullable: true, description: Prazo da jogada atual }
+        expiraEm: { type: string, format: date-time, description: Prazo para aceitar o desafio }
+        vencedorId: { type: integer, nullable: true }
+        venci: { type: boolean }
+        motivoFim: { type: string, nullable: true, enum: [nocaute, wo, desistencia, null] }
+        estado:
+          allOf:
+            - $ref: '#/components/schemas/EstadoBatalha'
+          nullable: true
+          description: null até o desafio ser aceito
+        minhasRecompensas:
+          type: object
+          nullable: true
+          description: Pokécoins e XP que o treinador ganhou (null até a batalha acabar)
+          properties:
+            pokecoins: { type: integer }
+            xp: { type: integer }
+            subiram: { type: array, items: { type: object }, description: Pokémon do time que subiram de nível }
+            semRecompensa: { type: string, nullable: true, description: Por que não houve recompensa (anti-farm) }
+        criadaEm: { type: string, format: date-time }
+        finalizadaEm: { type: string, format: date-time, nullable: true }
+    Participante:
+      type: object
+      properties:
+        id: { type: integer }
+        login: { type: string }
+        online: { type: boolean }
+    Encontro:
+      type: object
+      description: Pokémon selvagem num ponto da história
+      properties:
+        id: { type: integer }
+        trilha: { type: integer, minimum: 1, maximum: 5 }
+        ponto: { type: integer, minimum: 1, maximum: 10 }
+        forca: { type: number, description: De 0,1 a 5,0 }
+        especieId: { type: integer }
+        nome: { type: string }
+        tipos: { type: array, items: { type: string } }
+        raridade: { $ref: '#/components/schemas/Raridade' }
+        shiny: { type: boolean }
+        nivel: { type: integer }
+        status: { $ref: '#/components/schemas/Atributos' }
+        situacao: { type: string, enum: [encontrado, vencido, capturado, fugiu, ignorado] }
+        revanche: { type: boolean }
+        pontoVencido: { type: boolean }
+        batalha:
+          type: object
+          nullable: true
+          description: Batalha em andamento (null fora dela)
+          properties:
+            estado: { $ref: '#/components/schemas/EstadoBatalha' }
+            log: { type: array, items: { type: object } }
+            fim: { type: object, nullable: true }
+        recompensa:
+          type: object
+          nullable: true
+          properties:
+            pokecoins: { type: integer }
+            xp: { type: integer }
+            subiram: { type: array, items: { type: object }, description: Pokémon do time que subiram de nível }
+        chanceCaptura: { type: number, nullable: true }
+        tentativasCaptura: { type: integer }
+        tentativasRestantes: { type: integer }
+        pokemonCapturadoId: { type: integer, nullable: true }
+    TurnoDaHistoria:
+      type: object
+      properties:
+        encontro: { $ref: '#/components/schemas/Encontro' }
+        batalha:
+          type: object
+          properties:
+            estado: { $ref: '#/components/schemas/EstadoBatalha' }
+            log: { type: array, items: { type: object } }
+            fim:
+              type: object
+              nullable: true
+              description: null enquanto a batalha continua
+              properties:
+                vencedor: { type: integer, enum: [0, 1], description: 0 = treinador, 1 = selvagem }
+                motivo: { type: string, enum: [nocaute, desistencia] }
+            recompensa:
+              type: object
+              nullable: true
+              description: Só quando o treinador vence
+              properties:
+                pokecoins: { type: integer }
+                xp: { type: integer }
+                subiram: { type: array, items: { type: object } }
+    Historia:
+      type: object
+      properties:
+        trilhas: { type: integer, example: 5 }
+        pontosPorTrilha: { type: integer, example: 10 }
+        tentativasCaptura: { type: integer, example: 10 }
+        custoRefazer: { type: integer, example: 25 }
+        recompensa: { type: object, description: Parâmetros da recompensa de cada ponto }
+        vencidos: { type: integer }
+        capturados: { type: integer }
+        proximo:
+          type: object
+          nullable: true
+          description: Próximo ponto da trilha (null com a história completa)
+          properties:
+            trilha: { type: integer }
+            ponto: { type: integer }
+            forca: { type: number }
+        encontros:
+          type: array
+          items: { $ref: '#/components/schemas/Encontro' }

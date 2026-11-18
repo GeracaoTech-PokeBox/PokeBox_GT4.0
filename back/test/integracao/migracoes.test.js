@@ -47,8 +47,8 @@ describe('migrações', { skip: semBanco }, () => {
     await recriarBanco();
     process.env.DATABASE_URL = process.env.DATABASE_URL_TESTE;
     process.env.MIGRACOES_DIR = PASTA;
-    ({ pool } = require('../../src/db'));
-    ({ aplicarMigracoes } = require('../../src/migracoes'));
+    ({ pool } = require('../../src/banco/db'));
+    ({ aplicarMigracoes } = require('../../src/banco/migracoes'));
     // aplicarMigracoes anuncia cada arquivo aplicado; aqui isso só poluiria a saída
     mock.method(console, 'log', () => {});
     schemaDoDbSql = await lerSchema(pool);

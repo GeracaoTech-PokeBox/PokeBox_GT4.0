@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { rngSeguro, inteiroEntre, decimalEntre } = require('../../src/jogo/aleatorio');
+const { rngSeguro, inteiroEntre, decimalEntre } = require('../../src/compartilhado/aleatorio');
 const { rngConstante, QUASE_UM } = require('../helpers/rng');
 
 test('inteiroEntre inclui os dois extremos', () => {

@@ -53,10 +53,10 @@ async function prepararAmbiente() {
   await recriarBanco();
   instalarPokeApiFake(mock, pokeApiSintetica);
 
-  // O pool do src/db.js lê DATABASE_URL quando é carregado, então ela vem antes do require
+  // O pool do src/banco/db.js lê DATABASE_URL quando é carregado, então ela vem antes do require
   process.env.DATABASE_URL = URL_TESTE;
   const app = require('../../src/app');
-  const { pool } = require('../../src/db');
+  const { pool } = require('../../src/banco/db');
 
   const servidor = app.listen(0);
   await once(servidor, 'listening');

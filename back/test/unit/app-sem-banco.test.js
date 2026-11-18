@@ -1,4 +1,4 @@
-// Partes do app que respondem sem tocar no banco: proxy da PokeAPI, CORS, saúde,
+// Partes do app que respondem sem tocar no banco: proxy da PokeAPI, CORS, saúde, documentação,
 // autenticação ausente e o formato dos erros. A PokeAPI é falsa (helpers/pokeapi-fake).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -6,7 +6,7 @@ const { once } = require('node:events');
 const { instalarPokeApiFake } = require('../helpers/pokeapi-fake');
 
 const app = require('../../src/app');
-const { pool } = require('../../src/db');
+const { pool } = require('../../src/banco/db');
 
 let base;
 let servidor;
@@ -89,6 +89,18 @@ test('proxy da PokeAPI', async (t) => {
 
 test('saúde responde sem banco', async () => {
   assert.deepEqual(await chamar('/api/saude').then((r) => [r.status, r.dados]), [200, { ok: true }]);
+});
+
+test('documentação: Swagger UI e especificação respondem sem login e sem banco', async () => {
+  const pagina = await chamar('/api/docs/');
+  assert.equal(pagina.status, 200);
+  assert.match(pagina.cabecalhos.get('content-type'), /text\/html/);
+  assert.match(pagina.dados, /<title>PokeBox API<\/title>/);
+
+  const { status, dados } = await chamar('/api/docs/openapi.json');
+  assert.equal(status, 200);
+  assert.equal(dados.info.title, 'PokeBox API');
+  assert.ok(dados.paths['/saude']);
 });
 
 test('CORS: preflight 204 com os cabeçalhos', async () => {

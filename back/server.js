@@ -24,11 +24,11 @@ function iniciar() {
 if (process.env.DATABASE_URL) {
   // Antes de atender, deixa o banco com as migrações novas de db/migracoes. Se uma falhar,
   // o back nem sobe: melhor que ficar no ar devolvendo erro interno por falta de coluna.
-  require('./src/migracoes').aplicarMigracoes()
+  require('./src/banco/migracoes').aplicarMigracoes()
     .then(() => {
       iniciar();
       // Jogadas automáticas das batalhas com prazo vencido
-      require('./src/jogo/agendador').iniciarAgendador();
+      require('./src/features/batalhas').iniciarAgendador();
     })
     .catch((erro) => {
       console.error('Migrações: falhou, o back não vai subir.', erro);

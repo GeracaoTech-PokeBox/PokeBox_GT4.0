@@ -57,7 +57,7 @@ Se o Render não conseguir acessar a organização do GitHub, crie à mão: **Ne
 - Health Check Path: `/api/saude`
 - Environment: `DATABASE_URL` = connection string do Neon
 
-Para testar, abra `https://SEU-BACK.onrender.com/api/saude`, que deve responder `{"ok":true}`.
+Para testar, abra `https://SEU-BACK.onrender.com/api/saude`, que deve responder `{"ok":true}`. A documentação das rotas (Swagger UI) fica em `https://SEU-BACK.onrender.com/api/docs`.
 
 ### 3. Front no Netlify
 
