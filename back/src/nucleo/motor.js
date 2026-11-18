@@ -1,7 +1,7 @@
 // Motor de batalha puro: recebe o estado e uma ação, devolve o novo estado e o que aconteceu.
 // Não sabe nada de banco, relógio ou prazo; quem cuida disso é batalhas.js.
 const config = require('../compartilhado/config');
-const { calcularStatus, afetoMaximo } = require('./regras');
+const { calcularStatus, afetoMaximo, resumoGolpe } = require('./regras');
 const { rngSeguro, decimalEntre } = require('../compartilhado/aleatorio');
 const { efetividade } = require('./tipos');
 const { ErroJogo } = require('../compartilhado/erros');
@@ -36,7 +36,7 @@ const { ErroJogo } = require('../compartilhado/erros');
  * @property {number} ppMax
  *
  * @typedef {object} Lado
- * @property {number} usuarioId
+ * @property {number | null} usuarioId  null = o Pokémon selvagem da história (não é um treinador)
  * @property {string} login
  * @property {number} ativo            índice do Pokémon em campo
  * @property {PokemonEmBatalha[]} pokemons
@@ -91,9 +91,7 @@ function montarLado(usuario, time) {
         afetoMaximo: afetoMaximo(pokemon.afeto),
         resistiu: false,
         tipos: especie.tipos ?? [],
-        golpes: golpes.map((g) => ({
-          id: g.id, nome: g.nome, tipo: g.tipo, classe: g.classe, poder: g.poder, precisao: g.precisao, pp: g.pp, ppMax: g.pp,
-        })),
+        golpes: golpes.map((g) => ({ ...resumoGolpe(g), ppMax: g.pp })),
       };
     }),
   };
@@ -113,14 +111,23 @@ function criarEstado(ladoA, ladoB, rng = rngSeguro) {
 }
 
 /**
+ * O ataque básico cumpre o mesmo contrato de um golpe: sem tipo (neutro contra todos e sem STAB),
+ * com o poder fixo da configuração e sem precisão (nunca erra). Assim as fórmulas tratam os dois igual.
+ * @type {Readonly<GolpeEmBatalha>}
+ */
+const ATAQUE_BASICO = Object.freeze({
+  id: null, nome: null, tipo: null, classe: 'physical', poder: config.PODER_ATAQUE, precisao: null, pp: Infinity, ppMax: Infinity,
+});
+
+/**
  * Dano no estilo dos jogos principais, com variação de 85-100% e crítico.
  * O ataque básico tem poder fixo e não tem tipo. Um golpe especial usa o poder dele, ganha
  * o bônus de mesmo tipo (STAB) e a vantagem de tipo contra o alvo (que pode zerar o dano).
  * Físico e especial usam o mesmo Ataque e Defesa: os Pokémon do jogo não têm Ataque/Defesa Especial.
- * @param {GolpeEmBatalha} [golpe]  sem golpe = ataque básico
+ * @param {GolpeEmBatalha} [golpe]  sem golpe = ATAQUE_BASICO
  */
-function calcularDano(atacante, defensor, rng, golpe = null) {
-  const multiplicadorTipo = golpe ? efetividade(golpe.tipo, defensor.tipos) : 1;
+function calcularDano(atacante, defensor, rng, golpe = ATAQUE_BASICO) {
+  const multiplicadorTipo = golpe.tipo ? efetividade(golpe.tipo, defensor.tipos) : 1;
   if (multiplicadorTipo === 0) return { dano: 0, critico: false, efetividade: 0 };
 
   const chanceCritico = atacante.velocidade > defensor.velocidade
@@ -128,8 +135,8 @@ function calcularDano(atacante, defensor, rng, golpe = null) {
     : config.CHANCE_CRITICO;
   const critico = rng() < chanceCritico;
 
-  const poder = golpe ? golpe.poder : config.PODER_ATAQUE;
-  const stab = golpe && atacante.tipos?.includes(golpe.tipo) ? config.MULT_MESMO_TIPO : 1;
+  const poder = golpe.poder;
+  const stab = golpe.tipo && atacante.tipos?.includes(golpe.tipo) ? config.MULT_MESMO_TIPO : 1;
   const base = Math.floor(
     (Math.floor((2 * atacante.nivel) / 5 + 2) * poder * atacante.ataque) / defensor.defesa / 50,
   ) + 2;
@@ -139,10 +146,11 @@ function calcularDano(atacante, defensor, rng, golpe = null) {
   return { dano, critico, efetividade: multiplicadorTipo };
 }
 
+/** Índice do outro lado da batalha (0 <-> 1) */
 const outro = (indice) => (indice === 0 ? 1 : 0);
 
 /**
- * O Pokémon em campo do jogador acerta o do oponente (ataque básico ou golpe especial).
+ * O Pokémon em campo do jogador acerta o do oponente (ATAQUE_BASICO ou golpe especial).
  * Altera o estado e os eventos recebidos.
  * @returns {Fim | null}  fim da batalha, se foi o último nocaute
  */
@@ -159,7 +167,8 @@ function acertar(estado, indiceJogador, golpe, eventos, rng) {
   eventos.push({
     tipo: 'dano', lado: indiceJogador, atacante: atacante.pokemonId, alvo: defensor.pokemonId,
     dano, critico, hpRestante: defensor.hp,
-    ...(golpe && { golpe: golpe.nome, tipoGolpe: golpe.tipo, efetividade: multiplicadorTipo }),
+    // O front mostra o golpe especial de outro jeito, então só ele leva estes campos no evento
+    ...(golpe !== ATAQUE_BASICO && { golpe: golpe.nome, tipoGolpe: golpe.tipo, efetividade: multiplicadorTipo }),
   });
   if (resistiu) {
     defensor.resistiu = true;
@@ -177,6 +186,44 @@ function acertar(estado, indiceJogador, golpe, eventos, rng) {
 }
 
 /**
+ * Ações de turno: cada uma recebe o estado (já clonado), altera estado e eventos e devolve
+ * o fim da batalha, ou null. Ação nova = uma entrada nova aqui; aplicarAcao não muda.
+ * (Desistir fica fora porque é a única permitida fora da vez.)
+ * @type {Record<string, (estado: EstadoBatalha, indice: 0 | 1, acao: Acao, eventos: object[], rng: import('../compartilhado/aleatorio').Rng) => Fim | null>}
+ */
+const ACOES_DE_TURNO = {
+  atacar(estado, indice, acao, eventos, rng) {
+    return acertar(estado, indice, ATAQUE_BASICO, eventos, rng);
+  },
+
+  golpe(estado, indice, acao, eventos, rng) {
+    const eu = estado.lados[indice];
+    const atacante = eu.pokemons[eu.ativo];
+    const golpe = atacante.golpes?.[acao.indice];
+    if (!golpe) throw new ErroJogo('Golpe inválido.');
+    if (golpe.pp <= 0) throw new ErroJogo('Esse golpe não tem mais PP nesta batalha.');
+    golpe.pp -= 1;
+    // Precisão em %: null nunca erra
+    if (golpe.precisao !== null && rng() * 100 >= golpe.precisao) {
+      eventos.push({ tipo: 'errou', lado: indice, atacante: atacante.pokemonId, golpe: golpe.nome });
+      return null;
+    }
+    return acertar(estado, indice, golpe, eventos, rng);
+  },
+
+  trocar(estado, indice, acao, eventos) {
+    const eu = estado.lados[indice];
+    const escolhido = eu.pokemons[acao.indice];
+    if (!escolhido) throw new ErroJogo('Pokémon inválido.');
+    if (acao.indice === eu.ativo) throw new ErroJogo('Esse Pokémon já está em campo.');
+    if (escolhido.hp === 0) throw new ErroJogo('Esse Pokémon foi nocauteado.');
+    eu.ativo = acao.indice;
+    eventos.push({ tipo: 'entrou', lado: indice, indice: acao.indice });
+    return null;
+  },
+};
+
+/**
  * Aplica a jogada de um jogador.
  * @param {EstadoBatalha} estadoAtual  não é alterado
  * @param {0 | 1} indiceJogador
@@ -186,8 +233,6 @@ function acertar(estado, indiceJogador, golpe, eventos, rng) {
  */
 function aplicarAcao(estadoAtual, indiceJogador, acao, rng = rngSeguro) {
   const estado = structuredClone(estadoAtual);
-  const eu = estado.lados[indiceJogador];
-  const oponente = estado.lados[outro(indiceJogador)];
   const eventos = [];
 
   // Desistir pode a qualquer momento, mesmo fora da sua vez
@@ -200,34 +245,12 @@ function aplicarAcao(estadoAtual, indiceJogador, acao, rng = rngSeguro) {
     throw new ErroJogo('Não é a sua vez (se o seu prazo de 1 min acabou, a vez passou para o oponente).');
   }
 
-  if (acao.tipo === 'atacar') {
-    const fim = acertar(estado, indiceJogador, null, eventos, rng);
-    if (fim) return { estado, eventos, fim };
-  } else if (acao.tipo === 'golpe') {
-    const atacante = eu.pokemons[eu.ativo];
-    const golpe = atacante.golpes?.[acao.indice];
-    if (!golpe) throw new ErroJogo('Golpe inválido.');
-    if (golpe.pp <= 0) throw new ErroJogo('Esse golpe não tem mais PP nesta batalha.');
-    golpe.pp -= 1;
-    // Precisão em %: null nunca erra
-    if (golpe.precisao !== null && rng() * 100 >= golpe.precisao) {
-      eventos.push({ tipo: 'errou', lado: indiceJogador, atacante: atacante.pokemonId, golpe: golpe.nome });
-    } else {
-      const fim = acertar(estado, indiceJogador, golpe, eventos, rng);
-      if (fim) return { estado, eventos, fim };
-    }
-  } else if (acao.tipo === 'trocar') {
-    const escolhido = eu.pokemons[acao.indice];
-    if (!escolhido) throw new ErroJogo('Pokémon inválido.');
-    if (acao.indice === eu.ativo) throw new ErroJogo('Esse Pokémon já está em campo.');
-    if (escolhido.hp === 0) throw new ErroJogo('Esse Pokémon foi nocauteado.');
-    eu.ativo = acao.indice;
-    eventos.push({ tipo: 'entrou', lado: indiceJogador, indice: acao.indice });
-  } else {
-    throw new ErroJogo('Ação desconhecida.');
-  }
+  // hasOwn: senão 'toString', 'constructor'... achariam a propriedade herdada de Object
+  if (!Object.hasOwn(ACOES_DE_TURNO, acao.tipo)) throw new ErroJogo('Ação desconhecida.');
+  const fim = ACOES_DE_TURNO[acao.tipo](estado, indiceJogador, acao, eventos, rng);
+  if (fim) return { estado, eventos, fim };
 
-  eu.timeoutsSeguidos = 0;
+  estado.lados[indiceJogador].timeoutsSeguidos = 0;
   estado.vez = outro(indiceJogador);
   return { estado, eventos, fim: null };
 }
@@ -252,4 +275,6 @@ function aplicarTimeout(estadoAtual) {
   return { estado, eventos, fim: null };
 }
 
-module.exports = { montarLado, criarEstado, aplicarAcao, aplicarTimeout, calcularDano };
+module.exports = {
+  montarLado, criarEstado, aplicarAcao, aplicarTimeout, calcularDano, outro,
+};

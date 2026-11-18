@@ -3,7 +3,7 @@
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { rngSeguro } = require('../../compartilhado/aleatorio');
 const {
   sortearAtributos, aplicarXp, evolucoesDisponiveis, aplicarCuidado, bemEstarAtual,
@@ -35,6 +35,24 @@ async function buscarCard(db, pokemonId) {
   const linha = await model.buscarCard(db, pokemonId);
   return linha ? view.card(linha) : null;
 }
+
+/** Devolve o card se for do usuário; senão age como se ele não existisse */
+function doDono(pokemon, usuarioId) {
+  if (!pokemon || pokemon.dono_id !== usuarioId) throw new NaoEncontrado('Pokémon não encontrado.');
+  return pokemon;
+}
+
+/** Erro se algum desses Pokémon não for do usuário */
+async function garantirQueSaoDoDono(client, donoId, pokemonIds) {
+  const meus = await model.contarDoDono(client, pokemonIds, donoId);
+  if (meus !== pokemonIds.length) throw new ErroJogo('Algum desses Pokémon não é seu.');
+}
+
+/**
+ * Grava a ordem do time ou da vitrine (posição 1, 2, 3...)
+ * @param {'posicao_time' | 'posicao_vitrine'} coluna
+ */
+const definirOrdem = (client, donoId, coluna, pokemonIds) => model.definirPosicoes(client, donoId, coluna, pokemonIds);
 
 /** Coleção do usuário: primeiro o time (na ordem), depois o resto do mais novo para o mais antigo */
 async function listarColecao(usuarioId) {
@@ -84,8 +102,7 @@ async function evoluir(usuarioId, pokemonId, especieDestinoId, rng = rngSeguro) 
   const destino = await garantirEspecie(especieDestinoId);
 
   return transacao(async (client) => {
-    const pokemon = await model.travarParaEvolucao(client, pokemonId);
-    if (!pokemon || pokemon.dono_id !== usuarioId) throw new ErroJogo('Pokémon não encontrado.');
+    const pokemon = doDono(await model.travarParaEvolucao(client, pokemonId), usuarioId);
 
     const evolucao = pokemon.evolucoes.find((e) => e.especieId === destino.id);
     if (!evolucao) throw new ErroJogo('Este Pokémon não evolui para essa espécie.');
@@ -109,8 +126,7 @@ async function evoluir(usuarioId, pokemonId, especieDestinoId, rng = rngSeguro) 
  */
 async function cuidar(usuarioId, pokemonId, tipo) {
   return transacao(async (client) => {
-    const pokemon = await model.travarParaCuidado(client, pokemonId);
-    if (!pokemon || pokemon.dono_id !== usuarioId) throw new ErroJogo('Pokémon não encontrado.');
+    const pokemon = doDono(await model.travarParaCuidado(client, pokemonId), usuarioId);
 
     const ultimoEm = await model.ultimoCuidado(client, pokemonId, tipo);
     const agora = new Date();
@@ -139,6 +155,9 @@ async function listarCuidados(usuarioId, pokemonId) {
 module.exports = {
   mintarPokemon,
   buscarCard,
+  doDono,
+  garantirQueSaoDoDono,
+  definirOrdem,
   listarColecao,
   darXp,
   evoluir,

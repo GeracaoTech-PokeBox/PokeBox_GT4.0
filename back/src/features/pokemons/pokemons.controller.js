@@ -1,7 +1,6 @@
 // Pokémon: lê e valida a requisição, chama o service e responde
-const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
 const { inteiro } = require('../../compartilhado/validacao');
+const { tipoDeCuidado } = require('../../nucleo/regras');
 const service = require('./pokemons.service');
 
 /** O usuário logado e a coleção dele */
@@ -18,8 +17,7 @@ async function evoluir(req, res) {
 }
 
 async function cuidar(req, res) {
-  const { tipo } = req.body;
-  if (!Object.hasOwn(config.CUIDADOS, tipo)) throw new ErroJogo('Cuidado inválido.');
+  const tipo = tipoDeCuidado(req.body.tipo);
   res.json(await service.cuidar(req.usuario.id, inteiro(req.params.id, 'Pokémon'), tipo));
 }
 

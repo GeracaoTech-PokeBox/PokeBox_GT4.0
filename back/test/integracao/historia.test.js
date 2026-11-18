@@ -58,7 +58,7 @@ describe('história', { skip: semBanco }, () => {
     assert.equal((await capturar(encontro.id)).status, 400, 'só captura depois de vencer');
     const gary = await criarTreinador('gary');
     const alheio = await amb.api('POST', `/historia/encontros/${encontro.id}/batalha`, { token: gary.token });
-    assert.equal(alheio.status, 400, 'não batalha no encontro de outro treinador');
+    assert.equal(alheio.status, 404, 'não batalha no encontro de outro treinador');
   });
 
   test('sem time completo não batalha', async () => {

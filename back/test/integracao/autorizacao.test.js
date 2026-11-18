@@ -50,7 +50,18 @@ describe('autorização: o Gary tenta agir no que é do Ash e da Misty', { skip:
   });
   after(() => amb?.encerrar());
 
-  // [descrição, método, caminho, corpo]: todas precisam dar 400 sem mudar nada
+  // Recusas por regra ou por dado do corpo (400). As outras são o que a URL aponta e não é do
+  // Gary: a API responde como se não existisse (404)
+  const RECUSAS_POR_REGRA = new Set([
+    'anunciar o Pokémon do Ash',
+    'oferecer o Pokémon do Ash numa proposta',
+    'aceitar o desafio feito ao Ash',
+    'recusar o desafio feito ao Ash',
+    'montar o time com os Pokémon do Ash',
+    'pôr o Pokémon do Ash na própria vitrine',
+  ]);
+
+  // [descrição, método, caminho, corpo]: todas precisam ser recusadas sem mudar nada
   const TENTATIVAS = [
     ['evoluir o Pokémon do Ash', 'POST', () => `/pokemons/${c.charmander}/evoluir`, { especieId: 5 }],
     ['cuidar do Pokémon do Ash', 'POST', () => `/pokemons/${c.charmander}/cuidar`, { tipo: 'alimentar' }],
@@ -83,7 +94,7 @@ describe('autorização: o Gary tenta agir no que é do Ash e da Misty', { skip:
       const r = await amb.api(metodo, caminho(), {
         token: c.gary.token, corpo: typeof corpo === 'function' ? corpo() : corpo,
       });
-      assert.equal(r.status, 400, JSON.stringify(r.dados));
+      assert.equal(r.status, RECUSAS_POR_REGRA.has(descricao) ? 400 : 404, JSON.stringify(r.dados));
       assert.ok(r.dados.erro, 'a recusa explica o motivo');
       assert.deepEqual(await amb.fotografar(), antes, 'o banco não pode mudar');
     });

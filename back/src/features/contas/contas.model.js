@@ -15,6 +15,15 @@ async function inserirUsuario(db, {
   return usuario;
 }
 
+/** { id, login, criado_em } do usuário pelo login (sem diferenciar maiúsculas), ou undefined */
+async function buscarPorLogin(db, login) {
+  const { rows: [usuario] } = await db.query(
+    'SELECT id, login, criado_em FROM usuarios WHERE lower(login) = lower($1)',
+    [login],
+  );
+  return usuario;
+}
+
 /** Usuário pelo login (sem diferenciar maiúsculas), com o hash da senha */
 async function buscarComSenha(db, login) {
   const { rows: [usuario] } = await db.query(
@@ -81,6 +90,7 @@ async function apagarSessoesDoUsuario(db, usuarioId) {
 
 module.exports = {
   inserirUsuario,
+  buscarPorLogin,
   buscarComSenha,
   existeComCelular,
   atualizarSenha,

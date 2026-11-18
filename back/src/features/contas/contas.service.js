@@ -27,18 +27,21 @@ async function criarSessao(usuarioId) {
 }
 
 /**
- * Usuário dono do token, ou null se o token não existe ou expirou.
- * Também marca o último acesso e a presença online (lista de treinadores e status na batalha),
- * mas só grava se passou de ATUALIZAR_ACESSO_MS, para não escrever no banco a cada requisição.
+ * Dono do token, com as datas de acesso (ultimo_acesso_em, online_em),
+ * ou null se o token não existe ou expirou. Só lê.
  */
-async function usuarioDaSessao(token) {
-  const linha = await model.buscarUsuarioDaSessao(pool, senhas.hashToken(token));
-  if (!linha) return null;
+async function buscarSessao(token) {
+  return (await model.buscarUsuarioDaSessao(pool, senhas.hashToken(token))) ?? null;
+}
 
-  const { ultimo_acesso_em: ultimoAcesso, online_em: onlineEm, ...usuario } = linha;
+/**
+ * Marca o último acesso e a presença online (lista de treinadores e status na batalha),
+ * mas só grava se passou de ATUALIZAR_ACESSO_MS, para não escrever no banco a cada requisição.
+ * @param {{ id: number, ultimo_acesso_em: Date | null, online_em: Date | null }} sessao  vinda de buscarSessao
+ */
+async function registrarPresenca({ id, ultimo_acesso_em: ultimoAcesso, online_em: onlineEm }) {
   const antigo = (data) => !data || Date.now() - data.getTime() > ATUALIZAR_ACESSO_MS;
-  if (antigo(ultimoAcesso) || antigo(onlineEm)) await model.marcarAcesso(pool, usuario.id);
-  return usuario;
+  if (antigo(ultimoAcesso) || antigo(onlineEm)) await model.marcarAcesso(pool, id);
 }
 
 /** Fecha a sessão e deixa o treinador offline na hora (sem esperar JANELA_ONLINE_MS) */
@@ -83,6 +86,12 @@ async function entrar(login, senha) {
   return { usuario, token: await criarSessao(usuario.id) };
 }
 
+/**
+ * Treinador pelo login (sem diferenciar maiúsculas): { id, login, criado_em }, ou undefined.
+ * Recebe `db` para poder rodar dentro da transação de quem chama (ex.: o desafio de batalha).
+ */
+const buscarPorLogin = (db, login) => model.buscarPorLogin(db, login);
+
 async function existeUsuario(login, celular) {
   return model.existeComCelular(pool, login, celular);
 }
@@ -98,9 +107,11 @@ async function redefinirSenha({ login, celular, senha }) {
 }
 
 module.exports = {
-  usuarioDaSessao,
+  buscarSessao,
+  registrarPresenca,
   encerrarSessao,
   cadastrarUsuario,
+  buscarPorLogin,
   entrar,
   existeUsuario,
   redefinirSenha,

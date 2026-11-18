@@ -14,16 +14,17 @@
  as fórmulas em historia.regras e o formato da resposta na view.*/
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
+const { travarUsuario } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { rngSeguro } = require('../../compartilhado/aleatorio');
 const { sortearAtributos } = require('../../nucleo/regras');
 const { garantirTaxaCaptura } = require('../especies');
 const { mintarPokemon, buscarCard, darXp } = require('../pokemons');
-const { carregarTime } = require('../batalhas');
+const { carregarTime, timeCompleto } = require('../batalhas');
 const { sortearEspecieDaLoja } = require('../loja');
 const {
-  forcaDoPonto, proximoPonto, nivelSelvagem, xpDaHistoria, chanceDeCaptura,
+  forcaDoPonto, proximoPonto, nivelSelvagem, xpDaHistoria, chanceDeCaptura, resultadoDaCaptura,
 } = require('./historia.regras');
 const batalha = require('./historia.batalha');
 const model = require('./historia.model');
@@ -39,7 +40,7 @@ async function buscarEncontro(db, encontroId) {
 
 async function travarEncontro(client, usuarioId, encontroId) {
   const encontro = await model.travarEncontro(client, encontroId);
-  if (!encontro || encontro.usuario_id !== usuarioId) throw new ErroJogo('Encontro não encontrado.');
+  if (!encontro || encontro.usuario_id !== usuarioId) throw new NaoEncontrado('Encontro não encontrado.');
   return encontro;
 }
 
@@ -88,7 +89,7 @@ async function explorar(usuarioId, rng = rngSeguro) {
 
   return transacao(async (client) => {
     // Trava o treinador e confere de novo: dois cliques não criam dois encontros
-    await model.travarUsuario(client, usuarioId);
+    await travarUsuario(client, usuarioId);
     const jaAberto = await model.encontroAberto(client, usuarioId);
     if (jaAberto) return view.encontro(jaAberto);
     const ponto = proximoPonto(await model.contarVencidos(client, usuarioId));
@@ -142,7 +143,7 @@ async function concluirTurno(client, encontro, usuarioId, { estado, log, fim }) 
 /** Monta a batalha com o time atual congelado; selvagem mais rápido ataca primeiro */
 async function comecarBatalha(client, usuarioId, encontro, rng) {
   const time = await carregarTime(client, usuarioId);
-  if (time.length !== config.TAMANHO_TIME) {
+  if (!timeCompleto(time)) {
     throw new ErroJogo(`Monte um time com ${config.TAMANHO_TIME} Pokémon antes de batalhar.`);
   }
   const usuario = await model.buscarTreinador(client, usuarioId);
@@ -189,7 +190,7 @@ async function refazerPonto(usuarioId, trilha, ponto, rng = rngSeguro) {
 
   return transacao(async (client) => {
     // Trava o treinador e confere de novo: dois cliques não cobram nem sorteiam duas vezes
-    await model.travarUsuario(client, usuarioId);
+    await travarUsuario(client, usuarioId);
     const ultimo = await model.ultimoDoPonto(client, usuarioId, trilha, ponto);
     if (ultimo?.estado) return view.retomada(ultimo);
     conferirSePodeRefazer(ultimo);
@@ -258,10 +259,7 @@ async function capturar(usuarioId, encontroId, rng = rngSeguro) {
       pokemon = await buscarCard(client, id);
     }
     const tentativas = encontro.tentativas_captura + 1;
-    const fugiu = !capturou && tentativas >= config.TENTATIVAS_CAPTURA_MAXIMO;
-    let status = encontro.status;
-    if (capturou) status = 'capturado';
-    else if (fugiu) status = 'fugiu';
+    const { status, fugiu } = resultadoDaCaptura({ capturou, tentativas, statusAtual: encontro.status });
     await model.salvarTentativaCaptura(client, encontroId, { tentativas, status, pokemonId: pokemon?.id ?? null });
     return {
       capturou, fugiu, pokemon, pokebolas, encontro: await buscarEncontro(client, encontroId),

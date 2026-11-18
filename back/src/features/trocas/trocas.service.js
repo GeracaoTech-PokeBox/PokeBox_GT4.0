@@ -7,8 +7,10 @@
 // Regras de negócio e transações; o SQL fica no model e o formato da resposta na view.
 const { pool, transacao } = require('../../banco/db');
 const carteira = require('../../banco/carteira');
+const { travarUsuarios } = require('../../banco/travas');
 const config = require('../../compartilhado/config');
-const { ErroJogo } = require('../../compartilhado/erros');
+const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
+const { temRepetidos } = require('../../compartilhado/validacao');
 const { buscarCard } = require('../pokemons');
 const model = require('./trocas.model');
 const view = require('./trocas.view');
@@ -45,7 +47,7 @@ async function listarMeusAnuncios(usuarioId) {
 
 async function lerAnuncio(db, anuncioId, opcoes) {
   const anuncio = await model.lerAnuncio(db, anuncioId, opcoes);
-  if (!anuncio) throw new ErroJogo('Anúncio não encontrado.');
+  if (!anuncio) throw new NaoEncontrado('Anúncio não encontrado.');
   return anuncio;
 }
 
@@ -106,7 +108,7 @@ async function criarAnuncio(usuarioId, { pokemonId, preco, aceitaPropostas }) {
   }
 
   return transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId]);
+    await travarUsuarios(client, [usuarioId]);
     await travarCardsLivres(client, [pokemonId], usuarioId, 'Pokémon não encontrado.');
 
     const { ativos, jaAnunciado } = await model.contarAnunciosAtivos(client, usuarioId, pokemonId);
@@ -126,7 +128,7 @@ async function criarAnuncio(usuarioId, { pokemonId, preco, aceitaPropostas }) {
 async function cancelarAnuncio(usuarioId, anuncioId) {
   await transacao(async (client) => {
     const anuncio = await lerAnuncio(client, anuncioId, { travar: true });
-    if (anuncio.vendedor_id !== usuarioId) throw new ErroJogo('Anúncio não encontrado.');
+    if (anuncio.vendedor_id !== usuarioId) throw new NaoEncontrado('Anúncio não encontrado.');
     if (anuncio.status !== 'ativo') throw new ErroJogo('Esse anúncio já foi encerrado.');
     await model.cancelarAnuncio(client, anuncioId);
     await model.encerrarPropostasDoAnuncio(client, anuncioId);
@@ -139,7 +141,7 @@ async function comprar(usuarioId, anuncioId) {
   if (previa.vendedor_id === usuarioId) throw new ErroJogo('Você não pode comprar o próprio anúncio.');
 
   return transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId, previa.vendedor_id]);
+    await travarUsuarios(client, [usuarioId, previa.vendedor_id]);
     const anuncio = await travarAnuncioAtivo(client, anuncioId);
     if (anuncio.preco === null) throw new ErroJogo('Esse anúncio só aceita propostas de troca.');
     await travarCardsLivres(client, [anuncio.pokemon_id], anuncio.vendedor_id, 'Esse Pokémon não está mais disponível.');
@@ -174,13 +176,13 @@ async function proporTroca(usuarioId, anuncioId, { pokemonIds, pokecoins }) {
   if (!Number.isSafeInteger(pokecoins) || pokecoins < 0 || pokecoins > config.PRECO_MAXIMO_ANUNCIO) {
     throw new ErroJogo(`Ofereça entre 0 e ${config.PRECO_MAXIMO_ANUNCIO} Pokécoins.`);
   }
-  if (pokemonIds.length > config.POKEMONS_POR_PROPOSTA || new Set(pokemonIds).size !== pokemonIds.length) {
+  if (pokemonIds.length > config.POKEMONS_POR_PROPOSTA || temRepetidos(pokemonIds)) {
     throw new ErroJogo(`Ofereça até ${config.POKEMONS_POR_PROPOSTA} Pokémon diferentes.`);
   }
   if (pokemonIds.length === 0 && pokecoins === 0) throw new ErroJogo('Ofereça pelo menos um Pokémon ou Pokécoins.');
 
   return transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId]);
+    await travarUsuarios(client, [usuarioId]);
     const anuncio = await travarAnuncioAtivo(client, anuncioId);
     if (anuncio.vendedor_id === usuarioId) throw new ErroJogo('Você não pode fazer proposta no próprio anúncio.');
     if (!anuncio.aceita_propostas) throw new ErroJogo('Esse anúncio não aceita propostas, só a compra direta.');
@@ -212,7 +214,7 @@ async function listarPropostas(usuarioId) {
 async function lerProposta(propostaId, usuarioId, papel) {
   const proposta = await model.lerProposta(pool, propostaId);
   const dono = papel === 'vendedor' ? proposta?.vendedor_id : proposta?.proponente_id;
-  if (!proposta || dono !== usuarioId) throw new ErroJogo('Proposta não encontrada.');
+  if (!proposta || dono !== usuarioId) throw new NaoEncontrado('Proposta não encontrada.');
   return proposta;
 }
 
@@ -230,7 +232,7 @@ async function aceitarProposta(usuarioId, propostaId) {
   const previa = await lerProposta(propostaId, usuarioId, 'vendedor');
 
   await transacao(async (client) => {
-    await model.travarUsuarios(client, [usuarioId, previa.proponente_id]);
+    await travarUsuarios(client, [usuarioId, previa.proponente_id]);
     const anuncio = await travarAnuncioAtivo(client, previa.anuncio_id);
     const proposta = await travarPropostaPendente(client, propostaId);
     const oferta = await model.pokemonsDaProposta(client, propostaId);
@@ -258,13 +260,26 @@ async function aceitarProposta(usuarioId, propostaId) {
   });
 }
 
+// Quem encerra a proposta define como ela fica
+const STATUS_AO_ENCERRAR = { vendedor: 'recusada', proponente: 'cancelada' };
+
 /** Recusar (dono do anúncio) ou cancelar (quem mandou) uma proposta pendente */
 async function encerrarProposta(usuarioId, propostaId, papel) {
   await lerProposta(propostaId, usuarioId, papel);
   await transacao(async (client) => {
     await travarPropostaPendente(client, propostaId);
-    await model.responderProposta(client, propostaId, papel === 'vendedor' ? 'recusada' : 'cancelada');
+    await model.responderProposta(client, propostaId, STATUS_AO_ENCERRAR[papel]);
   });
+}
+
+/** O dono do anúncio recusa uma proposta pendente */
+async function recusarProposta(usuarioId, propostaId) {
+  await encerrarProposta(usuarioId, propostaId, 'vendedor');
+}
+
+/** Quem mandou a proposta desiste dela enquanto está pendente */
+async function cancelarProposta(usuarioId, propostaId) {
+  await encerrarProposta(usuarioId, propostaId, 'proponente');
 }
 
 module.exports = {
@@ -279,6 +294,6 @@ module.exports = {
   proporTroca,
   listarPropostas,
   aceitarProposta,
-  recusarProposta: (usuarioId, propostaId) => encerrarProposta(usuarioId, propostaId, 'vendedor'),
-  cancelarProposta: (usuarioId, propostaId) => encerrarProposta(usuarioId, propostaId, 'proponente'),
+  recusarProposta,
+  cancelarProposta,
 };

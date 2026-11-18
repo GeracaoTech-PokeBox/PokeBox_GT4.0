@@ -68,8 +68,8 @@ describe('golpes especiais', { skip: semBanco }, () => {
   test('não roleta nem desbloqueia o Pokémon de outro treinador', async () => {
     const gary = await criarTreinador('gary', { pokecoins: 1000 });
     await darAfetoMaximo(primeiro);
-    assert.equal((await amb.api('POST', `/pokemons/${primeiro}/golpes/roletar`, { token: gary.token })).status, 400);
-    assert.equal((await amb.api('POST', `/pokemons/${segundo}/golpes/desbloquear`, { token: gary.token })).status, 400);
+    assert.equal((await amb.api('POST', `/pokemons/${primeiro}/golpes/roletar`, { token: gary.token })).status, 404);
+    assert.equal((await amb.api('POST', `/pokemons/${segundo}/golpes/desbloquear`, { token: gary.token })).status, 404);
     assert.equal(await amb.saldo(gary.token), 1000);
   });
 

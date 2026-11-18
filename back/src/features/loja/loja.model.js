@@ -1,11 +1,6 @@
 // Loja: acesso ao banco. Só SQL, sem regra de jogo.
 // Toda função recebe `db` primeiro: o pool (leitura avulsa) ou o client de uma transação.
 
-/** Trava a linha do usuário até o fim da transação (dois cliques não passam juntos) */
-async function travarUsuario(client, usuarioId) {
-  await client.query('SELECT 1 FROM usuarios WHERE id = $1 FOR UPDATE', [usuarioId]);
-}
-
 async function temAlgumPokemon(db, usuarioId) {
   const { rowCount } = await db.query('SELECT 1 FROM pokemons WHERE dono_id = $1 LIMIT 1', [usuarioId]);
   return rowCount > 0;
@@ -38,7 +33,6 @@ async function primeiraVagaNoTime(db, usuarioId, tamanhoTime) {
 }
 
 module.exports = {
-  travarUsuario,
   temAlgumPokemon,
   trocarPorPokebolas,
   primeiraVagaNoTime,

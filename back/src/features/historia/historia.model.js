@@ -2,9 +2,10 @@
 // Toda função recebe `db` primeiro: o pool (leitura avulsa) ou o client de uma transação.
 
 // Encontro + o que a tela e a batalha precisam da espécie
-const SELECT_ENCONTRO = `
-  SELECT h.*, e.nome, e.tipos, e.raridade, e.taxa_captura, e.hp_base, e.ataque_base, e.defesa_base, e.velocidade_base
-    FROM historia_encontros h JOIN especies e ON e.id = h.especie_id`;
+const CAMPOS_ENCONTRO = `h.*, e.nome, e.tipos, e.raridade, e.taxa_captura,
+  e.hp_base, e.ataque_base, e.defesa_base, e.velocidade_base`;
+const FROM_ENCONTRO = 'historia_encontros h JOIN especies e ON e.id = h.especie_id';
+const SELECT_ENCONTRO = `SELECT ${CAMPOS_ENCONTRO} FROM ${FROM_ENCONTRO}`;
 
 // ---------------------------------------------------------------------------
 // Leitura
@@ -51,9 +52,8 @@ async function ultimoDoPonto(db, usuarioId, trilha, ponto) {
 /** O último encontro de cada ponto, em ordem de trilha e ponto */
 async function listarUltimosPorPonto(db, usuarioId) {
   const { rows } = await db.query(
-    `SELECT DISTINCT ON (h.trilha, h.ponto)
-            h.*, e.nome, e.tipos, e.raridade, e.taxa_captura, e.hp_base, e.ataque_base, e.defesa_base, e.velocidade_base
-       FROM historia_encontros h JOIN especies e ON e.id = h.especie_id
+    `SELECT DISTINCT ON (h.trilha, h.ponto) ${CAMPOS_ENCONTRO}
+       FROM ${FROM_ENCONTRO}
       WHERE h.usuario_id = $1
       ORDER BY h.trilha, h.ponto, h.id DESC`,
     [usuarioId],
@@ -79,10 +79,6 @@ async function especieDoEncontro(db, encontroId, usuarioId) {
     [encontroId, usuarioId],
   );
   return encontro?.especie_id;
-}
-
-async function travarUsuario(client, usuarioId) {
-  await client.query('SELECT 1 FROM usuarios WHERE id = $1 FOR UPDATE', [usuarioId]);
 }
 
 /** { id, login } do treinador, para o lado dele na batalha */
@@ -166,7 +162,6 @@ module.exports = {
   listarUltimosPorPonto,
   contarTotais,
   especieDoEncontro,
-  travarUsuario,
   buscarTreinador,
   inserirEncontro,
   salvarBatalha,

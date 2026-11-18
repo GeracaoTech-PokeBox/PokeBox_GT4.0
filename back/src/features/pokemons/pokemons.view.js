@@ -1,7 +1,7 @@
 // Pokémon: formato do JSON que vai para o front (o card). Testado em test/unit/regras.test.js.
 const config = require('../../compartilhado/config');
 const {
-  calcularStatus, coracoes, bonusAfeto, afetoMaximo, bemEstarAtual,
+  calcularStatus, coracoes, bonusAfeto, afetoMaximo, bemEstarAtual, resumoGolpe,
 } = require('../../nucleo/regras');
 
 /** Altura (m) e peso (kg) do card, calculados a partir da espécie atual */
@@ -38,20 +38,21 @@ function disponibilidadeCuidados(ultimos) {
 }
 
 /**
- * Card pronto para o front, a partir de uma linha com CAMPOS_CARD (pokemons + especies)
+ * Card pronto para o front, a partir de uma linha com CAMPOS_CARD.
+ * A linha junta pokemons + especies, então serve tanto de espécie quanto de Pokémon
+ * para calcularStatus e medidas.
  * @param {import('../../nucleo/regras').Pokemon & import('../../nucleo/regras').Especie
  *   & { id: number, mint_numero: number, posicao_time: number | null }} linha
  */
-function descreverPokemon(linha) {
-  const especie = linha;
+function card(linha) {
   return {
     id: linha.id,
     mintNumero: linha.mint_numero,
     especieId: linha.especie_id,
     especieOriginalId: linha.especie_original_id,
-    nome: especie.nome,
-    tipos: especie.tipos,
-    raridade: especie.raridade,
+    nome: linha.nome,
+    tipos: linha.tipos,
+    raridade: linha.raridade,
     shiny: linha.shiny,
     nivel: linha.nivel,
     xp: linha.xp,
@@ -59,7 +60,7 @@ function descreverPokemon(linha) {
     ivs: {
       hp: linha.iv_hp, ataque: linha.iv_ataque, defesa: linha.iv_defesa, velocidade: linha.iv_velocidade,
     },
-    status: calcularStatus(especie, linha),
+    status: calcularStatus(linha, linha),
     // Pontos extras somados nas evoluções (já incluídos em status)
     bonusEvolucao: {
       hp: linha.bonus_hp ?? 0,
@@ -67,31 +68,50 @@ function descreverPokemon(linha) {
       defesa: linha.bonus_defesa ?? 0,
       velocidade: linha.bonus_velocidade ?? 0,
     },
-    ...medidas(especie, linha),
+    ...medidas(linha, linha),
     posicaoTime: linha.posicao_time,
     posicaoVitrine: linha.posicao_vitrine,
     anunciado: Boolean(linha.anunciado),
     afeto: descreverAfeto(linha.afeto),
     // Golpes especiais (liberados com o afeto máximo) e quanto custa sortear de novo
-    golpes: (linha.golpes_detalhe ?? []).map((g) => ({
-      id: g.id, nome: g.nome, tipo: g.tipo, classe: g.classe, poder: g.poder, precisao: g.precisao, pp: g.pp,
-    })),
+    golpes: (linha.golpes_detalhe ?? []).map(resumoGolpe),
     custoRoletaGolpes: linha.golpes?.length > 0 ? config.CUSTO_ROLETA_GOLPES : 0,
     // Liberados pelo afeto máximo ou pelo desbloqueio pago (custoDesbloqueioGolpes)
     golpesLiberados: afetoMaximo(linha.afeto) || Boolean(linha.golpes_desbloqueados),
     custoDesbloqueioGolpes: config.CUSTO_DESBLOQUEIO_GOLPES,
     ...bemEstarAtual(linha),
     cuidadosDisponiveisEm: disponibilidadeCuidados(linha.ultimos_cuidados),
-    evolucoes: especie.evolucoes.map((evolucao) => ({
+    evolucoes: linha.evolucoes.map((evolucao) => ({
       ...evolucao,
       disponivel: linha.nivel >= evolucao.nivel,
     })),
   };
 }
 
-/** Card completo a partir de uma linha com CAMPOS_CARD */
-const card = descreverPokemon;
+/**
+ * O que qualquer treinador vê de um card (mercado), a partir de uma linha com CAMPOS_CARD_PUBLICO.
+ * O afeto fica de fora (ele zera na troca), então os status também vêm sem o bônus do afeto.
+ */
+function cardPublico(linha) {
+  const ivs = {
+    hp: linha.iv_hp, ataque: linha.iv_ataque, defesa: linha.iv_defesa, velocidade: linha.iv_velocidade,
+  };
+  return {
+    id: linha.id,
+    mintNumero: linha.mint_numero,
+    especieId: linha.especie_id,
+    nome: linha.nome,
+    tipos: linha.tipos,
+    raridade: linha.raridade,
+    shiny: linha.shiny,
+    nivel: linha.nivel,
+    ivs,
+    ivTotal: ivs.hp + ivs.ataque + ivs.defesa + ivs.velocidade,
+    status: calcularStatus(linha, { ...linha, afeto: 0 }),
+    ...medidas(linha, linha),
+  };
+}
 
 module.exports = {
-  card, descreverPokemon, descreverAfeto, medidas,
+  card, cardPublico, descreverAfeto, medidas,
 };
