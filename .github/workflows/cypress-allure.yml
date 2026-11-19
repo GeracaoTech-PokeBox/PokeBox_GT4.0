@@ -1,39 +1,33 @@
 name: Cypress | Allure e Discord
 
-# on:
-#   schedule:
-#     # O cron do GitHub usa UTC: 09:00 UTC = 06:00 em Brasília (UTC-3).
-#     - cron: '0 9 * * *'
-#   workflow_dispatch:
 on:
+  schedule:
+    # Sem timezone explícito, o cron usa UTC: 09:00 UTC = 06:00 em Brasília (UTC-3).
+    # O workflow também precisa existir na branch padrão para o agendamento funcionar.
+    - cron: '0 9 * * *'
   push:
     branches:
-      - victor
+      - '**'
   workflow_dispatch:
 
 permissions:
   contents: read
-
-# Evita que duas execuções disputem a publicação do mesmo relatório.
-concurrency:
-  group: cypress-allure-pages
-  cancel-in-progress: false
 
 jobs:
   testes:
     name: Executar Cypress e gerar Allure
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      CYPRESS_BASE_URL: http://127.0.0.1:5174
-      COMPOSE_PROJECT_NAME: pokebox-ci
     outputs:
+      base_url: ${{ steps.ambiente.outputs.base_url }}
       report_ready: ${{ steps.pages_artifact.outcome == 'success' }}
       cypress_outcome: ${{ steps.cypress.outcome }}
     steps:
       - name: Obter o código
         uses: actions/checkout@v6
         with:
+          # Push/manual: specs do commit disparado. O cron continua usando a develop atual.
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.sha }}
           persist-credentials: false
 
       - name: Configurar Node.js
@@ -41,6 +35,39 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+
+      - name: Preparar cypress.env.json
+        id: ambiente
+        uses: actions/github-script@v8
+        env:
+          CYPRESS_ENV_JSON: ${{ secrets.CYPRESS_ENV_JSON }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            let ambiente;
+            try {
+              ambiente = JSON.parse(process.env.CYPRESS_ENV_JSON);
+            } catch {
+              throw new Error('Configure o secret CYPRESS_ENV_JSON com o conteúdo completo do cypress.env.json.');
+            }
+            for (const chave of ['baseUrl', 'treinador', 'senha']) {
+              if (typeof ambiente?.[chave] !== 'string' || !ambiente[chave].trim()) {
+                throw new Error(`Preencha ${chave} no secret CYPRESS_ENV_JSON.`);
+              }
+            }
+            let endereco;
+            try {
+              endereco = new URL(ambiente.baseUrl);
+              if (!['http:', 'https:'].includes(endereco.protocol) || endereco.username || endereco.password) {
+                throw new Error();
+              }
+            } catch {
+              throw new Error('baseUrl deve ser uma URL HTTP(S) do site, sem credenciais na URL.');
+            }
+            core.setSecret(ambiente.treinador);
+            core.setSecret(ambiente.senha);
+            fs.writeFileSync('cypress.env.json', JSON.stringify(ambiente, null, 2), { mode: 0o600 });
+            core.setOutput('base_url', endereco.href);
 
       - name: Configurar Java para o Allure
         uses: actions/setup-java@v5
@@ -54,17 +81,14 @@ jobs:
           runTests: false
           install-command: npm ci
 
-      - name: Subir banco, backend e frontend no runner
-        run: docker compose up --build --detach --wait --wait-timeout 180 db back front
-
       # Sem continue-on-error: uma falha no Cypress mantém o job vermelho.
-      - name: Executar testes automatizados
+      - name: Executar testes automatizados no site de produção
         id: cypress
         uses: cypress-io/github-action@v7
         with:
           install: false
           command: npm run cy:run
-          wait-on: 'http://127.0.0.1:8080/api/saude, http://127.0.0.1:5174'
+          wait-on: ${{ steps.ambiente.outputs.base_url }}
           wait-on-timeout: 180
 
       - name: Gerar relatório Allure mesmo se os testes falharem
@@ -95,17 +119,13 @@ jobs:
         with:
           path: allure-report
 
-      - name: Exibir logs da aplicação em caso de falha
-        if: ${{ failure() }}
-        run: docker compose logs --no-color --tail=100 db back front
-
-      - name: Encerrar a aplicação e remover o banco temporário do runner
-        if: ${{ always() }}
-        run: docker compose down --volumes --remove-orphans
-
   publicar:
     name: Publicar relatório no GitHub Pages
     needs: testes
+    # Serializa apenas a publicação; os testes de cada push podem executar independentemente.
+    concurrency:
+      group: cypress-allure-pages
+      cancel-in-progress: false
     # O relatório de testes reprovados também precisa ser publicado.
     if: ${{ !cancelled() && needs.testes.outputs.report_ready == 'true' }}
     runs-on: ubuntu-24.04
@@ -130,7 +150,7 @@ jobs:
   notificar:
     name: Notificar o resultado no Discord
     needs: [testes, publicar]
-    if: ${{ always() }}
+    if: ${{ always() && needs.testes.result != 'skipped' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions: {}
@@ -143,6 +163,7 @@ jobs:
           CYPRESS_OUTCOME: ${{ needs.testes.outputs.cypress_outcome }}
           PUBLISH_RESULT: ${{ needs.publicar.result }}
           REPORT_URL: ${{ needs.publicar.outputs.report_url }}
+          TEST_BASE_URL: ${{ needs.testes.outputs.base_url }}
           TRIGGERED_BY: ${{ github.triggering_actor }}
         with:
           script: |
@@ -181,9 +202,10 @@ jobs:
                 color: cancelado ? 9807270 : sucesso ? 3066993 : 15158332,
                 fields: [
                   { name: 'Status', value: cancelado ? '⚪ Cancelada' : sucesso ? '🟢 Aprovada' : '🔴 Falhou', inline: true },
-                  { name: 'Branch', value: context.ref.replace('refs/heads/', ''), inline: true },
+                  { name: 'Branch', value: context.eventName === 'schedule' ? 'develop' : context.ref.replace('refs/heads/', ''), inline: true },
+                  { name: 'Ambiente', value: env.TEST_BASE_URL ? `[Site testado](${env.TEST_BASE_URL})` : 'Configuração indisponível', inline: true },
                   { name: 'Executado por', value: env.TRIGGERED_BY || context.actor, inline: true },
-                  { name: 'Disparo', value: context.eventName === 'schedule' ? 'Agendamento diário — 06h (Brasília)' : context.eventName === 'push' ? 'Push na branch': 'Execução manual', inline: false},
+                  { name: 'Disparo', value: context.eventName === 'schedule' ? 'Agendamento diário — 06h (Brasília)' : context.eventName === 'push' ? 'Push na branch' : 'Execução manual', inline: false },
                   {
                     name: '📊 Relatório Allure',
                     value: publicado

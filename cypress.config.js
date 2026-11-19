@@ -1,13 +1,18 @@
-const { existsSync, readFileSync } = require('node:fs');
+const { readFileSync } = require('node:fs');
 const path = require('node:path');
 const { defineConfig } = require('cypress');
 const { allureCypress } = require('allure-cypress/reporter');
 const cypressOnFix = require('cypress-on-fix');
 
-const envPath = path.join(__dirname, 'cypress.env.json');
-const localEnv = existsSync(envPath)
-  ? JSON.parse(readFileSync(envPath, 'utf8'))
-  : {};
+let ambiente;
+try {
+  ambiente = JSON.parse(readFileSync(path.join(__dirname, 'cypress.env.json'), 'utf8'));
+} catch {
+  throw new Error('Crie um cypress.env.json válido a partir de cypress.env.example.json. No GitHub Actions, configure o secret CYPRESS_ENV_JSON.');
+}
+if (typeof ambiente?.baseUrl !== 'string' || !/^https?:\/\//.test(ambiente.baseUrl)) {
+  throw new Error('Defina baseUrl com a URL do site em cypress.env.json.');
+}
 
 module.exports = defineConfig({
   viewportWidth: 1366,
@@ -26,7 +31,8 @@ module.exports = defineConfig({
     overwrite: true,
   },
   e2e: {
-    baseUrl: process.env.CYPRESS_BASE_URL || localEnv.baseUrl || 'http://localhost:5174',
+    // URL e credenciais vêm do mesmo arquivo; o Cypress carrega as credenciais para cy.env().
+    baseUrl: ambiente.baseUrl,
     specPattern: 'cypress/e2e/**/*.cy.js',
     supportFile: 'cypress/support/e2e.js',
     setupNodeEvents(on, config) {
