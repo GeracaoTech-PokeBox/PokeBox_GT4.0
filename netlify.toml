@@ -9,3 +9,23 @@
 
 [build.environment]
   NODE_VERSION = "22"
+
+# O front usa rotas na URL (/loja, /batalhas/12...): qualquer caminho que não seja um arquivo
+# devolve o index.html, senão recarregar a página numa tela dá 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Cabeçalhos de segurança apontados pelo OWASP ZAP. Os mesmos de produção do front/vite.config.js
+# (cabecalhosDeSeguranca) e do front/vercel.json: ao mudar um, mude os outros.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://raw.githubusercontent.com; media-src https://raw.githubusercontent.com; connect-src 'self' https://pokebox-back.onrender.com https://*.trycloudflare.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=()"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "credentialless"
+    Cross-Origin-Resource-Policy = "same-origin"

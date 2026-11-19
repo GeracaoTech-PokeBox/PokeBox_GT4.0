@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
-import { AcoesBatalha, LadoCampo, RecompensaBatalha } from '@/features/batalhas';
-import { formatarNome } from '@/shared';
+import {
+  AcoesBatalha, FeedBatalha, LadoCampo, RecompensaBatalha,
+} from '@/features/batalhas';
+import { formatarNome, rolarParaVisao } from '@/shared';
 import { formatarForca } from '../../utils/index_utils';
 import { useBatalhaSelvagem } from './index_viewmodels';
 
@@ -13,7 +15,7 @@ function BatalhaSelvagem({
   encontro, batalha, enviando, onJogar, onVoltar, captura,
 }) {
   const {
-    eu, selvagem, fim, venci, revanche, resultado, recompensa, reservas, historico, trocando,
+    eu, selvagem, fim, venci, revanche, resultado, recompensa, reservas, historico, feed, trocando,
     alternarTroca, atacar, usarGolpe, trocar, fugir,
   } = useBatalhaSelvagem(batalha, onJogar);
 
@@ -43,30 +45,35 @@ function BatalhaSelvagem({
       <div className="batalha-campo">
         <LadoCampo lado={selvagem} meu={false} />
         <LadoCampo lado={eu} meu />
+        <FeedBatalha itens={feed} />
+
+        {/* As ações ficam dentro do campo, no gramado ao lado do seu Pokémon: dá para jogar vendo
+          os dois PS, sem rolar a página */}
+        {/* [DRY] Retirado daqui: o painel de ações (golpes, Atacar, Trocar Pokémon e a lista de
+          reservas) era uma cópia do mesmo JSX de pages/Batalha. Agora as duas telas usam o componente
+          AcoesBatalha. Só o botão "Fugir", que é desta tela, vai como children. */}
+        {!fim && (
+          <AcoesBatalha
+            pokemon={eu.pokemons[eu.ativo]}
+            reservas={reservas}
+            enviando={enviando}
+            trocando={trocando}
+            onAlternarTroca={alternarTroca}
+            onAtacar={atacar}
+            onUsarGolpe={usarGolpe}
+            onTrocar={trocar}
+          >
+            <button type="button" className="jogo-botao jogo-botao--claro" disabled={enviando} onClick={fugir}>
+              Fugir
+            </button>
+          </AcoesBatalha>
+        )}
       </div>
 
-      {/* [DRY] Retirado daqui: o painel de ações (golpes, Atacar, Trocar Pokémon e a lista de
-        reservas) era uma cópia do mesmo JSX de pages/Batalha. Agora as duas telas usam o componente
-        AcoesBatalha. Só o botão "Fugir", que é desta tela, vai como children. */}
-      {!fim && (
-        <AcoesBatalha
-          pokemon={eu.pokemons[eu.ativo]}
-          reservas={reservas}
-          enviando={enviando}
-          trocando={trocando}
-          onAlternarTroca={alternarTroca}
-          onAtacar={atacar}
-          onUsarGolpe={usarGolpe}
-          onTrocar={trocar}
-        >
-          <button type="button" className="jogo-botao jogo-botao--claro" disabled={enviando} onClick={fugir}>
-            Fugir
-          </button>
-        </AcoesBatalha>
-      )}
-
       {fim && (
-        <div className="historia-batalha-fim">
+        // Vitória: rola até a captura (Jogar Pokébola) assim que ela aparece. A função é a mesma
+        // a cada render, então o React só a chama quando o bloco aparece.
+        <div className="historia-batalha-fim" ref={venci ? rolarParaVisao : undefined}>
           {venci && captura}
           <button type="button" className="jogo-botao jogo-botao--claro" onClick={() => onVoltar()}>
             Voltar à trilha

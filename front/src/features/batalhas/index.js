@@ -4,6 +4,9 @@ export { default as Batalha } from './components/Batalha';
 
 // Peças e regras de batalha, reaproveitadas pela feature historia
 export { default as AcoesBatalha } from './components/AcoesBatalha';
+export { default as FeedBatalha } from './components/FeedBatalha';
 export { LadoCampo } from './components/CampoBatalha';
 export { default as RecompensaBatalha } from './components/RecompensaBatalha';
-export { MOTIVOS, descreverEventos, reservasDoLado } from './models/index_models';
+export {
+  MOTIVOS, descreverEventos, itensDoFeed, reservasDoLado,
+} from './models/index_models';

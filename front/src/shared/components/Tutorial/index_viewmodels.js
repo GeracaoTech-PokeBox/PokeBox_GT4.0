@@ -27,9 +27,15 @@ export function useRetanguloAlvo(alvo) {
     medir();
     window.addEventListener('resize', medir);
     window.addEventListener('scroll', medir, true);
+    // O passo mede antes de a tela dele abrir. Se a tela nova liga ou desliga a barra de rolagem,
+    // a página muda de largura e o menu centralizado anda ~7px, sem disparar 'resize': o
+    // ResizeObserver percebe a mudança de tamanho do body e mede de novo.
+    const observador = new ResizeObserver(medir);
+    observador.observe(document.body);
     return () => {
       window.removeEventListener('resize', medir);
       window.removeEventListener('scroll', medir, true);
+      observador.disconnect();
     };
   }, [alvo]);
 

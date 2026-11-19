@@ -1,3 +1,6 @@
+# A imagem instala as dependências e gera o build lá dentro (npm ci / npm run build): não copia as
+# da máquina. node_modules do Windows não serve no Linux do container, e o dist local pode estar
+# desatualizado (ou sendo sincronizado pelo OneDrive, o que quebra o build da imagem).
 node_modules
 dist
 .env

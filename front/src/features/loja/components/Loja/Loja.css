@@ -1,13 +1,95 @@
-.loja-resumo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 20px;
-  margin-bottom: 20px;
+/* Os dois cards da loja (Pokébolas e Pokémon por geração): lado a lado, um embaixo do outro no celular */
+.loja-secoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.loja-resumo .loja-dica {
-  flex-basis: 100%;
+/* O card inteiro é o botão que abre e fecha a compra */
+.loja-secao {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.loja-secao:hover {
+  transform: translateY(-2px);
+  box-shadow: 4px 6px 0 rgba(0, 0, 0, 0.2);
+}
+
+.loja-secao:focus-visible {
+  outline: 3px solid var(--poke-blue);
+  outline-offset: 3px;
+}
+
+/* Aberto: borda amarela e "aba" grudada no painel de compra logo abaixo */
+.loja-secao[aria-expanded='true'] {
+  background: #fff8d6;
+  border-color: var(--poke-navy);
+  box-shadow: inset 0 0 0 3px var(--poke-yellow);
+  transform: none;
+}
+
+.loja-secao-info {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.loja-secao-detalhe {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--poke-navy);
+}
+
+/* Seta que gira quando o card abre */
+.loja-secao-seta {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  margin-right: 4px;
+  border-right: 3px solid var(--poke-navy);
+  border-bottom: 3px solid var(--poke-navy);
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.loja-secao[aria-expanded='true'] .loja-secao-seta {
+  transform: rotate(-135deg);
+}
+
+.loja-secao-aberta {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  animation: loja-abrir 0.2s ease-out;
+}
+
+@keyframes loja-abrir {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loja-secao,
+  .loja-secao-seta,
+  .loja-secao-aberta {
+    transition: none;
+    animation: none;
+  }
 }
 
 .loja-pokebolas {
@@ -15,7 +97,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 20px;
-  margin-bottom: 20px;
 }
 
 .loja-pokebolas-info {
@@ -45,6 +126,8 @@
   display: grid;
   justify-items: center;
   gap: 4px;
+  min-width: 0;
+  padding-inline: 10px;
   text-align: center;
 }
 
@@ -52,8 +135,17 @@
   margin-bottom: 8px;
 }
 
+/* Ocupa a largura do card e com menos respiro lateral: "Sorteando..." não cabia nos cards estreitos */
 .loja-geracao .jogo-botao {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   margin-top: 8px;
+  padding-inline: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .loja-geracao-numero {
@@ -104,7 +196,6 @@
 
 .loja-nome,
 .loja-intervalo,
-.loja-preco,
 .loja-saldo,
 .loja-dica {
   margin: 0;
@@ -119,12 +210,6 @@
 .loja-intervalo {
   font-size: 14px;
   color: #555;
-}
-
-.loja-preco {
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--poke-navy);
 }
 
 .loja-saldo {
@@ -177,6 +262,14 @@
   .loja-revelado-carta { animation: none; }
 }
 
+.loja-revelado-dica {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #555;
+}
+
 /* Botões fixos no rodapé do diálogo, mesmo com o card rolando */
 .loja-revelado-acoes {
   position: sticky;
@@ -197,11 +290,3 @@
   color: var(--poke-navy);
 }
 
-.loja-grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
