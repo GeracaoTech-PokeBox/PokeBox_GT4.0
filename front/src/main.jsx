@@ -5,6 +5,7 @@ import './index.css';
 import App from './App';
 import { acordarServidor } from '@/core';
 import { SessaoProvider } from '@/features/auth';
+import { NotificacoesProvider } from '@/features/notificacoes';
 
 /* Arquitetura do front: MVVM organizado por funcionalidade (feature-first).
  *
@@ -48,7 +49,10 @@ acordarServidor();
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <SessaoProvider>
-      <App />
+      {/* Notificações por aba (o menu mostra a contagem; cada tela, as dela) */}
+      <NotificacoesProvider>
+        <App />
+      </NotificacoesProvider>
     </SessaoProvider>
   </StrictMode>,
 );

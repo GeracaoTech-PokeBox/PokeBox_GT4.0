@@ -7,6 +7,7 @@ const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { temRepetidos } = require('../../compartilhado/validacao');
 const { buscarPorLogin } = require('../contas');
 const { garantirQueSaoDoDono, definirOrdem } = require('../pokemons');
+const { notificar } = require('../notificacoes');
 const model = require('./vitrines.model');
 const view = require('./vitrines.view');
 
@@ -30,6 +31,16 @@ async function obterVitrine(visitanteId, login) {
     ? await model.lerVitrine(pool, dono.id)
     : await model.registrarVisita(pool, dono.id);
   const dados = vitrine ?? VITRINE_PADRAO;
+  // Visitas viram uma notificação só (a chave se repete), com a quantidade somando
+  if (!souDono) {
+    await notificar(pool, {
+      usuarioId: dono.id,
+      aba: 'vitrine',
+      chave: 'visitas',
+      titulo: 'Visitas na sua vitrine',
+      texto: 'Outros treinadores visitaram sua vitrine.',
+    });
+  }
 
   const [numeros, especies, vitorias, destaques] = await Promise.all([
     model.contarColecao(pool, dono.id),

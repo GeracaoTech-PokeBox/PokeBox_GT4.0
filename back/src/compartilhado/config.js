@@ -74,6 +74,11 @@ module.exports = {
   // Atalho: libera os golpes sem o afeto máximo, já com a primeira roleta (vale para aquele card)
   CUSTO_DESBLOQUEIO_GOLPES: 200, //usado inicialmente para teste, mas ficou bom e decici deixar para consumir mais pokecoins de jogadores muito fortes
 
+  // Notificações: ver cada novidade pendente de uma aba dá Pokécoins. O limite por dia evita farm
+  // (ex.: uma conta secundária mandando propostas só para gerar notificações).
+  RECOMPENSA_NOTIFICACAO: 5,
+  RECOMPENSAS_NOTIFICACAO_POR_DIA: 15,
+
   // Afeto: carinho, brincar e alimentar somam pontos; cada AFETO_POR_CORACAO pontos é um coração (máx. 5)
   AFETO_MAXIMO: 500,
   AFETO_POR_CORACAO: 100,

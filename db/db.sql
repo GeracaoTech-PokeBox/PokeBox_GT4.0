@@ -302,9 +302,28 @@ CREATE TABLE transacoes_pokecoins (
   valor       INTEGER NOT NULL,              -- positivo = ganho, negativo = gasto
   motivo      TEXT NOT NULL CHECK (motivo IN ('bonus_cadastro', 'compra_loja', 'recompensa_batalha', 'compra_mercado', 'venda_mercado', 'troca',
                                        'compra_pokebola', 'recompensa_historia', 'refazer_historia',
-                                       'roleta_golpes', 'desbloqueio_golpes', 'recompensa_afeto')),
+                                       'roleta_golpes', 'desbloqueio_golpes', 'recompensa_afeto',
+                                       'recompensa_notificacao')),
   batalha_id  BIGINT REFERENCES batalhas(id), -- preenchido quando motivo = recompensa_batalha
   anuncio_id  BIGINT REFERENCES anuncios(id), -- preenchido nas compras e trocas do mercado
   criado_em   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX transacoes_usuario_idx ON transacoes_pokecoins (usuario_id, motivo, criado_em DESC);
+
+-- Notificações: o que mudou em cada aba e o treinador ainda não viu (vista_em NULL).
+-- Ver uma dá Pokécoins (config.RECOMPENSA_NOTIFICACAO), até o limite do dia.
+CREATE TABLE notificacoes (
+  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  usuario_id  BIGINT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  aba         TEXT NOT NULL CHECK (aba IN ('pokemons', 'meusPokemons', 'loja', 'time', 'historia', 'vitrine',
+                                           'trocas', 'batalhas', 'sobre')),
+  chave       TEXT NOT NULL,              -- o mesmo assunto não repete enquanto estiver pendente (ex.: 'visitas')
+  titulo      TEXT NOT NULL,
+  texto       TEXT NOT NULL,
+  quantidade  INTEGER NOT NULL DEFAULT 1, -- quantas vezes aconteceu desde a última vez que foi vista
+  criada_em   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  vista_em    TIMESTAMPTZ,
+  recompensa  INTEGER                     -- Pokécoins dados ao ver (0 se já tinha passado do limite do dia)
+);
+CREATE UNIQUE INDEX notificacoes_pendente_idx ON notificacoes (usuario_id, chave) WHERE vista_em IS NULL;
+CREATE INDEX notificacoes_vistas_idx ON notificacoes (usuario_id, vista_em);
