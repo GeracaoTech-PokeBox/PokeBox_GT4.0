@@ -326,6 +326,22 @@
   color: #777;
 }
 
+/* Golpes especiais do card anunciado */
+.trocas-golpes {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+
+.trocas-golpes-titulo {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+
 .trocas-anuncio-rodape {
   display: flex;
   flex-wrap: wrap;

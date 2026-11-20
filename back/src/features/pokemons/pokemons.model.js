@@ -17,13 +17,14 @@ const CAMPOS_CARD = `p.*, e.nome, e.tipos, e.raridade, e.hp_base, e.ataque_base,
   EXISTS (SELECT 1 FROM anuncios WHERE pokemon_id = p.id AND status = 'ativo') AS anunciado,
   ${SELECT_GOLPES} AS golpes_detalhe`;
 
-// Só o que o card público (cardPublico, na view) usa: sem cuidados, golpes nem anúncio.
-// Usado pelo mercado, com o mesmo "FROM pokemons p JOIN especies e ON e.id = p.especie_id".
+// Só o que o card público (cardPublico, na view) usa: sem cuidados nem anúncio. Os golpes vão
+// junto, porque passam com o card na troca. Usado pelo mercado, com o mesmo
+// "FROM pokemons p JOIN especies e ON e.id = p.especie_id".
 const CAMPOS_CARD_PUBLICO = `p.id, p.mint_numero, p.especie_id, p.shiny, p.nivel,
   p.iv_hp, p.iv_ataque, p.iv_defesa, p.iv_velocidade, p.mult_altura, p.mult_peso,
   p.bonus_hp, p.bonus_ataque, p.bonus_defesa, p.bonus_velocidade,
   e.nome, e.tipos, e.raridade, e.hp_base, e.ataque_base, e.defesa_base, e.velocidade_base,
-  e.altura_base, e.peso_base`;
+  e.altura_base, e.peso_base, ${SELECT_GOLPES} AS golpes_detalhe`;
 
 /**
  * Cria o card. O mint_numero vem da sequence global no DEFAULT da coluna.

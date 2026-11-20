@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import {
-  Avatar, IV_TOTAL_MAXIMO, plural, dadosTipo, formatarNome, formatarNumero, nomesTipos, urlArtwork,
+  Avatar, IV_TOTAL_MAXIMO, ListaGolpes, plural, dadosTipo, formatarNome, formatarNumero, nomesTipos, urlArtwork,
 } from '@/shared';
 import Ordenar from '../Ordenar';
 import PropostaForm from '../PropostaForm';
@@ -120,6 +120,14 @@ function CardAnuncio({ anuncio, saldo, enviando, onComprar, onPropor }) {
       </dl>
       <BarraIvs total={pokemon.ivTotal} />
       <span className="trocas-medidas">{`${pokemon.alturaM.toLocaleString('pt-BR')} m · ${pokemon.pesoKg.toLocaleString('pt-BR')} kg`}</span>
+
+      {/* Os golpes especiais vão junto com o Pokémon na troca */}
+      {pokemon.golpes?.length > 0 && (
+        <div className="trocas-golpes">
+          <span className="trocas-golpes-titulo">Golpes especiais</span>
+          <ListaGolpes golpes={pokemon.golpes} />
+        </div>
+      )}
 
       <div className="trocas-anuncio-rodape">
         <span className="trocas-preco">

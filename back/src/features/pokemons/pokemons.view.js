@@ -110,6 +110,8 @@ function cardPublico(linha) {
     ivTotal: ivs.hp + ivs.ataque + ivs.defesa + ivs.velocidade,
     status: calcularStatus(linha, { ...linha, afeto: 0 }),
     ...medidas(linha, linha),
+    // Os golpes especiais passam com o card na troca, então quem compra precisa vê-los
+    golpes: (linha.golpes_detalhe ?? []).map(resumoGolpe),
   };
 }
 
