@@ -30,15 +30,15 @@ const CAMPOS_CARD_PUBLICO = `p.id, p.mint_numero, p.especie_id, p.shiny, p.nivel
  * @returns {Promise<number>} id do card
  */
 async function inserir(db, {
-  donoId, especieId, origem, atributos: a, posicaoTime, nivel,
+  donoId, especieId, origem, atributos: a, posicaoTime, nivel, golpes = [],
 }) {
   const { rows: [{ id }] } = await db.query(
     `INSERT INTO pokemons (dono_id, especie_id, especie_original_id, origem, shiny,
-                           iv_hp, iv_ataque, iv_defesa, iv_velocidade, mult_altura, mult_peso, posicao_time, nivel)
-     VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                           iv_hp, iv_ataque, iv_defesa, iv_velocidade, mult_altura, mult_peso, posicao_time, nivel, golpes)
+     VALUES ($1, $2, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
      RETURNING id`,
     [donoId, especieId, origem, a.shiny, a.iv_hp, a.iv_ataque, a.iv_defesa, a.iv_velocidade,
-      a.mult_altura, a.mult_peso, posicaoTime, nivel],
+      a.mult_altura, a.mult_peso, posicaoTime, nivel, golpes],
   );
   return id;
 }

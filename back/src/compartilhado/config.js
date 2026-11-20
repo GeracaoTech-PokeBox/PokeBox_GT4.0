@@ -65,9 +65,11 @@ module.exports = {
   MULT_CRITICO: 1.5,
   MULT_MESMO_TIPO: 1.5, // golpe do mesmo tipo do Pokémon (STAB)
 
-  // Golpes especiais: com o afeto máximo, o Pokémon sorteia GOLPES_POR_POKEMON golpes de dano
-  // entre os que a espécie dele aprende (lista da PokeAPI). A primeira roleta é grátis; as outras custam.
-  GOLPES_POR_POKEMON: 2, //numero de golpes que o pokemon pode ter
+  // Golpes especiais: todo Pokémon nasce com GOLPES_INICIAIS golpe de dano sorteado entre os que a
+  // espécie dele aprende (lista da PokeAPI). Com o afeto máximo (ou o desbloqueio), a roleta sorteia
+  // mais GOLPES_EXTRAS. A primeira roleta é grátis; as outras custam e trocam só os extras.
+  GOLPES_INICIAIS: 1, //golpe que o pokemon ganha ao nascer
+  GOLPES_EXTRAS: 2, //golpes a mais liberados pelo afeto máximo ou pelo desbloqueio
   CUSTO_ROLETA_GOLPES: 100, //custo para roletar os golpes do pokemon
   // Atalho: libera os golpes sem o afeto máximo, já com a primeira roleta (vale para aquele card)
   CUSTO_DESBLOQUEIO_GOLPES: 200, //usado inicialmente para teste, mas ficou bom e decici deixar para consumir mais pokecoins de jogadores muito fortes

@@ -36,7 +36,7 @@ export const formatoPokemon = PropTypes.shape({
   energia: PropTypes.number.isRequired,
   // Quando cada cuidado volta (data ISO) ou null se já está disponível
   cuidadosDisponiveisEm: PropTypes.objectOf(PropTypes.string).isRequired,
-  // Golpes especiais sorteados com o afeto máximo
+  // Golpes especiais: 1 com que o Pokémon nasce e mais 2 sorteados com o afeto máximo
   golpes: PropTypes.arrayOf(PropTypes.shape({
     id: PropTypes.number.isRequired,
     nome: PropTypes.string.isRequired,

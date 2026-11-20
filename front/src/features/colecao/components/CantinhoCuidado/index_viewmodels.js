@@ -84,7 +84,7 @@ export function useCantinhoCuidadoViewModel(pokemon, onCuidar) {
       let texto = ganho > 0 ? REACOES[tipo](nome) : `${nome} já te adora o máximo possível!`;
       if (atualizado.afeto.coracoes > coracoesAntes) {
         texto += atualizado.afeto.maximo
-          ? ` Afeto máximo! Agora ${nome} pode aguentar firme um golpe letal nas batalhas e aprender golpes especiais.`
+          ? ` Afeto máximo! Agora ${nome} pode aguentar firme um golpe letal nas batalhas e aprender mais golpes especiais.`
           : ' Vocês ganharam um novo coração!';
       }
       // Cada coração completado paga Pokécoins (uma vez por coração do card)

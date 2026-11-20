@@ -43,7 +43,32 @@ async function salvarGolpes(db, pokemonId, golpes, desbloquear) {
   );
 }
 
+/**
+ * Cards sem nenhum golpe, ou com os `extras` golpes da roleta antiga (sem o inicial).
+ * Um card que já roletou na regra antiga tem exatamente `extras` golpes.
+ */
+async function listarComGolpesFaltando(db, extras) {
+  const { rows } = await db.query(
+    `SELECT id, especie_id, golpes FROM pokemons
+      WHERE cardinality(golpes) = 0 OR cardinality(golpes) = $1
+      ORDER BY id`,
+    [extras],
+  );
+  return rows;
+}
+
+/** Acrescenta golpes ao fim da lista, se ela ainda for a mesma (`atuais`); devolve se gravou */
+async function acrescentarGolpes(db, pokemonId, atuais, novos) {
+  const { rowCount } = await db.query(
+    'UPDATE pokemons SET golpes = golpes || $3::int[] WHERE id = $1 AND golpes = $2::int[]',
+    [pokemonId, atuais, novos],
+  );
+  return rowCount > 0;
+}
+
 module.exports = {
+  listarComGolpesFaltando,
+  acrescentarGolpes,
   lerMovimentos,
   salvarMovimentos,
   buscarGolpe,

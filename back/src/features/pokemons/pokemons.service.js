@@ -19,14 +19,15 @@ const view = require('./pokemons.view');
  * @param {import('pg').PoolClient} client  transação aberta por quem chamou
  * @param {{ donoId: number, especieId: number, origem: 'inicial' | 'loja' | 'captura', posicaoTime?: number | null,
  *   atributos?: import('../../nucleo/regras').AtributosSorteados, nivel?: number,
- *   rng?: import('../../compartilhado/aleatorio').Rng }} dados
+ *   golpes?: number[], rng?: import('../../compartilhado/aleatorio').Rng }} dados
+ *   golpes: o golpe inicial, já sorteado fora da transação (golpes.sortearGolpeInicial)
  * @returns {Promise<number>} id do card
  */
 async function mintarPokemon(client, {
-  donoId, especieId, origem, posicaoTime = null, atributos, nivel = 1, rng = rngSeguro,
+  donoId, especieId, origem, posicaoTime = null, atributos, nivel = 1, golpes = [], rng = rngSeguro,
 }) {
   return model.inserir(client, {
-    donoId, especieId, origem, atributos: atributos ?? sortearAtributos(rng), posicaoTime, nivel,
+    donoId, especieId, origem, atributos: atributos ?? sortearAtributos(rng), posicaoTime, nivel, golpes,
   });
 }
 

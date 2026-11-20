@@ -180,7 +180,7 @@ function CantinhoCuidado({
               <strong>100 Pokécoins</strong> para você. Com os 5 corações,
               {` ${nome} `}
               tem <strong>30% de chance de aguentar com 1 PS</strong> um golpe que o nocautearia
-              (uma vez por batalha) e pode aprender <strong>2 golpes especiais</strong> na roleta.
+              (uma vez por batalha) e pode aprender <strong>mais 2 golpes especiais</strong> na roleta.
               O afeto continua depois de evoluir.
               Humor e energia caem devagar com o tempo: brincar cansa, então alimente para recuperar a energia.
             </p>

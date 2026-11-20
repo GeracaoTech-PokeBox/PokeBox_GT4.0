@@ -145,7 +145,7 @@ export const PASSOS_CUIDADOS = [
   {
     titulo: 'Afeto máximo',
     texto:
-      'Com 5 ♥, o Pokémon libera os golpes especiais (a primeira roleta é grátis) e ganha 30% de chance '
+      'Todo Pokémon nasce com 1 golpe especial. Com 5 ♥, ele libera mais 2 (a primeira roleta é grátis) e ganha 30% de chance '
       + 'de aguentar com 1 PS um golpe que o nocautearia, uma vez por batalha.',
     botao: 'Entendi!',
   },
