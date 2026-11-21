@@ -6,12 +6,13 @@ class LoginPage {
   }
 
   preencherTreinador(treinador = '') {
-    const campo = cy.get(locators.treinador).clear();
-    return treinador ? campo.type(treinador, { parseSpecialCharSequences: false }) : campo;
+    const campo = cy.get(locators.treinador, { log: false }).clear({ log: false });
+    return treinador ? campo.type(treinador, { log: false, parseSpecialCharSequences: false }) : campo;
   }
 
   preencherSenha(senha = '') {
-    const campo = cy.get(locators.senha).clear({ log: false });
+    // O Allure também registra o elemento retornado por get(), incluindo seu valor.
+    const campo = cy.get(locators.senha, { log: false }).clear({ log: false });
     return senha ? campo.type(senha, { log: false, parseSpecialCharSequences: false }) : campo;
   }
 
@@ -140,11 +141,13 @@ class LoginPage {
   }
 
   validarLoginSucesso({ usuario, pokemons }) {
+    const menuInicial = pokemons.length === 0 ? 'Meus Pokémon' : pokemons.length < 3 ? 'Loja' : 'Batalhas';
     cy.get(locators.pagina).should('not.exist');
     cy.get(locators.sessao.pagina).should('be.visible');
     cy.get(locators.sessao.treinador).should('have.text', usuario.login);
+    // O menu também pode mostrar um cadeado antes do nome enquanto o time não está liberado.
     cy.get(locators.sessao.menuAtivo)
-      .should('have.text', pokemons.length === 0 ? 'Meus Pokémon' : 'Batalhas');
+      .should('contain.text', menuInicial);
     cy.get(locators.sessao.sair).should('be.visible');
     return this.validarSessaoArmazenada(true);
   }

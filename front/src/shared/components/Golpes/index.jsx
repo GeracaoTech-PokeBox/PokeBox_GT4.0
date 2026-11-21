@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import { dadosTipo, formatarNome } from '../../utils/index_utils';
 import './Golpes.css';
 
-// Golpes especiais (sorteados na roleta com o afeto máximo): lista no cantinho e botões na batalha
+// Golpes especiais (1 ao nascer e mais 2 na roleta com o afeto máximo): lista no cantinho e botões na batalha
 
 const CLASSES = { physical: 'Físico', special: 'Especial' };
 

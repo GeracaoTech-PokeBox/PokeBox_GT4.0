@@ -585,11 +585,19 @@
 
 .vitrine-outras-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  /* No máximo 3 colunas (cada card ocupa pelo menos 1/3 da linha), para caber o login e os 3 sprites;
+     em telas estreitas cai para 2 e 1 coluna (mínimo de 280px por card) */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, max(280px, (100% - 24px) / 3)), 1fr));
+  /* Todas as linhas com a mesma altura, para os cards ficarem iguais */
+  grid-auto-rows: 1fr;
   gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.vitrine-outras-lista > li {
+  display: flex;
 }
 
 .vitrine-outra {
@@ -597,6 +605,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+  height: 100%;
   padding: 10px 14px;
   font-family: inherit;
   text-align: left;
@@ -617,33 +626,49 @@
   box-shadow: 0 1px 0 var(--poke-ink);
 }
 
+/* O texto fica com o espaço que sobra depois do avatar e dos 3 sprites. Com 3 colunas isso passa
+   de 15 caracteres do login (15ch na fonte do nome, 16px 900); mais que isso termina em "…". */
 .vitrine-outra-texto {
   display: grid;
-  flex: 1;
+  flex: 1 1 15ch;
   min-width: 0;
+  font-size: 16px;
+  font-weight: 900;
 }
 
 .vitrine-outra-texto strong {
   font-size: 16px;
   font-weight: 900;
   color: var(--poke-navy);
-  overflow-wrap: anywhere;
 }
 
 .vitrine-outra-texto span {
   font-size: 12px;
+  font-weight: 400;
   color: #666;
 }
 
+/* Uma linha só para o nome e para a contagem: sem quebra, os cards não mudam de altura */
+.vitrine-outra-texto strong,
+.vitrine-outra-texto span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Largura fixa de 3 sprites (sempre aparecem inteiros), encostados à direita */
 .vitrine-outra-previa {
   display: flex;
   flex: none;
+  justify-content: flex-end;
+  width: 120px;
 }
 
 .vitrine-outra-previa img {
-  width: 40px;
-  height: 40px;
-  margin-left: -8px;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-left: -6px;
   image-rendering: pixelated;
 }
 

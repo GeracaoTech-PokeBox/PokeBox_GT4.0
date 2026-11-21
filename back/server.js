@@ -29,6 +29,9 @@ if (process.env.DATABASE_URL) {
       iniciar();
       // Jogadas automáticas das batalhas com prazo vencido
       require('./src/features/batalhas').iniciarAgendador();
+      // Golpe inicial dos Pokémon que ainda não têm (em segundo plano: pode ir à PokeAPI)
+      require('./src/features/golpes').completarGolpesIniciais()
+        .catch((erro) => console.warn('Golpes iniciais: não completados agora.', erro.message));
     })
     .catch((erro) => {
       console.error('Migrações: falhou, o back não vai subir.', erro);

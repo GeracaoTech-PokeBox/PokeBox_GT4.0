@@ -22,7 +22,9 @@ export function useCartaoGolpes(pokemon, nome, onRoletar, onDesbloquear) {
     setConfirmar(null);
     try {
       const { pokemon: atualizado } = await acao(pokemon.id);
-      const nomes = atualizado.golpes.map((g) => formatarNome(g.nome)).join(' e ');
+      // Só os golpes novos: o primeiro (com que o Pokémon nasceu) não muda na roleta
+      const antigos = new Set(pokemon.golpes.slice(0, 1).map((g) => g.id));
+      const nomes = atualizado.golpes.filter((g) => !antigos.has(g.id)).map((g) => formatarNome(g.nome)).join(' e ');
       setMensagem(`${nome} aprendeu ${nomes}!`);
     } catch (e) {
       setErro(e.message);

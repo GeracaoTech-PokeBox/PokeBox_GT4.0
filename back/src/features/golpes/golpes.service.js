@@ -43,11 +43,11 @@ async function garantirGolpe(id) {
 const causaDano = (golpe) => golpe.classe !== 'status' && golpe.poder !== null && golpe.poder > 0;
 
 /**
- * Sorteia GOLPES_POR_POKEMON golpes de dano diferentes da lista da espécie. A lista é embaralhada
- * e os golpes são buscados um por um até achar os de dano, então só os sorteados vão à PokeAPI.
+ * Sorteia `quantidade` golpes de dano diferentes da lista da espécie, fora os de `excluir`. A lista
+ * é embaralhada e os golpes são buscados um por um até achar os de dano, então só os sorteados vão à PokeAPI.
  */
-async function sortearGolpes(especieId, rng) {
-  const lista = [...new Set(await garantirMovimentos(especieId))];
+async function sortearGolpes(especieId, quantidade, rng, excluir = []) {
+  const lista = [...new Set(await garantirMovimentos(especieId))].filter((id) => !excluir.includes(id));
 
   for (let i = lista.length - 1; i > 0; i -= 1) {
     const j = Math.floor(rng() * (i + 1));
@@ -55,11 +55,47 @@ async function sortearGolpes(especieId, rng) {
   }
   const escolhidos = [];
   for (const id of lista) {
-    if (escolhidos.length === config.GOLPES_POR_POKEMON) break;
+    if (escolhidos.length === quantidade) break;
     const golpe = await garantirGolpe(id);
     if (causaDano(golpe)) escolhidos.push(golpe.id);
   }
   return escolhidos;
+}
+
+/**
+ * Golpe com que o Pokémon nasce (GOLPES_INICIAIS). Chame antes da transação que cria o card e
+ * passe o resultado no `golpes` do mintarPokemon. Se a PokeAPI falhar, o card nasce sem golpe
+ * (a compra ou captura não deve falhar por isso) e o completarGolpesIniciais dá um depois.
+ * @returns {Promise<number[]>}
+ */
+async function sortearGolpeInicial(especieId, rng = rngSeguro) {
+  try {
+    return await sortearGolpes(especieId, config.GOLPES_INICIAIS, rng);
+  } catch (erro) {
+    console.warn(`Golpe inicial da espécie ${especieId} não sorteado: ${erro.message}`);
+    return [];
+  }
+}
+
+/**
+ * Ao subir o back: dá o golpe inicial aos cards que ainda não têm nenhum (os criados antes desta
+ * regra ou quando a PokeAPI falhou) e completa os extras de quem já tinha roletado na regra antiga
+ * (2 golpes, sem o inicial). Roda em segundo plano; um card que falhar fica para a próxima vez.
+ */
+async function completarGolpesIniciais(rng = rngSeguro) {
+  const extras = config.GOLPES_EXTRAS;
+  const cards = await model.listarComGolpesFaltando(pool, extras);
+  let completados = 0;
+  for (const card of cards) {
+    try {
+      const faltam = card.golpes.length === 0 ? config.GOLPES_INICIAIS : config.GOLPES_INICIAIS + extras - card.golpes.length;
+      const novos = await sortearGolpes(card.especie_id, faltam, rng, card.golpes);
+      if (novos.length > 0 && await model.acrescentarGolpes(pool, card.id, card.golpes, novos)) completados += 1;
+    } catch (erro) {
+      console.warn(`Golpes do card ${card.id} não completados: ${erro.message}`);
+    }
+  }
+  if (completados > 0) console.log(`Golpes especiais completados em ${completados} Pokémon.`);
 }
 
 /** Golpes liberados: pelo afeto máximo ou pelo desbloqueio pago */
@@ -80,8 +116,13 @@ async function sortearECobrar(usuarioId, pokemonId, regras, rng) {
   const custo = regras.custo(antes);
   if (custo > 0 && (await carteira.lerSaldo(pool, usuarioId)) < custo) throw new ErroJogo(regras.semSaldo(custo));
 
-  const golpes = await sortearGolpes(antes.especie_id, rng);
-  if (golpes.length === 0) throw new ErroJogo('Esse Pokémon não aprende nenhum golpe que cause dano.');
+  // O golpe inicial fica; os extras são sorteados (de novo) entre os outros. Sem golpe inicial
+  // (a PokeAPI falhou quando ele nasceu), sorteia o inicial junto.
+  const iniciais = antes.golpes.slice(0, config.GOLPES_INICIAIS);
+  const quantidade = config.GOLPES_INICIAIS - iniciais.length + config.GOLPES_EXTRAS;
+  const novos = await sortearGolpes(antes.especie_id, quantidade, rng, iniciais);
+  if (novos.length === 0) throw new ErroJogo('Esse Pokémon não aprende outros golpes que causem dano.');
+  const golpes = [...iniciais, ...novos];
 
   return transacao(async (client) => {
     // Confere de novo com o card travado: pode ter evoluído, sido trocado ou roletado em outra aba
@@ -100,9 +141,9 @@ async function sortearECobrar(usuarioId, pokemonId, regras, rng) {
 }
 
 /**
- * Roleta de golpes: troca os golpes do Pokémon por GOLPES_POR_POKEMON golpes de dano sorteados entre
- * os que a espécie atual aprende. Só com os golpes liberados (afeto máximo ou desbloqueio);
- * a primeira é grátis e as outras custam CUSTO_ROLETA_GOLPES.
+ * Roleta de golpes: mantém o golpe inicial e sorteia GOLPES_EXTRAS golpes de dano entre os que a
+ * espécie atual aprende. Só com os golpes liberados (afeto máximo ou desbloqueio);
+ * a primeira (a que dá os extras) é grátis e as outras custam CUSTO_ROLETA_GOLPES.
  * @param {number} usuarioId
  * @param {number} pokemonId
  */
@@ -115,7 +156,7 @@ async function roletarGolpes(usuarioId, pokemonId, rng = rngSeguro) {
         );
       }
     },
-    custo: (pokemon) => (pokemon.golpes.length > 0 ? config.CUSTO_ROLETA_GOLPES : 0),
+    custo: (pokemon) => (pokemon.golpes.length > config.GOLPES_INICIAIS ? config.CUSTO_ROLETA_GOLPES : 0),
     semSaldo: (custo) => `Roletar de novo custa ${custo} Pokécoins.`,
     motivo: 'roleta_golpes',
   }, rng);
@@ -137,4 +178,6 @@ async function desbloquearGolpes(usuarioId, pokemonId, rng = rngSeguro) {
   }, rng);
 }
 
-module.exports = { roletarGolpes, desbloquearGolpes };
+module.exports = {
+  roletarGolpes, desbloquearGolpes, sortearGolpeInicial, completarGolpesIniciais,
+};

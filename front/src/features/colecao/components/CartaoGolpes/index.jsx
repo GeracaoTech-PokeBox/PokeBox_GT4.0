@@ -36,7 +36,7 @@ Confirmacao.propTypes = {
   onCancelar: PropTypes.func.isRequired,
 };
 
-// Golpes especiais: liberados com o afeto máximo, sorteados entre os que a espécie aprende
+// Golpes especiais: todo Pokémon nasce com 1; o afeto máximo (ou o desbloqueio) libera mais 2 na roleta
 function CartaoGolpes({
   pokemon, nome, onRoletar, onDesbloquear,
 }) {
@@ -48,15 +48,16 @@ function CartaoGolpes({
   return (
     <section className="cantinho-cartao">
       <h3>Golpes especiais</h3>
+      {golpes.length > 0 && <ListaGolpes golpes={golpes} />}
       {!pokemon.golpesLiberados ? (
         <>
           <p className="cantinho-dica">
-            {`Com o afeto máximo (5 ♥), ${nome} poderá girar a roleta e aprender 2 golpes entre os que a espécie dele aprende.`}
+            {`Com o afeto máximo (5 ♥), ${nome} poderá girar a roleta e aprender mais 2 golpes entre os que a espécie dele aprende.`}
           </p>
           {erro && <p className="jogo-erro" role="alert">{erro}</p>}
           {confirmar === 'desbloqueio' ? (
             <Confirmacao
-              texto={`Libera os golpes de ${nome} agora, sem esperar o afeto máximo, e já gira a primeira roleta. Custa ${pokemon.custoDesbloqueioGolpes} Pokécoins.`}
+              texto={`Libera os golpes de ${nome} agora, sem esperar o afeto máximo, e já sorteia mais 2 golpes. Custa ${pokemon.custoDesbloqueioGolpes} Pokécoins.`}
               desabilitado={girando}
               onConfirmar={desbloquear}
               onCancelar={cancelarConfirmacao}
@@ -74,16 +75,14 @@ function CartaoGolpes({
         </>
       ) : (
         <>
-          {golpes.length > 0 ? (
-            <ListaGolpes golpes={golpes} />
-          ) : (
-            <p className="cantinho-dica">{`${nome} confia totalmente em você! Gire a roleta para ele aprender 2 golpes.`}</p>
+          {custo === 0 && (
+            <p className="cantinho-dica">{`${nome} confia totalmente em você! Gire a roleta para ele aprender mais 2 golpes.`}</p>
           )}
           {mensagem && <p className="cantinho-dica" role="status"><strong>{mensagem}</strong></p>}
           {erro && <p className="jogo-erro" role="alert">{erro}</p>}
           {confirmar === 'roleta' ? (
             <Confirmacao
-              texto={`Os golpes atuais serão trocados por 2 novos sorteados. Custa ${custo} Pokécoins.`}
+              texto={`O primeiro golpe fica; os outros serão trocados por 2 novos sorteados. Custa ${custo} Pokécoins.`}
               desabilitado={girando}
               onConfirmar={roletar}
               onCancelar={cancelarConfirmacao}

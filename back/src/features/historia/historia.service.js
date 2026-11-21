@@ -21,6 +21,7 @@ const { rngSeguro } = require('../../compartilhado/aleatorio');
 const { sortearAtributos } = require('../../nucleo/regras');
 const { garantirTaxaCaptura } = require('../especies');
 const { mintarPokemon, buscarCard, darXp } = require('../pokemons');
+const { sortearGolpeInicial } = require('../golpes');
 const { carregarTime, timeCompleto } = require('../batalhas');
 const { sortearEspecieDaLoja } = require('../loja');
 const {
@@ -236,6 +237,8 @@ async function capturar(usuarioId, encontroId, rng = rngSeguro) {
   // Fora da transação: espécies antigas podem precisar ir à PokeAPI buscar a taxa de captura
   const especieId = await model.especieDoEncontro(pool, encontroId, usuarioId);
   const taxaCaptura = especieId ? await garantirTaxaCaptura(especieId) : null;
+  // Sorteado antes (pode ir à PokeAPI); só é usado se a captura der certo
+  const golpes = especieId ? await sortearGolpeInicial(especieId) : [];
 
   return transacao(async (client) => {
     const encontro = await travarEncontro(client, usuarioId, encontroId);
@@ -255,6 +258,8 @@ async function capturar(usuarioId, encontroId, rng = rngSeguro) {
         origem: 'captura',
         atributos: batalha.atributosDe(encontro),
         nivel: encontro.nivel,
+        // O encontro travado pode ser de outra espécie só se mudou no meio; aí o card nasce sem golpe
+        golpes: encontro.especie_id === especieId ? golpes : [],
       });
       pokemon = await buscarCard(client, id);
     }

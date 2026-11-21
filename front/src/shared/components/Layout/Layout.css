@@ -113,6 +113,26 @@
   box-shadow: 0 3px 0 var(--poke-ink);
 }
 
+/* Bolinha com o número de novidades da aba (dentro do botão, para não ser cortada no menu que
+   rola de lado no celular) */
+.layout-novidades {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  vertical-align: 1px;
+  background: #e3350d;
+  border: 2px solid var(--poke-ink);
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+
 .layout-menu-item:focus-visible,
 .layout-sair:focus-visible {
   outline: 3px solid #fff;

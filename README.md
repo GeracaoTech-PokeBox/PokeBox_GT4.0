@@ -81,5 +81,11 @@ npx netlify-cli deploy --build --prod
 
 ## Testes automatizados
 
-Os testes E2E usam Cypress com Page Objects e relatórios Mochawesome. A configuração e as dependências da automação ficam na raiz do projeto.
+A pipeline `Cypress | Allure e Discord` roda a cada **push em qualquer branch**, diariamente às **06h de Brasília** (`0 9 * * *` em UTC) e pelo disparo manual no Actions. Pushes e execuções manuais usam os arquivos de teste do commit disparado; o cron usa a `develop` atual. O site testado é o endereço configurado em `cypress.env.json`.
+
+Os testes E2E usam Cypress com Page Objects e relatórios Mochawesome e Allure. A configuração e as dependências da automação ficam na raiz do projeto.
+
+Centralize `baseUrl`, `baseUrlLocal`, `treinador` e `senha` em `cypress.env.json` (modelo: `cypress.env.example.json`). `baseUrl` define o site testado; `baseUrlLocal` é uma referência para trocar de ambiente. Execute com `npm run cy:run`. O cenário `login/sessao-real.cy.js` usa a conta existente para validar login, recarga da sessão e logout; cadastro e batalhas mantêm respostas simuladas.
+
+No GitHub, em **Settings → Secrets and variables → Actions**, crie **`CYPRESS_ENV_JSON`** com o conteúdo completo do `cypress.env.json`. A pipeline recria o arquivo e usa sua URL nos testes, na espera do site e na notificação. O arquivo real permanece no `.gitignore`. `DISCORD_WEBHOOK_URL` continua sendo o secret separado das notificações.
 

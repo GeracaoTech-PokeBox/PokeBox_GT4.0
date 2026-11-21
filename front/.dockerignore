@@ -3,3 +3,6 @@
 # desatualizado (ou sendo sincronizado pelo OneDrive, o que quebra o build da imagem).
 node_modules
 dist
+.env
+.env.*
+.netlify

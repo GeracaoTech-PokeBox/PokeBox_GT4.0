@@ -1,0 +1,241 @@
+name: Cypress | Allure e Discord
+
+on:
+  schedule:
+    # Sem timezone explícito, o cron usa UTC: 09:00 UTC = 06:00 em Brasília (UTC-3).
+    # O workflow também precisa existir na branch padrão para o agendamento funcionar.
+    - cron: '0 9 * * *'
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testes:
+    name: Executar Cypress e gerar Allure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      base_url: ${{ steps.ambiente.outputs.base_url }}
+      report_ready: ${{ steps.pages_artifact.outcome == 'success' }}
+      cypress_outcome: ${{ steps.cypress.outcome }}
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@v6
+        with:
+          # Push/manual: specs do commit disparado. O cron continua usando a develop atual.
+          ref: ${{ github.event_name == 'schedule' && 'develop' || github.sha }}
+          persist-credentials: false
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Preparar cypress.env.json
+        id: ambiente
+        uses: actions/github-script@v8
+        env:
+          CYPRESS_ENV_JSON: ${{ secrets.CYPRESS_ENV_JSON }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            let ambiente;
+            try {
+              ambiente = JSON.parse(process.env.CYPRESS_ENV_JSON);
+            } catch {
+              throw new Error('Configure o secret CYPRESS_ENV_JSON com o conteúdo completo do cypress.env.json.');
+            }
+            for (const chave of ['baseUrl', 'treinador', 'senha']) {
+              if (typeof ambiente?.[chave] !== 'string' || !ambiente[chave].trim()) {
+                throw new Error(`Preencha ${chave} no secret CYPRESS_ENV_JSON.`);
+              }
+            }
+            let endereco;
+            try {
+              endereco = new URL(ambiente.baseUrl);
+              if (!['http:', 'https:'].includes(endereco.protocol) || endereco.username || endereco.password) {
+                throw new Error();
+              }
+            } catch {
+              throw new Error('baseUrl deve ser uma URL HTTP(S) do site, sem credenciais na URL.');
+            }
+            core.setSecret(ambiente.treinador);
+            core.setSecret(ambiente.senha);
+            fs.writeFileSync('cypress.env.json', JSON.stringify(ambiente, null, 2), { mode: 0o600 });
+            core.setOutput('base_url', endereco.href);
+
+      - name: Configurar Java para o Allure
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Instalar dependências e Cypress
+        uses: cypress-io/github-action@v7
+        with:
+          runTests: false
+          install-command: npm ci
+
+      # Sem continue-on-error: uma falha no Cypress mantém o job vermelho.
+      - name: Executar testes automatizados no site de produção
+        id: cypress
+        uses: cypress-io/github-action@v7
+        with:
+          install: false
+          command: npm run cy:run
+          wait-on: ${{ steps.ambiente.outputs.base_url }}
+          wait-on-timeout: 180
+
+      - name: Gerar relatório Allure mesmo se os testes falharem
+        id: allure
+        if: ${{ !cancelled() && (steps.cypress.outcome == 'success' || steps.cypress.outcome == 'failure') }}
+        run: |
+          node -e "const fs = require('node:fs'); if (!fs.existsSync('allure-results') || !fs.readdirSync('allure-results').some(name => name.endsWith('-result.json'))) { throw new Error('O Cypress não produziu resultados Allure. Consulte os logs dos testes.'); }"
+          npm run allure:generate
+
+      - name: Guardar relatórios e resultados da execução
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-cypress-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            allure-results/
+            allure-report/
+            cypress/reports/
+            cypress/screenshots/
+            cypress/videos/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Preparar relatório para o GitHub Pages
+        id: pages_artifact
+        if: ${{ !cancelled() && steps.allure.outcome == 'success' }}
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: allure-report
+
+  publicar:
+    name: Publicar relatório no GitHub Pages
+    needs: testes
+    # Serializa apenas a publicação; os testes de cada push podem executar independentemente.
+    concurrency:
+      group: cypress-allure-pages
+      cancel-in-progress: false
+    # O relatório de testes reprovados também precisa ser publicado.
+    if: ${{ !cancelled() && needs.testes.outputs.report_ready == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      report_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Publicar Allure
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  notificar:
+    name: Notificar o resultado no Discord
+    needs: [testes, publicar]
+    if: ${{ always() && needs.testes.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Enviar mensagem em português após a publicação
+        uses: actions/github-script@v8
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TEST_JOB_RESULT: ${{ needs.testes.result }}
+          CYPRESS_OUTCOME: ${{ needs.testes.outputs.cypress_outcome }}
+          PUBLISH_RESULT: ${{ needs.publicar.result }}
+          REPORT_URL: ${{ needs.publicar.outputs.report_url }}
+          TEST_BASE_URL: ${{ needs.testes.outputs.base_url }}
+          TRIGGERED_BY: ${{ github.triggering_actor }}
+        with:
+          script: |
+            const env = process.env;
+            if (!env.DISCORD_WEBHOOK_URL) {
+              core.notice('Notificação desativada: configure o secret DISCORD_WEBHOOK_URL.');
+              return;
+            }
+
+            const publicado = env.PUBLISH_RESULT === 'success' && Boolean(env.REPORT_URL);
+            const sucesso = env.TEST_JOB_RESULT === 'success' && publicado;
+            const cancelado = [env.TEST_JOB_RESULT, env.PUBLISH_RESULT].includes('cancelled');
+            const execucaoUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            let descricao;
+
+            if (cancelado) {
+              descricao = 'A execução da pipeline foi cancelada.';
+            } else if (sucesso) {
+              descricao = 'Todos os testes automatizados foram concluídos com sucesso.';
+            } else if (env.CYPRESS_OUTCOME === 'failure') {
+              descricao = 'Um ou mais testes falharam, ou o Cypress não conseguiu concluir a execução.';
+            } else if (env.TEST_JOB_RESULT !== 'success') {
+              descricao = 'A pipeline falhou na preparação do ambiente ou na geração dos relatórios. Consulte a execução.';
+            } else {
+              descricao = 'Os testes passaram, mas o relatório não pôde ser publicado no GitHub Pages.';
+            }
+
+            const payload = {
+              username: 'PokeBox | Testes automatizados',
+              allowed_mentions: { parse: [] },
+              embeds: [{
+                title: cancelado
+                  ? '⚪ Pipeline de testes - Cancelada'
+                  : sucesso ? '✅ Pipeline de testes - Aprovada' : '❌ Pipeline de testes - Falhou',
+                description: descricao,
+                color: cancelado ? 9807270 : sucesso ? 3066993 : 15158332,
+                fields: [
+                  { name: 'Status', value: cancelado ? '⚪ Cancelada' : sucesso ? '🟢 Aprovada' : '🔴 Falhou', inline: true },
+                  { name: 'Branch', value: context.eventName === 'schedule' ? 'develop' : context.ref.replace('refs/heads/', ''), inline: true },
+                  { name: 'Ambiente', value: env.TEST_BASE_URL ? `[Site testado](${env.TEST_BASE_URL})` : 'Configuração indisponível', inline: true },
+                  { name: 'Executado por', value: env.TRIGGERED_BY || context.actor, inline: true },
+                  { name: 'Disparo', value: context.eventName === 'schedule' ? 'Agendamento diário — 06h (Brasília)' : context.eventName === 'push' ? 'Push na branch' : 'Execução manual', inline: false },
+                  {
+                    name: '📊 Relatório Allure',
+                    value: publicado
+                      ? `[Ver relatório](${env.REPORT_URL})`
+                      : 'O relatório desta execução não foi publicado. Consulte os logs e os artefatos na execução abaixo.',
+                    inline: false,
+                  },
+                  { name: '🔎 GitHub Actions', value: `[Ver execução #${context.runNumber}](${execucaoUrl})`, inline: false },
+                ],
+                footer: { text: 'GitHub Actions | Cypress • PokeBox' },
+                timestamp: new Date().toISOString(),
+              }],
+            };
+
+            // wait=true faz o Discord confirmar que a mensagem foi criada.
+            try {
+              const webhook = new URL(env.DISCORD_WEBHOOK_URL);
+              webhook.searchParams.set('wait', 'true');
+              const resposta = await fetch(webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(15000),
+              });
+              if (!resposta.ok) {
+                core.setFailed(`O Discord recusou a notificação (HTTP ${resposta.status}).`);
+              } else {
+                core.info('Notificação enviada ao Discord.');
+              }
+            } catch {
+              // Não imprime a URL nem erros de rede que possam revelar o token.
+              core.setFailed('Não foi possível enviar a notificação. Verifique o secret e a conexão com o Discord.');
+            }

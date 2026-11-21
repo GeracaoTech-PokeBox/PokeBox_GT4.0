@@ -1,0 +1,78 @@
+/* Novidades da aba: aparece no topo da tela enquanto houver notificações pendentes */
+.novidades {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: #fff8d6;
+  border: 3px solid var(--poke-ink);
+  border-radius: 16px;
+  box-shadow: 0 4px 0 var(--poke-ink);
+}
+
+.novidades-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--poke-navy);
+}
+
+.novidades-mensagem {
+  margin: 0;
+  font-weight: 800;
+  color: #1b7a32;
+}
+
+.novidades-lista {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.novidades-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 2px solid var(--poke-ink);
+  border-radius: 12px;
+}
+
+.novidades-texto {
+  display: grid;
+  flex: 1 1 260px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.novidades-texto strong {
+  font-size: 15px;
+  color: var(--poke-ink);
+}
+
+.novidades-quantidade {
+  color: var(--poke-red, #e3350d);
+}
+
+.novidades-texto span {
+  font-size: 14px;
+  color: #444;
+}
+
+.novidades-texto time {
+  font-size: 12px;
+  color: #777;
+}
+
+.novidades-ver {
+  flex: none;
+  padding: 8px 16px;
+  font-size: 14px;
+}
