@@ -12,6 +12,7 @@ const config = require('../../compartilhado/config');
 const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { temRepetidos } = require('../../compartilhado/validacao');
 const { buscarCard } = require('../pokemons');
+const { notificar, nomePokemon } = require('../notificacoes');
 const model = require('./trocas.model');
 const view = require('./trocas.view');
 
@@ -158,7 +159,15 @@ async function comprar(usuarioId, anuncioId) {
 
     await model.fecharAnuncio(client, anuncioId, { status: 'vendido', compradorId: usuarioId });
     await transferirCards(client, [anuncio.pokemon_id], usuarioId);
-    return buscarCard(client, anuncio.pokemon_id);
+    const card = await buscarCard(client, anuncio.pokemon_id);
+    await notificar(client, {
+      usuarioId: anuncio.vendedor_id,
+      aba: 'trocas',
+      chave: `venda:${anuncioId}`,
+      titulo: 'Pokémon vendido!',
+      texto: `Seu ${nomePokemon(card.nome)} foi comprado por ${anuncio.preco} Pokécoins.`,
+    });
+    return card;
   });
 }
 
@@ -200,6 +209,13 @@ async function proporTroca(usuarioId, anuncioId, { pokemonIds, pokecoins }) {
 
     const id = await model.inserirProposta(client, {
       anuncioId, proponenteId: usuarioId, pokecoins, pokemonIds,
+    });
+    await notificar(client, {
+      usuarioId: anuncio.vendedor_id,
+      aba: 'trocas',
+      chave: `proposta:${id}`,
+      titulo: 'Nova proposta de troca',
+      texto: 'Um treinador fez uma proposta por um anúncio seu. Veja em Propostas recebidas.',
     });
     return { id };
   });
@@ -257,6 +273,13 @@ async function aceitarProposta(usuarioId, propostaId) {
     await model.fecharAnuncio(client, anuncio.id, { status: 'trocado', compradorId: proposta.proponente_id });
     await transferirCards(client, [anuncio.pokemon_id], proposta.proponente_id);
     await transferirCards(client, oferta, usuarioId);
+    await notificar(client, {
+      usuarioId: proposta.proponente_id,
+      aba: 'trocas',
+      chave: `proposta-resposta:${propostaId}`,
+      titulo: 'Proposta aceita!',
+      texto: 'Sua proposta de troca foi aceita. O Pokémon já está na sua coleção.',
+    });
   });
 }
 
@@ -265,10 +288,20 @@ const STATUS_AO_ENCERRAR = { vendedor: 'recusada', proponente: 'cancelada' };
 
 /** Recusar (dono do anúncio) ou cancelar (quem mandou) uma proposta pendente */
 async function encerrarProposta(usuarioId, propostaId, papel) {
-  await lerProposta(propostaId, usuarioId, papel);
+  const proposta = await lerProposta(propostaId, usuarioId, papel);
   await transacao(async (client) => {
     await travarPropostaPendente(client, propostaId);
     await model.responderProposta(client, propostaId, STATUS_AO_ENCERRAR[papel]);
+    // Só a recusa avisa: quem cancela a própria proposta já sabe
+    if (papel === 'vendedor') {
+      await notificar(client, {
+        usuarioId: proposta.proponente_id,
+        aba: 'trocas',
+        chave: `proposta-resposta:${propostaId}`,
+        titulo: 'Proposta recusada',
+        texto: 'Uma proposta de troca sua foi recusada pelo dono do anúncio.',
+      });
+    }
   });
 }
 

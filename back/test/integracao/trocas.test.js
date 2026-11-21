@@ -81,6 +81,16 @@ describe('trocas', { skip: semBanco }, () => {
     assert.equal(doAsh.preco, 50);
   });
 
+  test('o anúncio mostra os golpes especiais do card (eles vão junto na troca)', async () => {
+    // Dá o golpe inicial ao card criado pela fábrica (que nasce sem golpe)
+    await require('../../src/features/golpes').completarGolpesIniciais();
+    const anuncio = (await anunciar(ash, { pokemonId: a1, preco: 50 })).dados;
+    const lista = (await amb.api('GET', `/mercado/${anuncio.pokemon.especieId}`, { token: gary.token })).dados;
+    const { golpes } = lista.find((a) => a.id === anuncio.id).pokemon;
+    assert.equal(golpes.length, 1);
+    assert.ok(golpes[0].nome && golpes[0].poder > 0);
+  });
+
   test('compra direta transfere o card (zerando o afeto) e as Pokécoins', async () => {
     const anuncio = (await anunciar(ash, { pokemonId: a1, preco: 50 })).dados;
 

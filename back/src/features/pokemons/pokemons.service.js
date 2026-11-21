@@ -7,9 +7,10 @@ const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const { rngSeguro } = require('../../compartilhado/aleatorio');
 const {
   sortearAtributos, aplicarXp, evolucoesDisponiveis, aplicarCuidado, bemEstarAtual,
-  sortearBonusEvolucao, coracoes,
+  sortearBonusEvolucao, coracoes, afetoMaximo,
 } = require('../../nucleo/regras');
 const { garantirEspecie } = require('../especies');
+const { notificar, nomePokemon } = require('../notificacoes');
 const model = require('./pokemons.model');
 const view = require('./pokemons.view');
 
@@ -19,14 +20,15 @@ const view = require('./pokemons.view');
  * @param {import('pg').PoolClient} client  transação aberta por quem chamou
  * @param {{ donoId: number, especieId: number, origem: 'inicial' | 'loja' | 'captura', posicaoTime?: number | null,
  *   atributos?: import('../../nucleo/regras').AtributosSorteados, nivel?: number,
- *   rng?: import('../../compartilhado/aleatorio').Rng }} dados
+ *   golpes?: number[], rng?: import('../../compartilhado/aleatorio').Rng }} dados
+ *   golpes: o golpe inicial, já sorteado fora da transação (golpes.sortearGolpeInicial)
  * @returns {Promise<number>} id do card
  */
 async function mintarPokemon(client, {
-  donoId, especieId, origem, posicaoTime = null, atributos, nivel = 1, rng = rngSeguro,
+  donoId, especieId, origem, posicaoTime = null, atributos, nivel = 1, golpes = [], rng = rngSeguro,
 }) {
   return model.inserir(client, {
-    donoId, especieId, origem, atributos: atributos ?? sortearAtributos(rng), posicaoTime, nivel,
+    donoId, especieId, origem, atributos: atributos ?? sortearAtributos(rng), posicaoTime, nivel, golpes,
   });
 }
 
@@ -76,6 +78,16 @@ async function darXp(client, donoId, pokemonIds, xpGanho) {
   for (const pokemon of pokemons) {
     const novo = aplicarXp(pokemon, xpGanho);
     await model.salvarNivel(client, pokemon.id, novo);
+    // Chegou agora ao nível de evoluir: fica avisado em Meus Pokémon até ele ver
+    if (evolucoesDisponiveis(pokemon, novo).length > 0 && evolucoesDisponiveis(pokemon, pokemon).length === 0) {
+      await notificar(client, {
+        usuarioId: donoId,
+        aba: 'meusPokemons',
+        chave: `evoluir:${pokemon.id}`,
+        titulo: 'Pronto para evoluir!',
+        texto: `${nomePokemon(pokemon.nome)} chegou ao nível ${novo.nivel} e já pode evoluir.`,
+      });
+    }
     if (novo.niveisGanhos > 0) {
       subiram.push({
         pokemonId: pokemon.id,
@@ -143,7 +155,18 @@ async function cuidar(usuarioId, pokemonId, tipo) {
       await model.salvarCoracoesPremiados(client, pokemonId, coracoes(novo.afeto));
       await carteira.creditar(client, { usuarioId, valor: pokecoins, motivo: 'recompensa_afeto' });
     }
-    return { pokemon: await buscarCard(client, pokemonId), ganho: novo.ganho, pokecoins };
+    const card = await buscarCard(client, pokemonId);
+    // Acabou de chegar ao afeto máximo e ainda não ganhou os golpes extras: avisa da roleta grátis
+    if (coracoesNovos > 0 && afetoMaximo(novo.afeto) && card.custoRoletaGolpes === 0) {
+      await notificar(client, {
+        usuarioId,
+        aba: 'meusPokemons',
+        chave: `afeto:${pokemonId}`,
+        titulo: 'Afeto máximo!',
+        texto: `${nomePokemon(card.nome)} liberou os golpes especiais: gire a roleta grátis para ele aprender mais 2.`,
+      });
+    }
+    return { pokemon: card, ganho: novo.ganho, pokecoins };
   });
 }
 

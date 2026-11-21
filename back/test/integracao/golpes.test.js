@@ -38,12 +38,12 @@ describe('golpes especiais', { skip: semBanco }, () => {
     assert.equal(desbloqueio.status, 200, JSON.stringify(desbloqueio.dados));
     assert.equal(desbloqueio.dados.custo, 200);
     assert.equal(desbloqueio.dados.pokemon.golpesLiberados, true);
-    assert.equal(desbloqueio.dados.pokemon.golpes.length, 2);
+    assert.equal(desbloqueio.dados.pokemon.golpes.length, 3);
     assert.equal(await amb.saldo(ash.token), 50);
     assert.match((await desbloquear(segundo)).dados.erro, /já estão liberados/);
   });
 
-  test('primeira roleta grátis com 2 golpes de dano da espécie; as seguintes custam 100', async () => {
+  test('primeira roleta grátis com 3 golpes de dano da espécie; as seguintes custam 100', async () => {
     await darAfetoMaximo(primeiro);
     await definirSaldo(50);
 
@@ -51,8 +51,8 @@ describe('golpes especiais', { skip: semBanco }, () => {
     assert.equal(roleta.status, 200, JSON.stringify(roleta.dados));
     assert.equal(roleta.dados.custo, 0);
     const { golpes } = roleta.dados.pokemon;
-    assert.equal(golpes.length, 2);
-    assert.notEqual(golpes[0].id, golpes[1].id);
+    assert.equal(golpes.length, 3);
+    assert.equal(new Set(golpes.map((g) => g.id)).size, 3);
     assert.ok(golpes.every((g) => g.poder > 0 && g.classe !== 'status'));
     const { rows: [especie] } = await amb.pool.query('SELECT movimentos FROM especies WHERE id = 4');
     assert.ok(golpes.every((g) => especie.movimentos.includes(g.id)));
@@ -63,6 +63,40 @@ describe('golpes especiais', { skip: semBanco }, () => {
     const outra = await roletar(primeiro);
     assert.equal(outra.dados.custo, 100);
     assert.equal(await amb.saldo(ash.token), 400);
+  });
+
+  test('o Pokémon nasce com 1 golpe; a roleta mantém esse golpe e dá mais 2', async () => {
+    const misty = await criarTreinador('misty', { pokecoins: 1000 });
+    const inicial = await amb.api('POST', '/eu/inicial', { token: misty.token, corpo: { especieId: 7 } });
+    assert.equal(inicial.status, 201, JSON.stringify(inicial.dados));
+    const [golpeInicial] = inicial.dados.golpes;
+    assert.equal(inicial.dados.golpes.length, 1);
+    assert.ok(golpeInicial.poder > 0);
+    assert.equal(inicial.dados.golpesLiberados, false);
+    assert.equal(inicial.dados.custoRoletaGolpes, 0);
+
+    await darAfetoMaximo(inicial.dados.id);
+    const rolar = () => amb.api('POST', `/pokemons/${inicial.dados.id}/golpes/roletar`, { token: misty.token });
+    const primeira = await rolar();
+    assert.equal(primeira.dados.custo, 0);
+    assert.equal(primeira.dados.pokemon.golpes.length, 3);
+    assert.equal(primeira.dados.pokemon.golpes[0].id, golpeInicial.id);
+
+    const segunda = await rolar();
+    assert.equal(segunda.dados.custo, 100);
+    assert.equal(segunda.dados.pokemon.golpes.length, 3);
+    assert.equal(segunda.dados.pokemon.golpes[0].id, golpeInicial.id);
+  });
+
+  test('ao subir, completa o golpe inicial e os extras de quem roletou na regra antiga', async () => {
+    const { completarGolpesIniciais } = require('../../src/features/golpes');
+    await amb.pool.query('UPDATE pokemons SET golpes = $2 WHERE id = $1', [segundo, [11, 13]]);
+    await completarGolpesIniciais();
+    const { rows } = await amb.pool.query('SELECT id, golpes FROM pokemons WHERE id = ANY($1)', [[primeiro, segundo]]);
+    const golpesDe = (id) => rows.find((r) => r.id === id).golpes;
+    assert.equal(golpesDe(primeiro).length, 1);
+    assert.equal(golpesDe(segundo).length, 3);
+    assert.deepEqual(golpesDe(segundo).slice(0, 2), [11, 13]);
   });
 
   test('não roleta nem desbloqueia o Pokémon de outro treinador', async () => {

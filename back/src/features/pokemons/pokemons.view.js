@@ -73,9 +73,10 @@ function card(linha) {
     posicaoVitrine: linha.posicao_vitrine,
     anunciado: Boolean(linha.anunciado),
     afeto: descreverAfeto(linha.afeto),
-    // Golpes especiais (liberados com o afeto máximo) e quanto custa sortear de novo
+    // Golpes especiais (o inicial e, com o afeto máximo, os extras) e quanto custa sortear de novo:
+    // a primeira roleta, a que dá os extras, é grátis
     golpes: (linha.golpes_detalhe ?? []).map(resumoGolpe),
-    custoRoletaGolpes: linha.golpes?.length > 0 ? config.CUSTO_ROLETA_GOLPES : 0,
+    custoRoletaGolpes: linha.golpes?.length > config.GOLPES_INICIAIS ? config.CUSTO_ROLETA_GOLPES : 0,
     // Liberados pelo afeto máximo ou pelo desbloqueio pago (custoDesbloqueioGolpes)
     golpesLiberados: afetoMaximo(linha.afeto) || Boolean(linha.golpes_desbloqueados),
     custoDesbloqueioGolpes: config.CUSTO_DESBLOQUEIO_GOLPES,
@@ -109,6 +110,8 @@ function cardPublico(linha) {
     ivTotal: ivs.hp + ivs.ataque + ivs.defesa + ivs.velocidade,
     status: calcularStatus(linha, { ...linha, afeto: 0 }),
     ...medidas(linha, linha),
+    // Os golpes especiais passam com o card na troca, então quem compra precisa vê-los
+    golpes: (linha.golpes_detalhe ?? []).map(resumoGolpe),
   };
 }
 

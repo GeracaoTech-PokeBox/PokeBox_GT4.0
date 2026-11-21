@@ -22,6 +22,7 @@ const MENU = [
 function Layout({
   usuario,
   telaAtual,
+  novidadesPorTela = {},
   onNavegar,
   onSair,
   children,
@@ -55,6 +56,8 @@ function Layout({
               const motivo = semInicial(usuario.pokemons)
                 ? 'Escolha seu Pokémon inicial primeiro'
                 : `Libera quando você tiver ${TAMANHO_TIME} Pokémon (o inicial + 2 da Loja)`;
+              // Aba bloqueada não mostra contagem: a pessoa ainda não consegue abrir para ver
+              const novidades = bloqueada ? 0 : (novidadesPorTela[tela] ?? 0);
               return (
                 <button
                   key={tela}
@@ -68,6 +71,11 @@ function Layout({
                 >
                   {bloqueada && <span aria-hidden="true">🔒 </span>}
                   {nome}
+                  {novidades > 0 && (
+                    <span className="layout-novidades" aria-label={`${novidades} ${flexionar(novidades, 'novidade', 'novidades')}`}>
+                      {novidades > 9 ? '9+' : novidades}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -110,6 +118,8 @@ Layout.propTypes = {
     pokemons: PropTypes.arrayOf(PropTypes.object).isRequired,
   }).isRequired,
   telaAtual: PropTypes.string.isRequired,
+  // Notificações pendentes por tela ({ trocas: 2 }): viram a bolinha com o número no menu
+  novidadesPorTela: PropTypes.objectOf(PropTypes.number),
   onNavegar: PropTypes.func.isRequired,
   onSair: PropTypes.func.isRequired,
   children: PropTypes.node.isRequired,

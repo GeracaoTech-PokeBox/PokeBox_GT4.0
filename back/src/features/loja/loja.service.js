@@ -8,12 +8,14 @@ const { ErroJogo, ErroPokeApi } = require('../../compartilhado/erros');
 const { rngSeguro, inteiroEntre } = require('../../compartilhado/aleatorio');
 const { garantirEspecie, especieSalvaEntre } = require('../especies');
 const { mintarPokemon, buscarCard } = require('../pokemons');
+const { sortearGolpeInicial } = require('../golpes');
 const model = require('./loja.model');
 
 /** O inicial só pode ser escolhido uma vez, por quem ainda não tem nenhum Pokémon */
 async function escolherInicial(usuarioId, especieId) {
   if (!config.INICIAIS.includes(especieId)) throw new ErroJogo('Pokémon inicial inválido.');
   await garantirEspecie(especieId);
+  const golpes = await sortearGolpeInicial(especieId);
 
   return transacao(async (client) => {
     // Trava o usuário para dois cliques não criarem dois iniciais
@@ -21,7 +23,7 @@ async function escolherInicial(usuarioId, especieId) {
     if (await model.temAlgumPokemon(client, usuarioId)) throw new ErroJogo('Você já escolheu seu Pokémon inicial.');
 
     const id = await mintarPokemon(client, {
-      donoId: usuarioId, especieId, origem: 'inicial', posicaoTime: 1,
+      donoId: usuarioId, especieId, origem: 'inicial', posicaoTime: 1, golpes,
     });
     return buscarCard(client, id);
   });
@@ -72,6 +74,7 @@ async function comprarPokemonAleatorio(usuarioId, numeroGeracao, rng = rngSeguro
 
   // Sorteia e busca a espécie antes da transação (a PokeAPI pode demorar)
   const especie = await sortearEspecieDaLoja(geracao, rng);
+  const golpes = await sortearGolpeInicial(especie.id);
 
   return transacao(async (client) => {
     const saldo = await carteira.debitar(client, {
@@ -81,7 +84,7 @@ async function comprarPokemonAleatorio(usuarioId, numeroGeracao, rng = rngSeguro
 
     const posicaoTime = await model.primeiraVagaNoTime(client, usuarioId, config.TAMANHO_TIME);
     const id = await mintarPokemon(client, {
-      donoId: usuarioId, especieId: especie.id, origem: 'loja', posicaoTime, rng,
+      donoId: usuarioId, especieId: especie.id, origem: 'loja', posicaoTime, golpes, rng,
     });
     return { pokemon: await buscarCard(client, id), saldo };
   });

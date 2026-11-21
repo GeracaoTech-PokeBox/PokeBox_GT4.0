@@ -16,6 +16,7 @@ import { Trocas } from '@/features/trocas';
 import { Historia } from '@/features/historia';
 import { Sobre } from '@/features/sobre';
 import { TutorialGeral, TutorialProvider, useTutorial } from '@/features/tutorial';
+import { PainelNovidades, useNotificacoes } from '@/features/notificacoes';
 
 /* [SOLID-S] Antes, o App tinha 4 responsabilidades: sessão, navegação, as ações de outras telas
  * (evoluir, comprar, salvar o time...) e montar a interface. Agora só decide qual tela mostrar.
@@ -90,6 +91,7 @@ function App() {
   const {
     usuario, conferindoSessao, restaurarSessao, entrar, cadastrar, sair, verificarUsuario, redefinirSenha, atualizarUsuario,
   } = useSessao();
+  const { porAba: novidadesPorTela, recarregar: recarregarNovidades } = useNotificacoes();
   // O Time avisa se tem alterações não salvas; sair dele com alterações pede confirmação
   const timeAlterado = useRef(false);
   const marcarTimeAlterado = useCallback((alterado) => {
@@ -147,6 +149,7 @@ function App() {
   const handleNavegar = (destino) => confirmarSaida(() => {
     setTela(destino);
     atualizarUsuario();
+    recarregarNovidades();
   });
 
   const handleAbrirBatalha = (id) => {
@@ -209,6 +212,7 @@ function App() {
     <Layout
       usuario={usuario}
       telaAtual={telaMenu}
+      novidadesPorTela={novidadesPorTela}
       onNavegar={handleNavegar}
       onSair={handleSair}
     >
@@ -220,7 +224,11 @@ function App() {
           irPara={irPara}
           destino={precisaInicial ? ROTAS.meusPokemons : ROTAS.loja}
         >
-          {renderTela()}
+          <>
+            {/* O que mudou nesta aba e o treinador ainda não viu (ver dá Pokécoins) */}
+            <PainelNovidades tela={telaMenu} />
+            {renderTela()}
+          </>
         </TelaPermitida>
         <TutorialGeral />
       </TutorialProvider>

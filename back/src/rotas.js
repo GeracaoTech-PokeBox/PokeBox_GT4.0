@@ -12,6 +12,7 @@ const treinadores = require('./features/treinadores');
 const trocas = require('./features/trocas');
 const historia = require('./features/historia');
 const batalhas = require('./features/batalhas');
+const notificacoes = require('./features/notificacoes');
 const { tratarErros } = require('./compartilhado/middlewares/tratarErros');
 
 const router = express.Router();
@@ -28,6 +29,7 @@ router.use(treinadores.rotas); // /treinadores, /treinadores/ativos, /presenca
 router.use(trocas.rotas); // /mercado, /anuncios, /propostas
 router.use(historia.rotas); // /historia/...
 router.use(batalhas.rotas); // /batalhas/...
+router.use(notificacoes.rotas); // /notificacoes
 
 // Sempre por último: erros lançados em qualquer rota acima caem aqui
 router.use(tratarErros);

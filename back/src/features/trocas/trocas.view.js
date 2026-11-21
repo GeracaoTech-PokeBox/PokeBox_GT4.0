@@ -1,5 +1,5 @@
 // Trocas: formato do JSON que vai para o front
-// O card anunciado vem no formato público da feature pokemons (sem afeto, cuidados nem golpes)
+// O card anunciado vem no formato público da feature pokemons (sem afeto nem cuidados; com os golpes)
 const { cardPublico } = require('../pokemons');
 
 /** Linha de anúncio (SELECT_ANUNCIO) no formato do front */

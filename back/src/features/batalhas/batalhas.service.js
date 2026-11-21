@@ -18,6 +18,7 @@ const config = require('../../compartilhado/config');
 const { ErroJogo, NaoEncontrado } = require('../../compartilhado/erros');
 const motor = require('../../nucleo/motor');
 const { buscarPorLogin } = require('../contas');
+const { notificar } = require('../notificacoes');
 const model = require('./batalhas.model');
 const { distribuirRecompensas } = require('./batalhas.recompensas');
 const view = require('./batalhas.view');
@@ -78,6 +79,14 @@ async function desafiar(desafianteId, loginOponente) {
 
     const id = await model.inserirDesafio(client, {
       desafianteId, desafiadoId, expiraEm: depoisDe(agora, config.PRAZO_DESAFIO_MS),
+    });
+    const [desafiante] = await model.buscarLogins(client, [desafianteId]);
+    await notificar(client, {
+      usuarioId: desafiadoId,
+      aba: 'batalhas',
+      chave: `desafio:${id}`,
+      titulo: 'Novo desafio!',
+      texto: `${desafiante.login} desafiou você para uma batalha.`,
     });
     return buscarBatalha(client, id, desafianteId);
   });
@@ -172,6 +181,18 @@ async function registrarResultado(client, batalha, {
   });
   const recompensas = await distribuirRecompensas(client, batalha.id, estado, fim);
   await model.salvarRecompensas(client, batalha.id, recompensas);
+
+  // Os dois ficam sabendo do resultado (a batalha pode ter acabado por W.O. com o jogador fora)
+  for (const [i, lado] of estado.lados.entries()) {
+    const venceu = i === fim.vencedor;
+    await notificar(client, {
+      usuarioId: lado.usuarioId,
+      aba: 'batalhas',
+      chave: `batalha:${batalha.id}`,
+      titulo: venceu ? 'Vitória!' : 'Derrota',
+      texto: `Sua batalha contra ${estado.lados[1 - i].login} terminou: você ${venceu ? 'venceu' : 'perdeu'}.`,
+    });
+  }
 }
 
 /**

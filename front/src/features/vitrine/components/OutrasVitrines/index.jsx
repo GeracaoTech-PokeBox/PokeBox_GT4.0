@@ -27,7 +27,12 @@ function OutrasVitrines({ onVisitar }) {
       <ul className="vitrine-outras-lista">
         {lista?.map((item) => (
           <li key={item.login}>
-            <button type="button" className="vitrine-outra" onClick={() => onVisitar(item.login)}>
+            <button
+              type="button"
+              className="vitrine-outra"
+              title={`${item.login} · ${item.especies} espécies · ${item.visitas} visitas`}
+              onClick={() => onVisitar(item.login)}
+            >
               <Avatar login={item.login} />
               <span className="vitrine-outra-texto">
                 <strong>{item.login}</strong>

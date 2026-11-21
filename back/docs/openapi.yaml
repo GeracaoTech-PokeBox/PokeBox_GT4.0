@@ -38,6 +38,8 @@ tags:
     description: Modo história (PvE). 5 trilhas de 10 pontos, cada ponto um Pokémon selvagem
   - name: Batalhas
     description: Batalhas PvP assíncronas, com 1 minuto por jogada
+  - name: Notificações
+    description: O que mudou em cada aba e o treinador ainda não viu. Ver cada uma dá Pokécoins (até 15 por dia)
 
 # Por padrão toda rota exige o token; as públicas sobrescrevem com "security: []"
 security:
@@ -427,8 +429,9 @@ paths:
       tags: [Pokémon]
       summary: Sortear golpes especiais
       description: |
-        Sorteia 2 golpes que causam dano entre os que a espécie aprende. Exige golpes liberados
-        (afeto máximo ou desbloqueio pago). A primeira roleta é grátis; as seguintes custam 100.
+        Mantém o golpe com que o Pokémon nasceu e sorteia mais 2 golpes que causam dano entre os que
+        a espécie aprende. Exige golpes liberados (afeto máximo ou desbloqueio pago). A primeira roleta
+        é grátis; as seguintes custam 100 e trocam só os 2 golpes extras.
       parameters:
         - $ref: '#/components/parameters/IdPokemon'
       responses:
@@ -441,12 +444,75 @@ paths:
     post:
       tags: [Pokémon]
       summary: Desbloquear golpes especiais (200 Pokécoins)
-      description: Libera os golpes sem precisar do afeto máximo. Já inclui a primeira roleta.
+      description: Libera os golpes sem precisar do afeto máximo. Já sorteia os 2 golpes extras.
       parameters:
         - $ref: '#/components/parameters/IdPokemon'
       responses:
         '200': { $ref: '#/components/responses/CardComCusto' }
         '400': { $ref: '#/components/responses/ErroDeRegra' }
+        '404': { $ref: '#/components/responses/NaoEncontrado' }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  # -------------------------------------------------------------------------
+  # Notificações
+  # -------------------------------------------------------------------------
+  /notificacoes:
+    get:
+      tags: [Notificações]
+      summary: Notificações pendentes, por aba
+      description: |
+        Até 200 notificações ainda não vistas, da mais nova para a mais antiga. Assuntos repetidos
+        (ex.: visitas na vitrine) ficam numa notificação só, com `quantidade`.
+      responses:
+        '200':
+          description: Pendentes e a contagem por aba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notificacoes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        aba: { type: string, enum: [pokemons, meusPokemons, loja, time, historia, vitrine, trocas, batalhas, sobre] }
+                        titulo: { type: string }
+                        texto: { type: string }
+                        quantidade: { type: integer }
+                        criadaEm: { type: string, format: date-time }
+                  porAba:
+                    type: object
+                    additionalProperties: { type: integer }
+                    example: { trocas: 2, vitrine: 1 }
+                  recompensa: { type: integer, description: Pokécoins por notificação vista, example: 5 }
+                  recompensasRestantesHoje: { type: integer, example: 15 }
+        '401': { $ref: '#/components/responses/NaoAutenticado' }
+
+  /notificacoes/{id}/ver:
+    post:
+      tags: [Notificações]
+      summary: Marcar como vista (e ganhar Pokécoins)
+      description: |
+        Marca a notificação como vista. Dá 5 Pokécoins enquanto houver recompensas no limite do dia
+        (15); passando dele, só marca como vista (`pokecoins: 0`).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Vista
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pokecoins: { type: integer, example: 5 }
+                  saldo: { type: integer }
+                  recompensasRestantesHoje: { type: integer }
         '404': { $ref: '#/components/responses/NaoEncontrado' }
         '401': { $ref: '#/components/responses/NaoAutenticado' }
 
