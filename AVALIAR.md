@@ -12,7 +12,7 @@ Este arquivo resume o projeto e indica onde está cada parte, para facilitar a a
 |---|---|
 | **Felipe** | Back (reestruturação MVC, testes e princípios), hospedagem e Swagger |
 | **Lucas** | Front, Back, testes de segurança e API |
-| **Vitor** | Testes Cypress, Allure e Discord |
+| **Victor** | Testes Cypress, Allure e Discord |
 
 ---
 
